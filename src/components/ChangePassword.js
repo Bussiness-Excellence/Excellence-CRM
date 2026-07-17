@@ -52,8 +52,11 @@ export default function ChangePassword() {
     <div className="login-screen">
       <div className="login-card">
         <div className="login-logos">
-          <img src="/eipico-logo.png" alt="EIPICO" className="login-logo-company" />
-          <img src="/dept-logo.png" alt="Excellence Department" className="login-logo-dept" />
+          <div className="login-logos-pill">
+            <img src="/eipico-logo.png" alt="EIPICO" className="login-logo-company" />
+            <div className="login-logos-divider" />
+            <img src="/dept-logo.png" alt="Excellence Department" className="login-logo-dept" />
+          </div>
         </div>
         <h1>Set a new password</h1>
         <p className="login-sub">

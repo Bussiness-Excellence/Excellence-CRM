@@ -232,8 +232,11 @@ export default function Dashboard() {
       {/* Header */}
       <header className="dashboard-header">
         <div className="dashboard-brand">
-          <img src="/eipico-logo.png" alt="EIPICO" className="header-logo header-logo-company" />
-          <img src="/dept-logo.png" alt="Excellence Department" className="header-logo header-logo-dept" />
+          <div className="header-logos-pill">
+            <img src="/eipico-logo.png" alt="EIPICO" className="header-logo header-logo-company" />
+            <div className="header-logos-divider" />
+            <img src="/dept-logo.png" alt="Excellence Department" className="header-logo header-logo-dept" />
+          </div>
           <div className="dashboard-brand-text">
             <div className="dashboard-app-title">{t.appTitle}</div>
             <div className="dashboard-role-label">{(t.roles[profile?.role] || '')} {isRtl ? '' : 'view'}</div>
