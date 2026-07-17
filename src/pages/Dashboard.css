@@ -1,0 +1,51 @@
+/* ── base (keep existing rules, add below) ─────────────────────── */
+.dashboard { min-height:100vh; background:#f4f2ec; color:#16233f; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+.dashboard.rtl { direction:rtl; }
+
+.dashboard-header { display:flex; justify-content:space-between; align-items:center; background:#16233f; color:#faf8f3; padding:20px 32px; }
+.dashboard-mark { font-family:'Georgia','Times New Roman',serif; letter-spacing:.28em; font-size:11px; font-weight:700; color:#d3ac3d; margin-bottom:6px; }
+.dashboard-header h1 { font-family:'Georgia','Times New Roman',serif; font-size:22px; margin:0; }
+.dashboard-header-right { display:flex; align-items:center; gap:16px; }
+.dashboard-user { text-align:right; }
+.rtl .dashboard-user { text-align:left; }
+.dashboard-user-name { font-weight:600; font-size:14px; }
+.dashboard-user-role { font-size:12px; color:#b7bfd1; }
+
+.signout-button { background:transparent; border:1px solid #4a577a; color:#faf8f3; padding:8px 14px; border-radius:3px; font-size:13px; cursor:pointer; }
+.signout-button:hover { background:#223252; }
+
+.lang-toggle { background:#d3ac3d; border:none; color:#16233f; padding:6px 12px; border-radius:3px; font-size:13px; font-weight:700; cursor:pointer; letter-spacing:.04em; }
+.lang-toggle:hover { background:#e0bd56; }
+
+/* ── toolbar ──────────────────────────────────────────────────────── */
+.dashboard-toolbar { display:flex; align-items:center; gap:12px; padding:20px 32px 0; flex-wrap:wrap; }
+.dashboard-toolbar label { font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.03em; color:#5a5f6b; }
+.dashboard-toolbar select { border:1px solid #d7d3c8; border-radius:3px; padding:7px 10px; font-size:14px; background:#fff; }
+.dashboard-stats { font-size:13px; color:#5a5f6b; }
+.download-button { margin-left:auto; background:#16233f; color:#faf8f3; border:none; padding:8px 16px; border-radius:3px; font-size:13px; cursor:pointer; font-weight:600; }
+.rtl .download-button { margin-left:0; margin-right:auto; }
+.download-button:hover { background:#1e2f52; }
+
+/* ── tabs ─────────────────────────────────────────────────────────── */
+.tabs { display:flex; gap:0; padding:16px 32px 0; border-bottom:2px solid #d7d3c8; margin:0 0 0; }
+.tab { background:none; border:none; border-bottom:2px solid transparent; margin-bottom:-2px; padding:10px 20px; font-size:13px; font-weight:600; color:#5a5f6b; cursor:pointer; transition:color .15s,border-color .15s; }
+.tab:hover { color:#16233f; }
+.tab-active { color:#16233f; border-bottom-color:#d3ac3d; }
+
+/* ── error ────────────────────────────────────────────────────────── */
+.dashboard-error { margin:12px 32px; padding:10px 14px; background:#fdecec; border:1px solid #f2b8b8; color:#9b2c2c; font-size:13px; border-radius:3px; }
+
+/* ── table ────────────────────────────────────────────────────────── */
+.table-wrap { margin:16px 32px 40px; overflow-x:auto; background:#fff; border-radius:4px; box-shadow:0 1px 3px rgba(22,35,63,.08); }
+.summary-table { width:100%; border-collapse:collapse; font-size:13px; }
+.summary-table th { text-align:left; padding:11px 14px; background:#ede9dd; color:#16233f; font-weight:600; white-space:nowrap; border-bottom:2px solid #d7d3c8; position:sticky; top:0; }
+.rtl .summary-table th { text-align:right; }
+.summary-table td { padding:9px 14px; border-bottom:1px solid #ede9dd; white-space:nowrap; }
+.rtl .summary-table td { text-align:right; }
+.summary-table tbody tr:hover { background:#faf8f3; }
+
+/* Manager row — appears last in each team block, subtly highlighted */
+.row-manager td { background:#fdf6e3; font-weight:600; }
+.row-manager:hover td { background:#f9f0d0; }
+
+.centered-message { display:flex; align-items:center; justify-content:center; min-height:40vh; color:#5a5f6b; font-size:14px; text-align:center; padding:24px; }

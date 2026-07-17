@@ -1,0 +1,116 @@
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(1200px 600px at 15% -10%, #1f3053 0%, transparent 60%),
+    linear-gradient(160deg, #0d1526 0%, #16233f 55%, #0d1526 100%);
+  padding: 24px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  background: #faf8f3;
+  border-radius: 4px;
+  padding: 40px 36px 32px;
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.5);
+}
+
+.login-mark {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  letter-spacing: 0.28em;
+  font-size: 12px;
+  font-weight: 700;
+  color: #b8860b;
+  margin-bottom: 18px;
+}
+
+.login-card h1 {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 28px;
+  margin: 0 0 6px;
+  color: #16233f;
+}
+
+.login-sub {
+  margin: 0 0 28px;
+  color: #5a5f6b;
+  font-size: 14px;
+}
+
+.login-card form {
+  display: flex;
+  flex-direction: column;
+}
+
+.login-card label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #5a5f6b;
+  margin-bottom: 6px;
+  margin-top: 18px;
+}
+
+.login-card label:first-of-type {
+  margin-top: 0;
+}
+
+.login-card input {
+  border: 1px solid #d7d3c8;
+  border-radius: 3px;
+  padding: 11px 12px;
+  font-size: 15px;
+  background: #fff;
+  color: #16233f;
+}
+
+.login-card input:focus-visible {
+  outline: 2px solid #b8860b;
+  outline-offset: 1px;
+  border-color: #b8860b;
+}
+
+.login-error {
+  margin-top: 16px;
+  padding: 10px 12px;
+  background: #fdecec;
+  border: 1px solid #f2b8b8;
+  color: #9b2c2c;
+  font-size: 13px;
+  border-radius: 3px;
+}
+
+.login-card button {
+  margin-top: 26px;
+  padding: 12px;
+  background: #16233f;
+  color: #faf8f3;
+  border: none;
+  border-radius: 3px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.login-card button:hover:not(:disabled) {
+  background: #223252;
+}
+
+.login-card button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.login-hint {
+  margin: 22px 0 0;
+  font-size: 12px;
+  color: #8a8f99;
+  text-align: center;
+  line-height: 1.5;
+}
