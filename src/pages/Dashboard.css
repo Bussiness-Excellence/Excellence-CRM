@@ -2,9 +2,14 @@
 .dashboard { min-height:100vh; background:#f4f2ec; color:#16233f; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
 .dashboard.rtl { direction:rtl; }
 
-.dashboard-header { display:flex; justify-content:space-between; align-items:center; background:#16233f; color:#faf8f3; padding:20px 32px; }
-.dashboard-mark { font-family:'Georgia','Times New Roman',serif; letter-spacing:.28em; font-size:11px; font-weight:700; color:#d3ac3d; margin-bottom:6px; }
-.dashboard-header h1 { font-family:'Georgia','Times New Roman',serif; font-size:22px; margin:0; }
+.dashboard-header { display:flex; justify-content:space-between; align-items:center; background:#16233f; color:#faf8f3; padding:14px 32px; }
+.dashboard-brand { display:flex; align-items:center; gap:14px; }
+.header-logo { object-fit:contain; flex-shrink:0; }
+.header-logo-company { height:52px; width:52px; background:#fff; border-radius:50%; padding:3px; }
+.header-logo-dept { height:46px; width:46px; filter:brightness(0) invert(1); opacity:.9; }
+.dashboard-brand-text { display:flex; flex-direction:column; gap:2px; }
+.dashboard-app-title { font-family:'Georgia','Times New Roman',serif; font-size:17px; font-weight:700; color:#faf8f3; letter-spacing:.02em; }
+.dashboard-role-label { font-size:12px; color:#d3ac3d; font-weight:600; letter-spacing:.04em; text-transform:uppercase; }
 .dashboard-header-right { display:flex; align-items:center; gap:16px; }
 .dashboard-user { text-align:right; }
 .rtl .dashboard-user { text-align:left; }

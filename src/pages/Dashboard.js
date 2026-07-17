@@ -7,13 +7,14 @@ import './Dashboard.css';
 // ── i18n ─────────────────────────────────────────────────────────────────────
 const T = {
   en: {
-    brand: 'EXCELLENCE', signOut: 'Sign out', period: 'Period', team: 'Team',
+    signOut: 'Sign out', period: 'Period', team: 'Team',
     allTeams: 'All teams', user: 'User', download: 'Download Excel',
     loading: 'Loading…', noData: 'No data for this period yet.',
     people: (n) => `${n} ${n === 1 ? 'person' : 'people'}`,
     acrossTeams: (n) => ` across ${n} teams`,
     tabs: { summary: 'Summary', specialty: 'Specialty × Class', products: 'Product Calls', coaching: 'Coaching Days' },
     roles: { MR: 'My', Supervisor: "My team's", 'Area Manager': "My area's", BLM: "My team's", Admin: 'All teams' },
+    appTitle: 'Excellence-CRM web app',
     cols: {
       team: 'Team', user_name: 'User', territory: 'Territory', is_manager: 'Manager',
       working_days: 'Working Days', complete_field_days: 'Field Days',
@@ -39,13 +40,14 @@ const T = {
     },
   },
   ar: {
-    brand: 'إكسيلنس', signOut: 'تسجيل خروج', period: 'الفترة', team: 'الفريق',
+    signOut: 'تسجيل خروج', period: 'الفترة', team: 'الفريق',
     allTeams: 'كل الفرق', user: 'المستخدم', download: 'تنزيل Excel',
     loading: 'جاري التحميل…', noData: 'لا توجد بيانات لهذه الفترة بعد.',
     people: (n) => `${n} ${n === 1 ? 'شخص' : 'أشخاص'}`,
     acrossTeams: (n) => ` في ${n} فرق`,
     tabs: { summary: 'الملخص', specialty: 'التخصص × الفئة', products: 'المنتجات', coaching: 'التوجيه' },
     roles: { MR: 'بياناتي', Supervisor: 'بيانات فريقي', 'Area Manager': 'بيانات منطقتي', BLM: 'بيانات فريقي', Admin: 'كل الفرق' },
+    appTitle: 'تطبيق Excellence-CRM',
     cols: {
       team: 'الفريق', user_name: 'المستخدم', territory: 'المنطقة', is_manager: 'مدير',
       working_days: 'أيام العمل', complete_field_days: 'أيام الميدان الكاملة',
@@ -229,9 +231,13 @@ export default function Dashboard() {
     <div className={`dashboard${isRtl ? ' rtl' : ''}`} dir={isRtl ? 'rtl' : 'ltr'}>
       {/* Header */}
       <header className="dashboard-header">
-        <div>
-          <div className="dashboard-mark">{t.brand}</div>
-          <h1>{(t.roles[profile?.role] || '')} {isRtl ? '' : 'view'}</h1>
+        <div className="dashboard-brand">
+          <img src="/eipico-logo.png" alt="EIPICO" className="header-logo header-logo-company" />
+          <img src="/dept-logo.png" alt="Excellence Department" className="header-logo header-logo-dept" />
+          <div className="dashboard-brand-text">
+            <div className="dashboard-app-title">{t.appTitle}</div>
+            <div className="dashboard-role-label">{(t.roles[profile?.role] || '')} {isRtl ? '' : 'view'}</div>
+          </div>
         </div>
         <div className="dashboard-header-right">
           <button className="lang-toggle" onClick={() => setLang(lang === 'en' ? 'ar' : 'en')}>

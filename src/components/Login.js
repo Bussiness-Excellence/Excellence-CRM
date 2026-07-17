@@ -23,8 +23,11 @@ export default function Login() {
   return (
     <div className="login-screen">
       <div className="login-card">
-        <div className="login-mark">EXCELLENCE</div>
-        <h1>Sign in</h1>
+        <div className="login-logos">
+          <img src="/eipico-logo.png" alt="EIPICO" className="login-logo-company" />
+          <img src="/dept-logo.png" alt="Excellence Department" className="login-logo-dept" />
+        </div>
+        <h1>Excellence-CRM</h1>
         <p className="login-sub">Use your employee code and password.</p>
 
         <form onSubmit={handleSubmit}>

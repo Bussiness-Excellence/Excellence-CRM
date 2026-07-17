@@ -18,13 +18,28 @@
   box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.5);
 }
 
-.login-mark {
-  font-family: 'Georgia', 'Times New Roman', serif;
-  letter-spacing: 0.28em;
-  font-size: 12px;
-  font-weight: 700;
-  color: #b8860b;
-  margin-bottom: 18px;
+.login-logos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.login-logo-company {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 50%;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+
+.login-logo-dept {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
 }
 
 .login-card h1 {
