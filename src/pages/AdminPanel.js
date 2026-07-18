@@ -21,7 +21,6 @@ export default function AdminPanel() {
   const [saving, setSaving]     = useState(false);
   const [msg, setMsg]           = useState({ text:'', type:'' });
 
-  const [periods, setPeriods]   = useState([]);
   const [periodStats, setPeriodStats] = useState([]);
 
   const showMsg = (text, type='ok') => {
@@ -39,7 +38,6 @@ export default function AdminPanel() {
     setUsers(u || []);
     setTeams(t || []);
     const periodsUniq = [...new Set((s||[]).map(r=>r.period))].sort().reverse();
-    setPeriods(periodsUniq);
     // Count users with data per period
     const stats = periodsUniq.map(p => ({
       period: p,
@@ -80,8 +78,8 @@ export default function AdminPanel() {
       showMsg('Password must be at least 6 characters', 'err'); return;
     }
     setSaving(true);
-    // Use admin API via Edge Function (or service role) — call our provisioning endpoint
-    const resp = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/reset-password`, {
+    // Use admin API via Vercel serverless function
+    const resp = await fetch('/api/reset-password', {
       method:'POST',
       headers:{
         'Content-Type':'application/json',
