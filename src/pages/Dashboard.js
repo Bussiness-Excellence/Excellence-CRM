@@ -694,33 +694,33 @@ export default function Dashboard() {
             const cells = {};
             fSpecialty.forEach(r => {
               const k = `${r.specialty||'?'} · ${r.shift||'?'}`;
-              if (!cells[k]) cells[k] = {};
-              cells[k][r.user_name] = (cells[k][r.user_name]||0) + (r.call_count||0);
+              if (!cells[r.user_name]) cells[r.user_name] = {};
+              cells[r.user_name][k] = (cells[r.user_name][k]||0) + (r.call_count||0);
             });
             return (
               <div className="pivot-wrap">
                 <table className="pivot-table">
                   <thead>
                     <tr>
-                      <th className="sticky-col">{lang==='ar'?'التخصص / الفترة':'Specialty / Shift'}</th>
-                      {users.map(u => <th key={u}>{u}</th>)}
+                      <th className="sticky-col">{lang==='ar'?'المستخدم':'User'}</th>
+                      {specKeys.map(k => <th key={k}>{k}</th>)}
                       <th className="total-col">Total</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {specKeys.map(k => {
-                      const rowTotal = users.reduce((s,u)=>s+(cells[k][u]||0),0);
+                    {users.map(u => {
+                      const rowTotal = specKeys.reduce((s,k)=>s+(cells[u][k]||0),0);
                       return (
-                        <tr key={k}>
-                          <td className="sticky-col row-head">{k}</td>
-                          {users.map(u=><td key={u} className={cells[k][u]?'has-val':'empty-val'}>{cells[k][u]||''}</td>)}
+                        <tr key={u}>
+                          <td className="sticky-col row-head">{u}</td>
+                          {specKeys.map(k=><td key={k} className={cells[u][k]?'has-val':'empty-val'}>{cells[u][k]||''}</td>)}
                           <td className="total-col">{rowTotal}</td>
                         </tr>
                       );
                     })}
                     <tr className="total-row">
                       <td className="sticky-col">Total</td>
-                      {users.map(u=><td key={u}>{fSpecialty.filter(r=>r.user_name===u).reduce((s,r)=>s+(r.call_count||0),0)}</td>)}
+                      {specKeys.map(k=><td key={k}>{users.reduce((s,u)=>s+(cells[u][k]||0),0)}</td>)}
                       <td className="total-col">{fSpecialty.reduce((s,r)=>s+(r.call_count||0),0)}</td>
                     </tr>
                   </tbody>
@@ -737,33 +737,33 @@ export default function Dashboard() {
             const cells = {};
             fProducts.forEach(r => {
               const k = `${r.product||'?'} · ${r.shift||'?'}`;
-              if (!cells[k]) cells[k]={};
-              cells[k][r.user_name] = (cells[k][r.user_name]||0) + (r.call_count||0);
+              if (!cells[r.user_name]) cells[r.user_name]={};
+              cells[r.user_name][k] = (cells[r.user_name][k]||0) + (r.call_count||0);
             });
             return (
               <div className="pivot-wrap">
                 <table className="pivot-table">
                   <thead>
                     <tr>
-                      <th className="sticky-col">{lang==='ar'?'المنتج / الفترة':'Product / Shift'}</th>
-                      {users.map(u=><th key={u}>{u}</th>)}
+                      <th className="sticky-col">{lang==='ar'?'المستخدم':'User'}</th>
+                      {prodKeys.map(k=><th key={k}>{k}</th>)}
                       <th className="total-col">Total</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {prodKeys.map(k => {
-                      const rowTotal = users.reduce((s,u)=>s+(cells[k][u]||0),0);
+                    {users.map(u => {
+                      const rowTotal = prodKeys.reduce((s,k)=>s+(cells[u][k]||0),0);
                       return (
-                        <tr key={k}>
-                          <td className="sticky-col row-head">{k}</td>
-                          {users.map(u=><td key={u} className={cells[k][u]?'has-val':'empty-val'}>{cells[k][u]||''}</td>)}
+                        <tr key={u}>
+                          <td className="sticky-col row-head">{u}</td>
+                          {prodKeys.map(k=><td key={k} className={cells[u][k]?'has-val':'empty-val'}>{cells[u][k]||''}</td>)}
                           <td className="total-col">{rowTotal}</td>
                         </tr>
                       );
                     })}
                     <tr className="total-row">
                       <td className="sticky-col">Total</td>
-                      {users.map(u=><td key={u}>{fProducts.filter(r=>r.user_name===u).reduce((s,r)=>s+(r.call_count||0),0)}</td>)}
+                      {prodKeys.map(k=><td key={k}>{users.reduce((s,u)=>s+(cells[u][k]||0),0)}</td>)}
                       <td className="total-col">{fProducts.reduce((s,r)=>s+(r.call_count||0),0)}</td>
                     </tr>
                   </tbody>
