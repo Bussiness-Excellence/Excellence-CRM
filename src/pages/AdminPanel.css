@@ -1,0 +1,91 @@
+/* ── Admin Panel ─────────────────────────────────────────────────────── */
+.admin { min-height:100vh; background:#f0f2f5; }
+
+.admin-hdr {
+  display:flex; justify-content:space-between; align-items:center;
+  background:#16243e; color:#fff; padding:0 28px; height:60px;
+}
+.admin-hdr-left  { display:flex; align-items:center; gap:16px; }
+.admin-hdr-right { display:flex; align-items:center; gap:12px; }
+.admin-brand { font-family:'Georgia',serif; letter-spacing:.22em; font-size:13px; font-weight:700; color:#c8a84b; }
+.admin-title { font-size:14px; font-weight:600; color:#7a8fbb; }
+.admin-who   { font-size:13px; color:#a0b0cc; }
+
+.abtn { display:inline-flex; align-items:center; padding:7px 14px; border:none; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; text-decoration:none; transition:all .15s; }
+.abtn-ghost  { background:rgba(255,255,255,.08); color:#d0daea; }
+.abtn-ghost:hover { background:rgba(255,255,255,.16); }
+.abtn-edit   { background:#e8f0fe; color:#2d5be3; border:1px solid #b8ccf8; font-size:12px; padding:4px 10px; }
+.abtn-edit:hover { background:#d0e4fd; }
+.abtn-primary { background:#16243e; color:#fff; }
+.abtn-primary:hover { background:#1e2f52; }
+.abtn-danger { background:#c0392b; color:#fff; }
+.abtn-danger:hover { background:#a93226; }
+.abtn:disabled { opacity:.5; cursor:not-allowed; }
+
+.admin-msg { padding:12px 28px; font-size:13px; font-weight:600; }
+.msg-ok  { background:#d4edda; color:#155724; }
+.msg-err { background:#f8d7da; color:#721c24; }
+
+.admin-body { display:flex; gap:0; min-height:calc(100vh - 60px); }
+
+/* ── Sidebar ── */
+.admin-side { width:240px; flex-shrink:0; background:#fff; border-right:1px solid #e3e8f0; padding:20px 0; overflow-y:auto; }
+.aside-section { padding:0 16px 20px; border-bottom:1px solid #f0f2f7; margin-bottom:4px; }
+.aside-title { font-size:10px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:#8a9ab8; margin-bottom:10px; padding-top:8px; }
+.aside-empty { font-size:13px; color:#aab; }
+
+.period-card { padding:8px 10px; background:#f7f9fc; border-radius:6px; margin-bottom:6px; border:1px solid #e3e8f0; }
+.period-name { font-size:13px; font-weight:700; color:#16243e; }
+.period-meta { font-size:11px; color:#8a9ab8; margin-top:2px; }
+
+.team-stat { display:flex; justify-content:space-between; align-items:center; padding:5px 0; font-size:13px; color:#16243e; border-bottom:1px solid #f5f7fa; }
+.team-cnt  { font-weight:700; color:#16243e; background:#eef2ff; padding:2px 8px; border-radius:10px; font-size:12px; }
+
+/* ── Main ── */
+.admin-main { flex:1; padding:24px; overflow-x:auto; }
+
+.admin-filters { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:16px; }
+.filter-input { border:1.5px solid #e3e8f0; border-radius:7px; padding:8px 12px; font-size:13px; min-width:200px; }
+.filter-input:focus { outline:none; border-color:#c8a84b; }
+.filter-sel { border:1.5px solid #e3e8f0; border-radius:7px; padding:8px 12px; font-size:13px; background:#fff; cursor:pointer; }
+.filter-sel:focus { outline:none; border-color:#c8a84b; }
+.filter-count { font-size:13px; color:#8a9ab8; margin-left:8px; }
+
+.admin-loading { padding:60px; text-align:center; color:#8a9ab8; font-size:14px; }
+
+.admin-table { width:100%; border-collapse:collapse; background:#fff; border-radius:10px; overflow:hidden; box-shadow:0 2px 8px rgba(22,36,62,.06); font-size:13px; }
+.admin-table th { padding:11px 14px; background:#16243e; color:#fff; font-weight:700; text-align:left; white-space:nowrap; }
+.admin-table td { padding:10px 14px; border-bottom:1px solid #f0f2f7; }
+.admin-table tbody tr:hover td { background:#f8f9fc; }
+.admin-table tr.inactive td { opacity:.5; }
+
+.code-cell { font-family:monospace; font-size:12px; color:#8a9ab8; }
+.name-cell { font-weight:600; color:#16243e; }
+
+.role-badge { display:inline-block; padding:3px 8px; border-radius:10px; font-size:11px; font-weight:700; letter-spacing:.02em; }
+.role-admin        { background:#fff0e0; color:#b05a00; }
+.role-blm          { background:#ede8ff; color:#5a2dbe; }
+.role-area-manager { background:#e0f0ff; color:#005ab5; }
+.role-supervisor   { background:#e8f5e9; color:#1b7a3e; }
+.role-mr           { background:#f0f2f7; color:#5a6a8a; }
+
+.toggle-btn { border:none; border-radius:10px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer; transition:all .15s; }
+.toggle-btn.active   { background:#d4edda; color:#155724; }
+.toggle-btn.inactive { background:#f8d7da; color:#721c24; }
+.toggle-btn:hover { opacity:.85; }
+
+.pagination { display:flex; align-items:center; gap:12px; justify-content:center; padding:20px; font-size:13px; color:#8a9ab8; }
+
+/* ── Modal ── */
+.modal-backdrop { position:fixed; inset:0; background:rgba(22,36,62,.5); display:flex; align-items:center; justify-content:center; z-index:1000; backdrop-filter:blur(2px); }
+.modal { background:#fff; border-radius:12px; width:420px; max-width:90vw; box-shadow:0 20px 60px rgba(0,0,0,.2); overflow:hidden; }
+.modal-header { display:flex; justify-content:space-between; align-items:center; padding:20px 24px; background:#16243e; }
+.modal-name { font-size:15px; font-weight:700; color:#fff; }
+.modal-code { font-size:12px; color:#7a8fbb; margin-top:2px; }
+.modal-close { background:none; border:none; color:#7a8fbb; font-size:20px; cursor:pointer; padding:4px 8px; line-height:1; }
+.modal-close:hover { color:#fff; }
+.modal-section { padding:20px 24px; }
+.modal-label { display:block; font-size:12px; font-weight:700; color:#8a9ab8; text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px; }
+.modal-divider { height:1px; background:#f0f2f7; }
+.w100 { width:100%; }
+.mt8  { margin-top:10px; }
