@@ -6,8 +6,22 @@
   background:#16243e; color:#fff; padding:0 28px; height:60px;
 }
 .admin-hdr-left  { display:flex; align-items:center; gap:16px; }
+.admin-hdr-l { display:flex; align-items:center; gap:20px; }
+.admin-brand-wrap { display: flex; align-items: baseline; gap: 8px; }
+.admin-brand { 
+  font-family:'Georgia',serif; letter-spacing:0.05em; 
+  font-size:22px; font-weight:800; 
+  background: linear-gradient(135deg, #60a5fa, #a78bfa);
+  -webkit-background-clip: text;
+  color: transparent; 
+}
+.admin-brand-sub {
+  font-size: 13px; font-weight: 500;
+  color: #94a3b8; letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.admin-sub { font-size:13px; font-weight:600; color:#8fa1be; text-transform:uppercase; letter-spacing:.1em; }
 .admin-hdr-right { display:flex; align-items:center; gap:12px; }
-.admin-brand { font-family:'Georgia',serif; letter-spacing:.22em; font-size:15px; font-weight:700; color:#c8a84b; }
 .admin-title { font-size:16px; font-weight:600; color:#7a8fbb; }
 .admin-who   { font-size:15px; color:#a0b0cc; }
 

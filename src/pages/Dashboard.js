@@ -8,7 +8,7 @@ import './Dashboard.css';
 // ─── i18n ────────────────────────────────────────────────────────────────────
 const T = {
   en: {
-    brand:'EXCELLENCE', signOut:'Sign out', adminPanel:'Admin Panel',
+    brandMain:'Excellence - CRM', brandSub:'web app', signOut:'Sign out', adminPanel:'Admin Panel',
     lastMonth:'Last Month', recent:'Recent  1–15',
     allTeams:'All teams', allUsers:'All reps', search:'Search name or territory…',
     export:'Export', loading:'Loading…', noData:'No data for this period.',
@@ -41,7 +41,7 @@ const T = {
     },
   },
   ar: {
-    brand:'إكسيلنس', signOut:'خروج', adminPanel:'لوحة الإدارة',
+    brandMain:'إكسيلنس - CRM', brandSub:'تطبيق ويب', signOut:'خروج', adminPanel:'لوحة الإدارة',
     lastMonth:'الشهر الماضي', recent:'الأحدث  1–15',
     allTeams:'كل الفرق', allUsers:'كل المندوبين', search:'بحث باسم أو منطقة…',
     export:'تصدير', loading:'جارٍ التحميل…', noData:'لا توجد بيانات.',
@@ -259,7 +259,10 @@ export default function Dashboard() {
       {/* ── HEADER ── */}
       <header className="dash-hdr">
         <div className="dash-hdr-l">
-          <span className="dash-brand">{t.brand}</span>
+          <div className="dash-brand-wrap">
+            <span className="dash-brand">{t.brandMain}</span>
+            <span className="dash-brand-sub">{t.brandSub}</span>
+          </div>
           <div className="dash-sep"/>
           <span className="dash-view">{t.roleView[profile?.role]||''}</span>
         </div>

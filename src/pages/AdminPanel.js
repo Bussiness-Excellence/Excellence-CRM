@@ -106,11 +106,14 @@ export default function AdminPanel() {
 
   return (
     <div className="admin">
-      {/* Header */}
+      {/* ── HEADER ── */}
       <header className="admin-hdr">
-        <div className="admin-hdr-left">
-          <span className="admin-brand">EXCELLENCE</span>
-          <span className="admin-title">Admin Panel</span>
+        <div className="admin-hdr-l">
+          <div className="admin-brand-wrap">
+            <span className="admin-brand">Excellence - CRM</span>
+            <span className="admin-brand-sub">web app</span>
+          </div>
+          <span className="admin-sub">Admin Panel</span>
         </div>
         <div className="admin-hdr-right">
           <a className="abtn abtn-primary" href="/admin/upload" style={{ marginRight: '16px' }}>↑ Upload CRM Data</a>
