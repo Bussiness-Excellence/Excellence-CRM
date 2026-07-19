@@ -222,10 +222,34 @@ export default function Dashboard() {
   const byTeam=useCallback(rows=>team==='all'?rows:rows.filter(r=>r.team===team),[team]);
 
   const fSummary=useMemo(()=>{
-    let r=sortSummary(byTeam(summary));
-    if(search) r=r.filter(x=>x.user_name?.toLowerCase().includes(search.toLowerCase())||x.territory?.toLowerCase().includes(search.toLowerCase()));
-    if(userFilter!=='all') r=r.filter(x=>x.user_name===userFilter);
-    return r;
+    let raw = sortSummary(byTeam(summary));
+    if(search) raw = raw.filter(x=>x.user_name?.toLowerCase().includes(search.toLowerCase())||x.territory?.toLowerCase().includes(search.toLowerCase()));
+    if(userFilter!=='all') raw = raw.filter(x=>x.user_name===userFilter);
+    
+    // Aggregate duplicates by employee_code
+    const aggregated = new Map();
+    raw.forEach(r => {
+      if (!r.employee_code) return; // Skip if no code
+      if (!aggregated.has(r.employee_code)) {
+        aggregated.set(r.employee_code, { ...r });
+      } else {
+        const existing = aggregated.get(r.employee_code);
+        // Sum numeric fields
+        Object.keys(r).forEach(k => {
+          if (typeof r[k] === 'number') {
+            existing[k] = (existing[k] || 0) + r[k];
+          }
+        });
+        // Merge text fields (if different, just append or keep first)
+        // Recalculate rates since we summed the raw counts
+        if (existing.field_days) {
+            existing.am_call_rate = existing.am_calls / existing.field_days;
+            existing.pm_call_rate = existing.pm_calls / existing.field_days;
+        }
+      }
+    });
+    
+    return Array.from(aggregated.values());
   },[summary,byTeam,search,userFilter]);
 
   const fSpecialty = useMemo(()=>byTeam(specialty),[specialty,byTeam]);
