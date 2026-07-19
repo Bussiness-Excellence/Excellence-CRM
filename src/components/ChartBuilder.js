@@ -27,8 +27,6 @@ const DIMENSIONS = [
 
 const CHART_TYPES = ['Bar', 'Area', 'Line'];
 
-const COLORS = ['#60a5fa', '#a78bfa', '#34d399', '#f472b6', '#fbbf24'];
-
 export default function ChartBuilder({ data, isManager }) {
   const [metric, setMetric] = useState('am_calls');
   const [dimension, setDimension] = useState('user_name');
