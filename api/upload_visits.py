@@ -251,6 +251,30 @@ def compute_all(records, batch, period):
     return summary_rows, coaching_rows, spec_rows, prod_rows
 
 def provision_new_users(records):
+    # First, backfill missing employee_codes from the existing database
+    code_map = {}
+    try:
+        r = requests.get(f"{SUPABASE_URL}/rest/v1/hierarchy?select=employee_name,employee_code&limit=10000", headers=headers())
+        if r.ok:
+            for row in r.json():
+                n = (row.get("employee_name") or "").strip()
+                c = (row.get("employee_code") or "").strip()
+                if n and c: code_map[n] = c
+        
+        r2 = requests.get(f"{SUPABASE_URL}/rest/v1/app_users?select=employee_name,employee_code&limit=10000", headers=headers())
+        if r2.ok:
+            for row in r2.json():
+                n = (row.get("employee_name") or "").strip()
+                c = (row.get("employee_code") or "").strip()
+                if n and c: code_map[n] = c
+                
+    except Exception as e:
+        print(f"Failed to fetch code_map: {e}")
+
+    for rec in records:
+        if not rec["employee_code"] and rec["user"] in code_map:
+            rec["employee_code"] = code_map[rec["user"]]
+
     resp = requests.get(f"{SUPABASE_URL}/rest/v1/teams?select=id,name", headers=headers())
     if not resp.ok: return
     teams_dict = {t["name"].strip().upper(): t["id"] for t in resp.json()}
