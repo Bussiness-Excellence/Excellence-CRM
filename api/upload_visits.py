@@ -9,7 +9,7 @@ from datetime import datetime
 app = Flask(__name__)
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://xxbfwvlqixnmonxytdxq.supabase.co")
-SERVICE_KEY  = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4YmZ3dmxxaXhubW9ueHl0ZHhxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Mjc1NjE2NSwiZXhwIjoyMDk4MzMyMTY1fQ.PSk6RyFmg_OFTcCtYO74AeJj6wT4FGZS2K2JT9GEJ_A)")
+SERVICE_KEY  = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4YmZ3dmxxaXhubW9ueHl0ZHhxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Mjc1NjE2NSwiZXhwIjoyMDk4MzMyMTY1fQ.PSk6RyFmg_OFTcCtYO74AeJj6wT4FGZS2K2JT9GEJ_A")
 BATCH_SIZE   = 500
 
 ACC_TYPE_LABELS_LOWER = {
@@ -40,6 +40,9 @@ def sb_insert(table, rows):
             inserted += min(BATCH_SIZE, len(rows)-i)
         else:
             print(f"    ⚠️  Insert {table} chunk {i}: {r.status_code} {r.text[:100]}")
+            if r.status_code in (401, 403):
+                raise Exception(f"Supabase Authentication Error ({r.status_code}): Check your SUPABASE_SERVICE_ROLE_KEY.")
+            raise Exception(f"Database error ({r.status_code}): {r.text}")
     return inserted
 
 def safe(v):
