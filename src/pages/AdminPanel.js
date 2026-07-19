@@ -10,7 +10,7 @@ const PER_PAGE = 30;
 
 export default function AdminPanel() {
   const { profile, signOut } = useAuth();
-  const { success: toastSuccess, error: toastError, info: toastInfo } = useToast();
+  const { success: toastSuccess, error: toastError } = useToast();
   
   const [users, setUsers]       = useState([]);
   const [teams, setTeams]       = useState([]);
