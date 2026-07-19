@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
+import ChartBuilder from '../components/ChartBuilder';
 import './Dashboard.css';
 
 // ─── i18n ────────────────────────────────────────────────────────────────────
@@ -13,7 +14,7 @@ const T = {
     export:'Export', loading:'Loading…', noData:'No data for this period.',
     shiftAll:'Both', shiftAM:'AM', shiftPM:'PM',
     people: n=>`${n} rep${n!==1?'s':''}`,
-    tabs:{ summary:'Summary', specialty:'Specialty', products:'Products', coaching:'Coaching' },
+    tabs:{ summary:'Summary', specialty:'Specialty', products:'Products', coaching:'Coaching', charts:'Charts' },
     roleView:{ MR:'My Results', Supervisor:'My Team', 'Area Manager':'My Area', BLM:'Full Team', Admin:'All Teams' },
     kpiGroups:[
       { label:'Field Activity', keys:['working_days','complete_field_days','am_shift_days','pm_shift_days','double_visit_days','office_work_days'] },
@@ -46,7 +47,7 @@ const T = {
     export:'تصدير', loading:'جارٍ التحميل…', noData:'لا توجد بيانات.',
     shiftAll:'الكل', shiftAM:'AM', shiftPM:'PM',
     people: n=>`${n} مندوب`,
-    tabs:{ summary:'الملخص', specialty:'التخصص', products:'المنتجات', coaching:'التوجيه' },
+    tabs:{ summary:'الملخص', specialty:'التخصص', products:'المنتجات', coaching:'التوجيه', charts:'الرسوم البيانية' },
     roleView:{ MR:'نتائجي', Supervisor:'فريقي', 'Area Manager':'منطقتي', BLM:'الفريق', Admin:'الكل' },
     kpiGroups:[
       { label:'النشاط الميداني', keys:['working_days','complete_field_days','am_shift_days','pm_shift_days','double_visit_days','office_work_days'] },
@@ -235,10 +236,10 @@ export default function Dashboard() {
   const allUsers=useMemo(()=>[...new Set(byTeam(summary).map(r=>r.user_name))].sort(),[summary,byTeam]);
   const teamCount=new Set(fSummary.map(r=>r.team)).size;
 
-  // ── Tabs (hide Coaching for MR) ────────────────────────────────────────────
+  // ── Tabs (hide Coaching & Charts for MR) ────────────────────────────────────────────
   const visibleTabs=useMemo(()=>{
     const all=Object.entries(t.tabs);
-    return isMgr?all:all.filter(([k])=>k!=='coaching');
+    return isMgr?all:all.filter(([k])=>k!=='coaching' && k!=='charts');
   },[t.tabs,isMgr]);
 
   // ── Export ─────────────────────────────────────────────────────────────────
@@ -445,6 +446,11 @@ export default function Dashboard() {
                 </table>
               </div>
             )
+          )}
+
+          {/* ── CHARTS ── */}
+          {tab==='charts'&&isMgr&&(
+            <ChartBuilder data={fSummary} isManager={isMgr} />
           )}
         </div>
       )}

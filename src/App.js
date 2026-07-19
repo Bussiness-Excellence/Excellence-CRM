@@ -5,6 +5,7 @@ import Login from './components/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
 import AdminPanel from './pages/AdminPanel';
+import AdminUpload from './pages/AdminUpload';
 import './App.css';
 
 function LoginRoute() {
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="/" element={<ProtectedRoute><RootRoute /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPanel /></ProtectedRoute>} />
+          <Route path="/admin/upload" element={<ProtectedRoute adminOnly><AdminUpload /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

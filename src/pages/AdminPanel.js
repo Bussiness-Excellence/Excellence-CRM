@@ -113,6 +113,7 @@ export default function AdminPanel() {
           <span className="admin-title">Admin Panel</span>
         </div>
         <div className="admin-hdr-right">
+          <a className="abtn abtn-primary" href="/admin/upload" style={{ marginRight: '16px' }}>↑ Upload CRM Data</a>
           <a className="abtn abtn-ghost" href="/dashboard">← Dashboard</a>
           <span className="admin-who">{profile?.employee_name}</span>
           <button className="abtn abtn-ghost" onClick={signOut}>Sign out</button>

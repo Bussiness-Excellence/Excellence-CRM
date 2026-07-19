@@ -1,40 +1,15 @@
-#!/usr/bin/env python3
-"""
-pulpoplus_auto_upload.py
-─────────────────────────
-Watches two folders on your machine and automatically uploads data to
-Supabase whenever Excel files are added or replaced:
-
-  E:\periods\last_month\   → period label "Last Month"
-  E:\periods\recent\       → period label "Recent"
-
-SETUP:
-    pip install pandas openpyxl requests watchdog
-
-SET ENV VAR:
-    $env:SUPABASE_SERVICE_ROLE_KEY = "sb_secret_..."
-
-USAGE:
-    python pulpoplus_auto_upload.py
-
-    # Or specify custom folder paths:
-    python pulpoplus_auto_upload.py --last-month "E:\\periods\\last_month" --recent "E:\\periods\\recent"
-
-    # One-time upload without watching:
-    python pulpoplus_auto_upload.py --once
-"""
-
-import os, sys, time, argparse, math, requests
-from pathlib import Path
+import os
+import math
+import requests
+import pandas as pd
+from flask import Flask, request, jsonify
 from collections import defaultdict, Counter
 from datetime import datetime
 
-import pandas as pd
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
+app = Flask(__name__)
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://xxbfwvlqixnmonxytdxq.supabase.co")
-SERVICE_KEY  = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4YmZ3dmxxaXhubW9ueHl0ZHhxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Mjc1NjE2NSwiZXhwIjoyMDk4MzMyMTY1fQ.PSk6RyFmg_OFTcCtYO74AeJj6wT4FGZS2K2JT9GEJ_A)"
+SERVICE_KEY  = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4YmZ3dmxxaXhubW9ueHl0ZHhxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Mjc1NjE2NSwiZXhwIjoyMDk4MzMyMTY1fQ.PSk6RyFmg_OFTcCtYO74AeJj6wT4FGZS2K2JT9GEJ_A)")
 BATCH_SIZE   = 500
 
 ACC_TYPE_LABELS_LOWER = {
@@ -42,7 +17,6 @@ ACC_TYPE_LABELS_LOWER = {
     "pharmacy","distributors","activities","events","activity","event",
 }
 COACHING_TOLERANCE = 90  # minutes
-
 
 def headers():
     return {
@@ -87,48 +61,6 @@ def mins_between(t1, t2):
         except: continue
     return 999
 
-
-# ── Load all xlsx files from a folder ────────────────────────────────────────
-
-def load_folder(folder):
-    records = []
-    files = list(Path(folder).glob("*.xlsx"))
-    if not files:
-        print(f"  ⚠️  No .xlsx files found in {folder}")
-        return records
-    for f in files:
-        try:
-            df = pd.read_excel(f, sheet_name="Raw Data", engine="openpyxl")
-            for _, row in df.iterrows():
-                user = safe(row.get("user"))
-                if not user: continue
-                records.append({
-                    "team":               safe(row.get("team")) or "",
-                    "user":               user,
-                    "employee_code":      safe(row.get("employee_code")) or "",
-                    "territory":          safe(row.get("territory")) or "",
-                    "date":               safe(row.get("date")) or "",
-                    "time":               safe(row.get("time")) or "",
-                    "acc_type_category":  safe(row.get("acc_type_category")) or "",
-                    "shift":              safe(row.get("shift")) or "",
-                    "visit_type_category":safe(row.get("visit_type_category")) or "",
-                    "acc_id":             safe(row.get("acc_id")) or "",
-                    "acc_name":           safe(row.get("acc_name")) or "",
-                    "doctor_key":         safe(row.get("doctor_key")) or "",
-                    "doctor_name":        safe(row.get("doctor_name")) or "",
-                    "specialty":          safe(row.get("specialty")) or "",
-                    "classification":     safe(row.get("classification")) or "",
-                    "products":           safe(row.get("products")) or "",
-                    "members":            [user],
-                })
-            print(f"  ✓ {len(df)} rows from {f.name}")
-        except Exception as e:
-            print(f"  ⚠️  Could not read {f.name}: {e}")
-    return records
-
-
-# ── KPI computation (same as uploader script) ─────────────────────────────────
-
 def backfill_territory(records):
     date_terr = {}
     user_counts = defaultdict(Counter)
@@ -155,7 +87,6 @@ def compute_all(records, batch, period):
     backfill_territory(records)
     managers = identify_managers(records)
 
-    # Also fetch manager roles from hierarchy
     try:
         r = requests.get(f"{SUPABASE_URL}/rest/v1/hierarchy",
                          headers=headers(),
@@ -166,7 +97,6 @@ def compute_all(records, batch, period):
                     managers.add((row.get("employee_name") or "").strip())
     except: pass
 
-    # Coaching days
     matched = defaultdict(set)
     by_key = defaultdict(list)
     for r in records:
@@ -191,7 +121,6 @@ def compute_all(records, batch, period):
                 "coaching_date":date,"upload_batch":batch,
             })
 
-    # Summaries
     by_user = defaultdict(list)
     for r in records: by_user[r["user"]].append(r)
 
@@ -290,7 +219,6 @@ def compute_all(records, batch, period):
             "total_visits":len(urecs), "upload_batch":batch,
         })
 
-    # Specialty
     spec_groups = defaultdict(lambda:{"calls":0,"doctors":set()})
     for r in records:
         if r["shift"] not in ("AM","PM") or not r["specialty"] or not r["classification"]: continue
@@ -302,7 +230,6 @@ def compute_all(records, batch, period):
                 "call_count":agg["calls"],"unique_doctors":len(agg["doctors"]),"upload_batch":batch}
                for (c,u,sp,cl,sh),agg in sorted(spec_groups.items())]
 
-    # Products
     prod_groups = defaultdict(lambda:{"calls":0,"doctors":set()})
     for r in records:
         if r["shift"] not in ("AM","PM") or not r["products"]: continue
@@ -320,221 +247,118 @@ def compute_all(records, batch, period):
 
     return summary_rows, coaching_rows, spec_rows, prod_rows
 
-
 def provision_new_users(records):
-    # 1. Fetch all existing teams
-    print("   🔍 Checking teams...")
     resp = requests.get(f"{SUPABASE_URL}/rest/v1/teams?select=id,name", headers=headers())
-    if not resp.ok:
-        print(f"   ⚠️  Failed to fetch teams: {resp.text}")
-        return
+    if not resp.ok: return
     teams_dict = {t["name"].strip().upper(): t["id"] for t in resp.json()}
 
-    # 2. Fetch all existing app_users
-    print("   🔍 Checking existing users...")
     resp = requests.get(f"{SUPABASE_URL}/rest/v1/app_users?select=employee_code", headers=headers())
-    if not resp.ok:
-        print(f"   ⚠️  Failed to fetch app_users: {resp.text}")
-        return
+    if not resp.ok: return
     existing_codes = {u["employee_code"].strip() for u in resp.json() if u.get("employee_code")}
 
-    # Find unique user/code combinations in records
     unique_users = {}
     for r in records:
         code = r["employee_code"]
         name = r["user"]
         team = r["team"]
         if code and name:
-            unique_users[code.strip()] = {
-                "name": name.strip(),
-                "team": team.strip()
-            }
+            unique_users[code.strip()] = {"name": name.strip(), "team": team.strip()}
 
-    # 3. Provision new users
     for code, info in unique_users.items():
-        if code in existing_codes:
-            continue
-
-        print(f"   👤 New user found in raw data: {info['name']} (code {code}, team {info['team']})")
+        if code in existing_codes: continue
         
-        # Ensure team exists
         team_name = info["team"] or "UNKNOWN"
         team_upper = team_name.upper()
         if team_upper not in teams_dict:
-            # Create new team
-            print(f"      Creating new team: {team_name}")
             t_resp = requests.post(f"{SUPABASE_URL}/rest/v1/teams", headers={**headers(), "Prefer": "return=representation"}, json={"name": team_name})
             if t_resp.ok and t_resp.json():
                 team_id = t_resp.json()[0]["id"]
                 teams_dict[team_upper] = team_id
-            else:
-                print(f"      ⚠️  Failed to create team {team_name}: {t_resp.text}")
-                team_id = None
+            else: team_id = None
         else:
             team_id = teams_dict[team_upper]
 
-        # Create auth user via admin endpoint
         email = f"{code}@excellence-crm.internal"
-        auth_url = f"{SUPABASE_URL}/auth/v1/admin/users"
-        auth_resp = requests.post(
-            auth_url,
-            headers={
-                "apikey": SERVICE_KEY,
-                "Authorization": f"Bearer {SERVICE_KEY}",
-                "Content-Type": "application/json"
-            },
-            json={"email": email, "password": code, "email_confirm": True}
-        )
-        if not auth_resp.ok:
-            print(f"      ⚠️  Failed to create Auth user: {auth_resp.status_code} {auth_resp.text}")
-            continue
+        auth_resp = requests.post(f"{SUPABASE_URL}/auth/v1/admin/users",
+            headers={"apikey": SERVICE_KEY, "Authorization": f"Bearer {SERVICE_KEY}", "Content-Type": "application/json"},
+            json={"email": email, "password": code, "email_confirm": True})
+        if not auth_resp.ok: continue
         
         auth_id = auth_resp.json().get("id")
-        if not auth_id:
-            continue
+        if not auth_id: continue
 
-        # Insert into hierarchy
-        h_resp = requests.post(
-            f"{SUPABASE_URL}/rest/v1/hierarchy",
+        h_resp = requests.post(f"{SUPABASE_URL}/rest/v1/hierarchy",
             headers={**headers(), "Prefer": "return=representation"},
-            json={
-                "employee_name": info["name"],
-                "employee_code": code,
-                "role": "MR",
-                "team_id": team_id,
-                "supervisor_name": None
-            }
-        )
-        hierarchy_id = None
-        if h_resp.ok and h_resp.json():
-            hierarchy_id = h_resp.json()[0]["id"]
-        else:
-            print(f"      ⚠️  Failed to insert hierarchy row: {h_resp.text}")
+            json={"employee_name": info["name"], "employee_code": code, "role": "MR", "team_id": team_id, "supervisor_name": None})
+        hierarchy_id = h_resp.json()[0]["id"] if h_resp.ok and h_resp.json() else None
 
-        # Insert into app_users
-        au_resp = requests.post(
-            f"{SUPABASE_URL}/rest/v1/app_users",
-            headers=headers(),
-            json={
-                "id": auth_id,
-                "employee_code": code,
-                "employee_name": info["name"],
-                "role": "MR",
-                "team_id": team_id,
-                "hierarchy_id": hierarchy_id,
-                "is_active": True,
-                "is_default_password": True
-            }
-        )
-        if au_resp.ok:
-            print(f"      ✓ Successfully provisioned user {info['name']}")
-            existing_codes.add(code)
-        else:
-            print(f"      ⚠️  Failed to insert app_users row: {au_resp.text}")
+        requests.post(f"{SUPABASE_URL}/rest/v1/app_users", headers=headers(),
+            json={"id": auth_id, "employee_code": code, "employee_name": info["name"], "role": "MR", "team_id": team_id, "hierarchy_id": hierarchy_id, "is_active": True, "is_default_password": True})
 
-# ── Upload one folder ─────────────────────────────────────────────────────────
-
-def upload_folder(folder, period, batch):
-    print(f"\n{'='*60}")
-    print(f"📤 Uploading: {folder}")
-    print(f"   Period: {period} | Batch: {batch}")
-
-    records = load_folder(folder)
-    if not records:
-        print("   ❌ No records found — skipping")
-        return
-
-    print(f"   Total records: {len(records)}")
+@app.route('/api/upload_visits', methods=['POST'])
+def upload_visits():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
     
-    # Auto provision any missing users from the Excel data
-    provision_new_users(records)
-
-    summary, coaching, spec, prod = compute_all(records, batch, period)
-
-    print(f"   🗑️  Clearing old data for batch '{batch}'...")
-    for table in ("summaries","coaching_days","specialty_classification","product_calls"):
-        sb_delete(table, batch)
-
-    print(f"   💾 Uploading...")
-    print(f"      summaries:               {sb_insert('summaries', summary)} rows")
-    print(f"      coaching_days:           {sb_insert('coaching_days', coaching)} rows")
-    print(f"      specialty_classification:{sb_insert('specialty_classification', spec)} rows")
-    print(f"      product_calls:           {sb_insert('product_calls', prod)} rows")
-    print(f"   ✅ Done!")
-
-
-# ── File watcher ──────────────────────────────────────────────────────────────
-
-class FolderHandler(FileSystemEventHandler):
-    def __init__(self, folder, period, batch):
-        self.folder = folder
-        self.period = period
-        self.batch  = batch
-        self._pending = False
-
-    def on_any_event(self, event):
-        if event.is_directory: return
-        if not str(event.src_path).endswith(".xlsx"): return
-        if not self._pending:
-            self._pending = True
-            # Debounce 5s — wait for all files to finish copying
-            import threading
-            def run():
-                time.sleep(5)
-                upload_folder(self.folder, self.period, self.batch)
-                self._pending = False
-            threading.Thread(target=run, daemon=True).start()
-
-
-# ── Main ──────────────────────────────────────────────────────────────────────
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--last-month", default=r"E:\periods\last_month",
-                        help="Folder for last month data")
-    parser.add_argument("--recent",     default=r"E:\periods\recent",
-                        help="Folder for recent (1-15) data")
-    parser.add_argument("--once", action="store_true",
-                        help="Upload once and exit (no watching)")
-    args = parser.parse_args()
-
-    if not SERVICE_KEY:
-        print("❌ Set SUPABASE_SERVICE_ROLE_KEY environment variable.")
-        sys.exit(1)
-
-    folders = [
-        (args.last_month, "Last Month", "last_month"),
-        (args.recent,     "Recent",     "recent"),
-    ]
-
-    # Create folders if they don't exist
-    for folder, _, _ in folders:
-        Path(folder).mkdir(parents=True, exist_ok=True)
-        print(f"✓ Folder ready: {folder}")
-
-    # Always do an initial upload
-    for folder, period, batch in folders:
-        upload_folder(folder, period, batch)
-
-    if args.once:
-        print("\n✅ One-time upload complete.")
-        return
-
-    # Start watching
-    print(f"\n👁️  Watching folders for new files... (Ctrl+C to stop)")
-    observer = Observer()
-    for folder, period, batch in folders:
-        observer.schedule(FolderHandler(folder, period, batch), folder, recursive=False)
-    observer.start()
-
+    period = request.form.get('period', 'Unknown Period')
+    batch = request.form.get('batch', 'unknown_batch')
+    
     try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        observer.stop()
-        print("\n⏹️  Stopped.")
-    observer.join()
+        # Load the file from memory
+        df = pd.read_excel(file.stream, sheet_name="Raw Data", engine="openpyxl")
+        
+        records = []
+        for _, row in df.iterrows():
+            user = safe(row.get("user"))
+            if not user: continue
+            records.append({
+                "team":               safe(row.get("team")) or "",
+                "user":               user,
+                "employee_code":      safe(row.get("employee_code")) or "",
+                "territory":          safe(row.get("territory")) or "",
+                "date":               safe(row.get("date")) or "",
+                "time":               safe(row.get("time")) or "",
+                "acc_type_category":  safe(row.get("acc_type_category")) or "",
+                "shift":              safe(row.get("shift")) or "",
+                "visit_type_category":safe(row.get("visit_type_category")) or "",
+                "acc_id":             safe(row.get("acc_id")) or "",
+                "acc_name":           safe(row.get("acc_name")) or "",
+                "doctor_key":         safe(row.get("doctor_key")) or "",
+                "doctor_name":        safe(row.get("doctor_name")) or "",
+                "specialty":          safe(row.get("specialty")) or "",
+                "classification":     safe(row.get("classification")) or "",
+                "products":           safe(row.get("products")) or "",
+                "members":            [user],
+            })
+            
+        if not records:
+            return jsonify({"error": "No valid records found in Raw Data"}), 400
+            
+        provision_new_users(records)
+        summary, coaching, spec, prod = compute_all(records, batch, period)
 
+        for table in ("summaries","coaching_days","specialty_classification","product_calls"):
+            sb_delete(table, batch)
 
-if __name__ == "__main__":
-    main()
+        stats = {
+            "summaries": sb_insert('summaries', summary),
+            "coaching_days": sb_insert('coaching_days', coaching),
+            "specialty_classification": sb_insert('specialty_classification', spec),
+            "product_calls": sb_insert('product_calls', prod)
+        }
+        
+        return jsonify({
+            "message": "Upload successful",
+            "period": period,
+            "batch": batch,
+            "rows_inserted": stats
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True, port=3001)

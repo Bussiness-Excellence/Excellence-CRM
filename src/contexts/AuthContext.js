@@ -40,14 +40,31 @@ export function computeVisibleEmployeeCodes(profile, hierarchyRows) {
   }
 
   if (role === 'BLM') {
+    const myTeamIds = new Set(
+      hierarchyRows
+        .filter(h => h.employee_name === myName && h.role === 'BLM')
+        .map(h => h.team_id)
+    );
+    if (myTeamIds.size === 0 && myTeamId) {
+      myTeamIds.add(myTeamId);
+    }
     return hierarchyRows
-      .filter(h => h.team_id === myTeamId)
+      .filter(h => myTeamIds.has(h.team_id))
       .map(h => h.employee_code)
       .filter(Boolean);
   }
 
   if (role === 'Area Manager') {
-    const myTeamRows = hierarchyRows.filter(h => h.team_id === myTeamId);
+    const myTeamIds = new Set(
+      hierarchyRows
+        .filter(h => h.employee_name === myName && h.role === 'Area Manager')
+        .map(h => h.team_id)
+    );
+    if (myTeamIds.size === 0 && myTeamId) {
+      myTeamIds.add(myTeamId);
+    }
+
+    const myTeamRows = hierarchyRows.filter(h => myTeamIds.has(h.team_id));
 
     // Find supervisors that report to me via area_manager_name (if populated)
     // OR fall back to: supervisors whose MRs' supervisor_name chains include me

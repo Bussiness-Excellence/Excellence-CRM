@@ -32,7 +32,7 @@ import pandas as pd
 
 # ── Supabase config ────────────────────────────────────────────────────────────
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://xxbfwvlqixnmonxytdxq.supabase.co")
-SERVICE_KEY  = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+SERVICE_KEY  = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4YmZ3dmxxaXhubW9ueHl0ZHhxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Mjc1NjE2NSwiZXhwIjoyMDk4MzMyMTY1fQ.PSk6RyFmg_OFTcCtYO74AeJj6wT4FGZS2K2JT9GEJ_A)"
 BATCH_SIZE   = 500   # rows per POST to Supabase REST API
 
 # ── Domain constants (must match rebuild script) ──────────────────────────────
