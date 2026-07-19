@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/Excellence-CRM/static/css/main.3d59417c.css",
-    "main.js": "/Excellence-CRM/static/js/main.5e40964a.js",
+    "main.js": "/Excellence-CRM/static/js/main.b9b4d4a1.js",
     "static/js/453.60177298.chunk.js": "/Excellence-CRM/static/js/453.60177298.chunk.js",
     "index.html": "/Excellence-CRM/index.html",
     "main.3d59417c.css.map": "/Excellence-CRM/static/css/main.3d59417c.css.map",
-    "main.5e40964a.js.map": "/Excellence-CRM/static/js/main.5e40964a.js.map",
+    "main.b9b4d4a1.js.map": "/Excellence-CRM/static/js/main.b9b4d4a1.js.map",
     "453.60177298.chunk.js.map": "/Excellence-CRM/static/js/453.60177298.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.3d59417c.css",
-    "static/js/main.5e40964a.js"
+    "static/js/main.b9b4d4a1.js"
   ]
 }
