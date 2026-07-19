@@ -108,7 +108,7 @@ function ShiftToggle({ value, onChange, t }) {
 function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFilter, lang }) {
   const filtered = useMemo(()=> rows.filter(r=>{
     if(shiftFilter!=='all' && r.shift!==shiftFilter) return false;
-    if(userFilter && r.user_name!==userFilter) return false;
+    if(userFilter && userFilter!=='all' && r.user_name!==userFilter) return false;
     if(searchFilter && !r[rowKey]?.toLowerCase().includes(searchFilter.toLowerCase())
        && !r.user_name?.toLowerCase().includes(searchFilter.toLowerCase())) return false;
     return true;
