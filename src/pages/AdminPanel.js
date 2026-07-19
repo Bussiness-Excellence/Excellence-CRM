@@ -1,13 +1,17 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { supabase } from '../supabaseClient';
+import { createClient } from '@supabase/supabase-js';
+import { supabase, employeeCodeToEmail } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import './AdminPanel.css';
 
-const ROLES = ['Admin','BLM','Area Manager','Supervisor','MR'];
+const ROLES = ['Admin', 'Stakeholder', 'BLM', 'Area Manager', 'Supervisor', 'MR'];
 const PER_PAGE = 30;
 
 export default function AdminPanel() {
   const { profile, signOut } = useAuth();
+  const { success: toastSuccess, error: toastError, info: toastInfo } = useToast();
+  
   const [users, setUsers]       = useState([]);
   const [teams, setTeams]       = useState([]);
   const [loading, setLoading]   = useState(true);
@@ -15,17 +19,25 @@ export default function AdminPanel() {
   const [filterTeam, setFilterTeam]   = useState('all');
   const [filterRole, setFilterRole]   = useState('all');
   const [page, setPage]         = useState(0);
-  const [editing, setEditing]   = useState(null); // user being edited
+  const [editing, setEditing]   = useState(null);
   const [editRole, setEditRole] = useState('');
   const [newPass, setNewPass]   = useState('');
   const [saving, setSaving]     = useState(false);
-  const [msg, setMsg]           = useState({ text:'', type:'' });
+
+  // Create User State
+  const [creating, setCreating] = useState(false);
+  const [newUser, setNewUser]   = useState({ name: '', code: '', role: 'Stakeholder', teams: [] });
+
+  // Admin Key State
+  const [adminKey, setAdminKey] = useState(localStorage.getItem('supabase_admin_key') || '');
+  const [showKeyPrompt, setShowKeyPrompt] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
 
   const [periodStats, setPeriodStats] = useState([]);
 
   const showMsg = (text, type='ok') => {
-    setMsg({text,type});
-    setTimeout(()=>setMsg({text:'',type:''}), 4000);
+    if (type === 'ok') toastSuccess(text);
+    else toastError(text);
   };
 
   const loadUsers = useCallback(async () => {
@@ -38,7 +50,6 @@ export default function AdminPanel() {
     setUsers(u || []);
     setTeams(t || []);
     const periodsUniq = [...new Set((s||[]).map(r=>r.period))].sort().reverse();
-    // Count users with data per period
     const stats = periodsUniq.map(p => ({
       period: p,
       count: (s||[]).filter(r=>r.period===p).length,
@@ -61,38 +72,124 @@ export default function AdminPanel() {
   const paged = filtered.slice(page*PER_PAGE, page*PER_PAGE+PER_PAGE);
   const totalPages = Math.ceil(filtered.length/PER_PAGE);
 
+  // ── Save Admin Key ──
+  function handleSaveKey() {
+    if (!adminKey) return;
+    localStorage.setItem('supabase_admin_key', adminKey);
+    setShowKeyPrompt(false);
+    if (pendingAction === 'reset') resetPassword(adminKey);
+    if (pendingAction === 'create') createUser(adminKey);
+  }
+
+  function getAdminClient(key) {
+    return createClient(process.env.REACT_APP_SUPABASE_URL, key, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+  }
+
   // ── Save role ──
   async function saveRole() {
     if (!editing || !editRole) return;
     setSaving(true);
-    const { error } = await supabase.from('app_users')
-      .update({ role: editRole }).eq('id', editing.id);
+    const updates = { role: editRole };
+    
+    // If Stakeholder, also update visible_teams. Otherwise set to null
+    if (editRole === 'Stakeholder') {
+      updates.visible_teams = editing.visible_teams || [];
+    } else {
+      updates.visible_teams = null;
+    }
+
+    const { error } = await supabase.from('app_users').update(updates).eq('id', editing.id);
     if (error) showMsg('Failed: '+error.message, 'err');
-    else { showMsg('Role updated'); await loadUsers(); setEditing(null); }
+    else { showMsg('User updated'); await loadUsers(); setEditing(null); }
     setSaving(false);
   }
 
   // ── Reset password ──
-  async function resetPassword() {
+  async function resetPassword(key = adminKey) {
+    if (!key) {
+      setPendingAction('reset');
+      setShowKeyPrompt(true);
+      return;
+    }
     if (!editing || !newPass || newPass.length < 6) {
       showMsg('Password must be at least 6 characters', 'err'); return;
     }
     setSaving(true);
-    // Use admin API via Vercel serverless function
-    const resp = await fetch('/api/reset-password', {
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'Authorization':`Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-      },
-      body: JSON.stringify({ user_id: editing.id, password: newPass }),
-    });
-    if (resp.ok) {
+    
+    const adminSupabase = getAdminClient(key);
+    const { error } = await adminSupabase.auth.admin.updateUserById(editing.id, { password: newPass });
+
+    if (!error) {
       showMsg(`Password reset for ${editing.employee_name}`);
       setNewPass(''); setEditing(null);
     } else {
-      const err = await resp.json().catch(()=>({}));
-      showMsg('Failed: '+(err.error||resp.statusText), 'err');
+      if (error.message.includes('JWT') || error.message.includes('unauthorized')) {
+        localStorage.removeItem('supabase_admin_key');
+        setAdminKey('');
+        showMsg('Invalid Service Role Key!', 'err');
+      } else {
+        showMsg('Failed: ' + error.message, 'err');
+      }
+    }
+    setSaving(false);
+  }
+
+  // ── Create User ──
+  async function createUser(key = adminKey) {
+    if (!key) {
+      setPendingAction('create');
+      setShowKeyPrompt(true);
+      return;
+    }
+    if (!newUser.name || !newUser.code) {
+      showMsg('Name and Code are required', 'err'); return;
+    }
+    setSaving(true);
+
+    const adminSupabase = getAdminClient(key);
+    const email = employeeCodeToEmail(newUser.code);
+
+    // 1. Create Auth User
+    const { data: authData, error: authErr } = await adminSupabase.auth.admin.createUser({
+      email,
+      password: newUser.code,
+      email_confirm: true
+    });
+
+    if (authErr) {
+      if (authErr.message.includes('JWT') || authErr.message.includes('unauthorized')) {
+        localStorage.removeItem('supabase_admin_key');
+        setAdminKey('');
+        showMsg('Invalid Service Role Key!', 'err');
+      } else {
+        showMsg('Failed: ' + authErr.message, 'err');
+      }
+      setSaving(false);
+      return;
+    }
+
+    // 2. Insert into app_users using adminSupabase to bypass RLS
+    const { error: dbErr } = await adminSupabase.from('app_users').insert({
+      id: authData.user.id,
+      employee_code: newUser.code,
+      employee_name: newUser.name,
+      role: newUser.role,
+      visible_teams: newUser.role === 'Stakeholder' ? newUser.teams : null,
+      is_active: true,
+      is_default_password: true
+    });
+
+    if (dbErr) {
+      showMsg('Failed to add to app_users: ' + dbErr.message, 'err');
+      // Cleanup auth user on failure
+      await adminSupabase.auth.admin.deleteUser(authData.user.id);
+    } else {
+      showMsg('User created successfully!');
+      setCreating(false);
+      setNewUser({ name: '', code: '', role: 'Stakeholder', teams: [] });
+      await loadUsers();
     }
     setSaving(false);
   }
@@ -103,6 +200,15 @@ export default function AdminPanel() {
     await loadUsers();
     showMsg(u.is_active ? `${u.employee_name} deactivated` : `${u.employee_name} activated`);
   }
+
+  const toggleTeamSelection = (teamName, obj, setObj) => {
+    const current = obj.teams || obj.visible_teams || [];
+    if (current.includes(teamName)) {
+      setObj({ ...obj, [obj.visible_teams ? 'visible_teams' : 'teams']: current.filter(t => t !== teamName) });
+    } else {
+      setObj({ ...obj, [obj.visible_teams ? 'visible_teams' : 'teams']: [...current, teamName] });
+    }
+  };
 
   return (
     <div className="admin">
@@ -116,20 +222,21 @@ export default function AdminPanel() {
           <span className="admin-sub">Admin Panel</span>
         </div>
         <div className="admin-hdr-right">
-          <a className="abtn abtn-primary" href="/admin/upload" style={{ marginRight: '16px' }}>↑ Upload CRM Data</a>
-          <a className="abtn abtn-ghost" href="/dashboard">← Dashboard</a>
+          <a className="abtn abtn-ghost" href="#/dashboard">← Dashboard</a>
           <span className="admin-who">{profile?.employee_name}</span>
           <button className="abtn abtn-ghost" onClick={signOut}>Sign out</button>
         </div>
       </header>
 
-      {msg.text && (
-        <div className={`admin-msg ${msg.type==='err'?'msg-err':'msg-ok'}`}>{msg.text}</div>
-      )}
+      {/* toasts handled globally */}
 
       <div className="admin-body">
         {/* ── Left: Data periods panel ── */}
         <aside className="admin-side">
+          <button className="abtn abtn-primary w100 mb16" onClick={() => setCreating(true)}>
+            + Create User
+          </button>
+
           <div className="aside-section">
             <div className="aside-title">Data Periods</div>
             {periodStats.length === 0
@@ -204,7 +311,7 @@ export default function AdminPanel() {
                     <tr key={u.id} className={!u.is_active?'inactive':''}>
                       <td className="code-cell">{u.employee_code}</td>
                       <td className="name-cell">{u.employee_name}</td>
-                      <td>{u.teams?.name || '—'}</td>
+                      <td>{u.role==='Stakeholder' ? (u.visible_teams?.join(', ') || 'None') : (u.teams?.name || '—')}</td>
                       <td><span className={`role-badge role-${u.role?.replace(' ','-').toLowerCase()}`}>{u.role}</span></td>
                       <td>
                         <button
@@ -235,6 +342,49 @@ export default function AdminPanel() {
         </main>
       </div>
 
+      {/* ── Create User Modal ── */}
+      {creating && (
+        <div className="modal-backdrop" onClick={()=>setCreating(false)}>
+          <div className="modal" onClick={e=>e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-name">Create New User</div>
+              <button className="modal-close" onClick={()=>setCreating(false)}>✕</button>
+            </div>
+            
+            <div className="modal-section">
+              <label className="modal-label">Employee Name</label>
+              <input className="filter-input w100" value={newUser.name} onChange={e=>setNewUser({...newUser, name: e.target.value})} placeholder="e.g. John Doe" />
+              
+              <label className="modal-label mt16">Code / Login Password</label>
+              <input className="filter-input w100" value={newUser.code} onChange={e=>setNewUser({...newUser, code: e.target.value})} placeholder="Unique identifier (e.g. 12345)" />
+
+              <label className="modal-label mt16">Role</label>
+              <select className="filter-sel w100" value={newUser.role} onChange={e=>setNewUser({...newUser, role: e.target.value})}>
+                {ROLES.map(r=><option key={r} value={r}>{r}</option>)}
+              </select>
+
+              {newUser.role === 'Stakeholder' && (
+                <div className="teams-multiselect mt16">
+                  <label className="modal-label">Visible Teams for Stakeholder</label>
+                  <div className="teams-grid">
+                    {teams.map(t => (
+                      <label key={t.id} className="team-cb">
+                        <input type="checkbox" checked={(newUser.teams || []).includes(t.name)} onChange={() => toggleTeamSelection(t.name, newUser, setNewUser)} />
+                        {t.name}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <button className="abtn abtn-primary w100 mt16" onClick={() => createUser()} disabled={saving || !newUser.name || !newUser.code}>
+                {saving?'Creating...':'Create User'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Edit modal ── */}
       {editing && (
         <div className="modal-backdrop" onClick={()=>setEditing(null)}>
@@ -242,7 +392,7 @@ export default function AdminPanel() {
             <div className="modal-header">
               <div>
                 <div className="modal-name">{editing.employee_name}</div>
-                <div className="modal-code">{editing.employee_code} · {editing.teams?.name}</div>
+                <div className="modal-code">{editing.employee_code} · {editing.role==='Stakeholder'?'Stakeholder':editing.teams?.name}</div>
               </div>
               <button className="modal-close" onClick={()=>setEditing(null)}>✕</button>
             </div>
@@ -252,7 +402,22 @@ export default function AdminPanel() {
               <select className="filter-sel w100" value={editRole} onChange={e=>setEditRole(e.target.value)}>
                 {ROLES.map(r=><option key={r} value={r}>{r}</option>)}
               </select>
-              <button className="abtn abtn-primary mt8" onClick={saveRole} disabled={saving}>
+              
+              {editRole === 'Stakeholder' && (
+                <div className="teams-multiselect mt16">
+                  <label className="modal-label">Visible Teams</label>
+                  <div className="teams-grid">
+                    {teams.map(t => (
+                      <label key={t.id} className="team-cb">
+                        <input type="checkbox" checked={(editing.visible_teams || []).includes(t.name)} onChange={() => toggleTeamSelection(t.name, editing, setEditing)} />
+                        {t.name}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <button className="abtn abtn-primary mt8 w100" onClick={saveRole} disabled={saving}>
                 {saving?'Saving…':'Save Role'}
               </button>
             </div>
@@ -267,8 +432,37 @@ export default function AdminPanel() {
                 value={newPass} onChange={e=>setNewPass(e.target.value)}
                 onKeyDown={e=>e.key==='Enter'&&resetPassword()}
               />
-              <button className="abtn abtn-danger mt8" onClick={resetPassword} disabled={saving||newPass.length<6}>
+              <button className="abtn abtn-danger mt8 w100" onClick={() => resetPassword()} disabled={saving||newPass.length<6}>
                 {saving?'Resetting…':'Reset Password'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Service Role Key Prompt Modal ── */}
+      {showKeyPrompt && (
+        <div className="modal-backdrop">
+          <div className="modal">
+            <div className="modal-header">
+              <div className="modal-name">Admin Authentication Required</div>
+              <button className="modal-close" onClick={()=>setShowKeyPrompt(false)}>✕</button>
+            </div>
+            <div className="modal-section">
+              <p style={{fontSize: '13px', color: '#64748b', marginBottom: '12px'}}>
+                Since the app is hosted statically on GitHub Pages, you must provide your 
+                <strong> SUPABASE_SERVICE_ROLE_KEY </strong> (from your PowerShell script) 
+                to securely create users or reset passwords directly from the browser.
+              </p>
+              <input 
+                className="filter-input w100" 
+                type="password" 
+                placeholder="sb_secret_..." 
+                value={adminKey} 
+                onChange={e=>setAdminKey(e.target.value)}
+              />
+              <button className="abtn abtn-primary w100 mt16" onClick={handleSaveKey}>
+                Confirm
               </button>
             </div>
           </div>

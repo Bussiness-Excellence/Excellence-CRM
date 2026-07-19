@@ -127,3 +127,35 @@
   .admin-filters { flex-direction: column; align-items: stretch; gap: 12px; }
   .filter-input, .filter-sel { width: 100%; }
 }
+
+.mt16 { margin-top: 16px; }
+.mb16 { margin-bottom: 16px; }
+
+.teams-multiselect {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.teams-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.team-cb {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+.team-cb input {
+  margin-right: 8px;
+  accent-color: var(--primary);
+}

@@ -2,7 +2,9 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import ChartBuilder from '../components/ChartBuilder';
+import { SkeletonCardGrid, SkeletonTable } from '../components/Skeleton';
 import './Dashboard.css';
 
 // ─── i18n ────────────────────────────────────────────────────────────────────
@@ -14,7 +16,7 @@ const T = {
     export:'Export', loading:'Loading…', noData:'No data for this period.',
     shiftAll:'Both', shiftAM:'AM', shiftPM:'PM',
     people: n=>`${n} rep${n!==1?'s':''}`,
-    tabs:{ summary:'Summary', specialty:'Specialty', products:'Products', coaching:'Coaching', charts:'Charts' },
+    tabs:{ summary:'Summary', specialty:'Specialty', products:'Products', coaching:'Coaching' },
     roleView:{ MR:'My Results', Supervisor:'My Team', 'Area Manager':'My Area', BLM:'Full Team', Admin:'All Teams' },
     kpiGroups:[
       { label:'Field Activity', keys:['working_days','complete_field_days','am_shift_days','pm_shift_days','double_visit_days','office_work_days'] },
@@ -47,7 +49,7 @@ const T = {
     export:'تصدير', loading:'جارٍ التحميل…', noData:'لا توجد بيانات.',
     shiftAll:'الكل', shiftAM:'AM', shiftPM:'PM',
     people: n=>`${n} مندوب`,
-    tabs:{ summary:'الملخص', specialty:'التخصص', products:'المنتجات', coaching:'التوجيه', charts:'الرسوم البيانية' },
+    tabs:{ summary:'الملخص', specialty:'التخصص', products:'المنتجات', coaching:'التوجيه' },
     roleView:{ MR:'نتائجي', Supervisor:'فريقي', 'Area Manager':'منطقتي', BLM:'الفريق', Admin:'الكل' },
     kpiGroups:[
       { label:'النشاط الميداني', keys:['working_days','complete_field_days','am_shift_days','pm_shift_days','double_visit_days','office_work_days'] },
@@ -166,6 +168,7 @@ function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFil
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { profile, visibleCodes, signOut } = useAuth();
+  const { success: toastSuccess, error: toastError } = useToast();
   const [lang, setLang]       = useState(profile?.preferred_lang||'en');
   const [period, setPeriod]   = useState('last_month');
   const [team, setTeam]       = useState('all');
@@ -239,17 +242,23 @@ export default function Dashboard() {
   // ── Tabs (hide Coaching & Charts for MR) ────────────────────────────────────────────
   const visibleTabs=useMemo(()=>{
     const all=Object.entries(t.tabs);
-    return isMgr?all:all.filter(([k])=>k!=='coaching' && k!=='charts');
+    return isMgr?all:all.filter(([k])=>k!=='coaching');
   },[t.tabs,isMgr]);
 
   // ── Export ─────────────────────────────────────────────────────────────────
   function doExport(){
-    const wb=XLSX.utils.book_new();
-    const allKpiKeys=t.kpiGroups.flatMap(g=>g.keys);
-    const sh=[['Team','User','Territory','Manager',...allKpiKeys.map(k=>t.kpi[k]||k)]];
-    fSummary.forEach(r=>sh.push([r.team,r.user_name,r.territory,r.is_manager?'✓':'',...allKpiKeys.map(k=>r[k]??'')]));
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sh),'Summary');
-    XLSX.writeFile(wb,`excellence_${periodLabel.replace(' ','_')}_${Date.now()}.xlsx`);
+    try {
+      const wb=XLSX.utils.book_new();
+      const allKpiKeys=t.kpiGroups.flatMap(g=>g.keys);
+      const sh=[['Team','User','Territory','Manager',...allKpiKeys.map(k=>t.kpi[k]||k)]];
+      fSummary.forEach(r=>sh.push([r.team,r.user_name,r.territory,r.is_manager?'✓':'',...allKpiKeys.map(k=>r[k]??'')]));
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sh),'Summary');
+      const filename=`excellence_${periodLabel.replace(' ','_')}_${Date.now()}.xlsx`;
+      XLSX.writeFile(wb,filename);
+      toastSuccess(`✓ Exported ${fSummary.length} rows to Excel`);
+    } catch(e) {
+      toastError('Export failed: ' + e.message);
+    }
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -267,7 +276,7 @@ export default function Dashboard() {
           <span className="dash-view">{t.roleView[profile?.role]||''}</span>
         </div>
         <div className="dash-hdr-r">
-          {profile?.role==='Admin'&&<a className="hbtn hbtn-outline" href="/admin">{t.adminPanel}</a>}
+          {profile?.role==='Admin'&&<a className="hbtn hbtn-outline" href="#/admin">{t.adminPanel}</a>}
           <button className="hbtn hbtn-lang" onClick={()=>setLang(lang==='en'?'ar':'en')}>
             {lang==='en'?'عربي':'EN'}
           </button>
@@ -354,9 +363,13 @@ export default function Dashboard() {
 
       {/* ── CONTENT ── */}
       {loading?(
-        <div className="dash-empty">{t.loading}</div>
+        <div className="dash-body" style={{maxWidth:1600,margin:'0 auto',padding:'24px 32px'}}>
+          {tab==='summary' && <SkeletonCardGrid count={6}/>}
+          {(tab==='specialty'||tab==='products'||tab==='coaching') && <SkeletonTable rows={8} cols={5}/>}
+        </div>
       ):(
-        <div className="dash-body">
+        <div className="dash-main-layout">
+          <div className="dash-body">
 
           {/* ── SUMMARY: vertical KPI cards ── */}
           {tab==='summary'&&(
@@ -451,9 +464,13 @@ export default function Dashboard() {
             )
           )}
 
-          {/* ── CHARTS ── */}
-          {tab==='charts'&&isMgr&&(
-            <ChartBuilder data={fSummary} isManager={isMgr} />
+          </div>
+
+          {/* ── CHARTS SIDE PANEL ── */}
+          {isMgr&&(
+            <aside className="dash-side-panel">
+              <ChartBuilder data={fSummary} isManager={isMgr} />
+            </aside>
           )}
         </div>
       )}

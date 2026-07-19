@@ -31,12 +31,24 @@ export function useAuth() {
  *   BLM          → everyone in my team
  *   Admin        → everyone
  */
-export function computeVisibleEmployeeCodes(profile, hierarchyRows) {
+export function computeVisibleEmployeeCodes(profile, hierarchyRows, teamsRows) {
   if (!profile) return [];
   const { role, employee_name: myName, team_id: myTeamId, employee_code: myCode } = profile;
 
   if (role === 'Admin') {
     return hierarchyRows.map(h => h.employee_code).filter(Boolean);
+  }
+
+  if (role === 'Stakeholder') {
+    const visibleTeamNames = profile.visible_teams || [];
+    const teamNameMap = {};
+    (teamsRows || []).forEach(t => teamNameMap[t.name] = t.id);
+    const visibleTeamIds = new Set(visibleTeamNames.map(n => teamNameMap[n]));
+    
+    const visible = hierarchyRows
+      .filter(h => visibleTeamIds.has(h.team_id))
+      .map(h => h.employee_code);
+    return [...new Set([myCode, ...visible])].filter(Boolean);
   }
 
   if (role === 'BLM') {
@@ -118,10 +130,11 @@ export function AuthProvider({ children }) {
   const [loading, setLoading]         = useState(true);
 
   const loadProfileAndHierarchy = useCallback(async (userId) => {
-    const [{ data: profileRow, error: profileErr }, { data: hierarchyRows }] =
+    const [{ data: profileRow, error: profileErr }, { data: hierarchyRows }, { data: teamsRows }] =
       await Promise.all([
         supabase.from('app_users').select('*').eq('id', userId).single(),
         supabase.from('hierarchy').select('*'),
+        supabase.from('teams').select('*'),
       ]);
 
     if (profileErr) {
@@ -132,7 +145,7 @@ export function AuthProvider({ children }) {
 
     setProfile(profileRow);
     setHierarchy(hierarchyRows || []);
-    setVisibleCodes(computeVisibleEmployeeCodes(profileRow, hierarchyRows || []));
+    setVisibleCodes(computeVisibleEmployeeCodes(profileRow, hierarchyRows || [], teamsRows || []));
   }, []);
 
   useEffect(() => {
@@ -152,6 +165,7 @@ export function AuthProvider({ children }) {
         loadProfileAndHierarchy(session.user.id).finally(() => setLoading(false));
       } else {
         setProfile(null); setHierarchy([]); setVisibleCodes([]);
+        setLoading(false);
       }
     });
 
