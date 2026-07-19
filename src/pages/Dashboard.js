@@ -189,13 +189,18 @@ export default function Dashboard() {
     if(!visibleCodes?.length){setLoading(false);return;}
     setLoading(true); setError('');
     const codes=visibleCodes;
-    const cf=codes.map(c=>`manager_code.eq.${c}`).concat(codes.map(c=>`rep_code.eq.${c}`)).join(',');
     const queries=[
       supabase.from('summaries').select('*').eq('period',periodLabel).in('employee_code',codes),
       supabase.from('specialty_classification').select('*').eq('period',periodLabel).in('employee_code',codes),
       supabase.from('product_calls').select('*').eq('period',periodLabel).in('employee_code',codes),
     ];
-    if(isMgr) queries.push(supabase.from('coaching_days').select('*').eq('period',periodLabel).or(cf));
+    // No manual manager_code/rep_code filter here — the RLS policy on
+    // coaching_days already enforces the exact same visibility rule at the
+    // database level. Building an .or() filter listing every visible code
+    // client-side produced URLs tens of thousands of characters long for
+    // high-visibility roles (Admin/BLM), which silently failed — RLS makes
+    // that redundant and lets this stay a plain period-scoped query.
+    if(isMgr) queries.push(supabase.from('coaching_days').select('*').eq('period',periodLabel));
     const [s,sp,pr,co]=await Promise.all(queries);
     if(s.error) setError(s.error.message);
     setSummary(s.data||[]);
