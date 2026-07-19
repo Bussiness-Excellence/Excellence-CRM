@@ -254,19 +254,26 @@ def provision_new_users(records):
     # First, backfill missing employee_codes from the existing database
     code_map = {}
     try:
+        r0 = requests.get(f"{SUPABASE_URL}/rest/v1/visits?select=user,employee_code&limit=50000", headers=headers())
+        if r0.ok:
+            for row in r0.json():
+                n = (row.get("user") or "").strip()
+                c = (row.get("employee_code") or "").strip()
+                if n and c: code_map[n] = c
+
         r = requests.get(f"{SUPABASE_URL}/rest/v1/hierarchy?select=employee_name,employee_code&limit=10000", headers=headers())
         if r.ok:
             for row in r.json():
                 n = (row.get("employee_name") or "").strip()
                 c = (row.get("employee_code") or "").strip()
-                if n and c: code_map[n] = c
+                if n and c and n not in code_map: code_map[n] = c
         
         r2 = requests.get(f"{SUPABASE_URL}/rest/v1/app_users?select=employee_name,employee_code&limit=10000", headers=headers())
         if r2.ok:
             for row in r2.json():
                 n = (row.get("employee_name") or "").strip()
                 c = (row.get("employee_code") or "").strip()
-                if n and c: code_map[n] = c
+                if n and c and n not in code_map: code_map[n] = c
                 
     except Exception as e:
         print(f"Failed to fetch code_map: {e}")

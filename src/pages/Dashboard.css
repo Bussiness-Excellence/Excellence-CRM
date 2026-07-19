@@ -281,3 +281,35 @@
   border-top:2px solid var(--accent2);
 }
 .pivot-tbl .tot-row td.s-col{background:rgba(15,23,42,0.8); color:var(--accent2)}
+
+/* ── Mobile Responsive ────────────────────────────────── */
+@media (max-width: 768px) {
+  .dash-hdr {
+    flex-direction: column;
+    height: auto;
+    padding: 16px;
+    gap: 16px;
+  }
+  .dash-hdr-l, .dash-hdr-r {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .dash-sep { display: none; }
+  .ctrl-bar { padding: 16px; }
+  .ctrl-row { flex-direction: column; align-items: stretch; gap: 12px; }
+  .ctrl-group { flex-wrap: wrap; justify-content: center; }
+  .ctrl-end { margin-left: 0; width: 100%; justify-content: center; margin-top: 4px; }
+  .rtl .ctrl-end { margin-right: 0; }
+  .dash-tabs { 
+    overflow-x: auto; 
+    white-space: nowrap; 
+    padding: 0 16px; 
+    -webkit-overflow-scrolling: touch; 
+  }
+  .dtab { padding: 12px 16px; }
+  .dash-body { padding: 16px 16px 80px; }
+  .cards-grid { grid-template-columns: 1fr; }
+  .search-box, .ctrl-sel { width: 100%; max-width: none; }
+  .search-inp { width: 100%; }
+}
