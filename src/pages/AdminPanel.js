@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { createClient } from '@supabase/supabase-js';
+
 import { supabase, employeeCodeToEmail } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
