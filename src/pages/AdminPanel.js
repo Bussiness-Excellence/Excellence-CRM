@@ -221,9 +221,15 @@ export default function AdminPanel() {
           </div>
           <span className="admin-sub">Admin Panel</span>
         </div>
-        <div className="admin-hdr-right">
-          <a className="abtn abtn-ghost" href="#/dashboard">← Dashboard</a>
-          <span className="admin-who">{profile?.employee_name}</span>
+        <div className="admin-hdr-r">
+          <a className="hbtn hbtn-outline" href="#/dashboard">Dashboard</a>
+          <button className="hbtn hbtn-outline" style={{padding: '8px 12px', fontSize: '16px'}} onClick={() => {
+            const isLight = document.documentElement.classList.toggle('light');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+          }} title="Toggle Theme">
+            ◐
+          </button>
+          <div className="dash-user">{profile?.employee_name}</div>
           <button className="abtn abtn-ghost" onClick={signOut}>Sign out</button>
         </div>
       </header>

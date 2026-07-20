@@ -42,6 +42,12 @@ function AppContent() {
 }
 
 export default function App() {
+  React.useEffect(() => {
+    if (localStorage.getItem('theme') === 'light') {
+      document.documentElement.classList.add('light');
+    }
+  }, []);
+
   return (
     <AuthProvider>
       <ToastProvider>

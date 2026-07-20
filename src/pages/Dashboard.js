@@ -301,6 +301,12 @@ export default function Dashboard() {
         </div>
         <div className="dash-hdr-r">
           {profile?.role==='Admin'&&<a className="hbtn hbtn-outline" href="#/admin">{t.adminPanel}</a>}
+          <button className="hbtn hbtn-outline" style={{padding: '8px 12px', fontSize: '16px'}} onClick={() => {
+            const isLight = document.documentElement.classList.toggle('light');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+          }} title="Toggle Theme">
+            ◐
+          </button>
           <button className="hbtn hbtn-lang" onClick={()=>setLang(lang==='en'?'ar':'en')}>
             {lang==='en'?'عربي':'EN'}
           </button>

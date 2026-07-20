@@ -20,6 +20,49 @@
   --sh:         0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
+html.light {
+  --surf:       rgba(255, 255, 255, 0.7);
+  --surf-hover: rgba(255, 255, 255, 0.9);
+  --bdr:        rgba(0, 0, 0, 0.1);
+  --bdr2:       rgba(0, 0, 0, 0.15);
+  --txt:        #0f172a;
+  --mute:       #64748b;
+  --accent1:    #2563eb;
+  --accent2:    #7c3aed;
+  --accent-g:   linear-gradient(135deg, #3b82f6, #8b5cf6);
+  --am:         #0284c7;
+  --pm:         #059669;
+  --sh:         0 10px 30px -10px rgba(0, 0, 0, 0.1);
+}
+
+html.light .dash-user .du-name,
+html.light .ucard-name,
+html.light .kpi-v { color: #0f172a; }
+
+html.light .dash-hdr,
+html.light .ctrl-bar,
+html.light .dash-tabs { background: rgba(255, 255, 255, 0.6); }
+
+html.light .seg-ctrl, html.light .shift-toggle { background: rgba(0, 0, 0, 0.05); }
+html.light .seg.on, html.light .stoggle.on:not(.am):not(.pm) { background: #fff; color: #0f172a; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+html.light .seg:hover, html.light .stoggle:hover { color: #0f172a; }
+
+html.light .ctrl-sel, html.light .search-inp { background: rgba(255, 255, 255, 0.8); color: #0f172a; }
+html.light .dtab:hover { color: #0f172a; }
+html.light .ucard-hdr { background: rgba(248, 250, 252, 0.8); }
+html.light .prod-det { background: rgba(241, 245, 249, 0.9); }
+
+html.light .pivot-tbl th { background: rgba(241, 245, 249, 0.95); color: var(--accent1); }
+html.light .pivot-tbl td.s-col { background: rgba(255, 255, 255, 0.95); color: #0f172a; }
+html.light .pivot-tbl .tot-row td { background: rgba(226, 232, 240, 0.95); color: #0f172a; }
+html.light .pivot-tbl .tot-row td.s-col { background: rgba(226, 232, 240, 0.95); color: var(--accent2); }
+html.light .pivot-tbl .has-v { background: rgba(0, 0, 0, 0.03); color: #0f172a; }
+html.light .pivot-tbl .nil { color: rgba(0, 0, 0, 0.2); }
+html.light .pivot-tbl tbody tr:hover td { background: rgba(0, 0, 0, 0.03); }
+html.light .pivot-tbl tbody tr:hover td.s-col { background: rgba(241, 245, 249, 1); }
+html.light .hbtn-outline { background: rgba(0,0,0,0.03); border: 1px solid var(--bdr); color: var(--txt); }
+html.light .hbtn-outline:hover { background: rgba(0,0,0,0.08); }
+
 .dash{
   min-height:100vh;
   color:var(--txt);

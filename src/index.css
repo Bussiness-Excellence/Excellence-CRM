@@ -21,6 +21,12 @@ body {
   color: #f8fafc;
   min-height: 100vh;
   overflow-x: hidden;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+html.light body {
+  background: #f1f5f9;
+  color: #0f172a;
 }
 
 /* ── Animated deep-space background ────────────────────── */
@@ -34,6 +40,14 @@ body::before {
     radial-gradient(ellipse 60% 50% at 80% 110%, rgba(167, 139, 250, 0.1) 0%, transparent 60%),
     linear-gradient(160deg, #080e1a 0%, #0d1829 40%, #0a1220 70%, #060c16 100%);
   pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+html.light body::before {
+  background:
+    radial-gradient(ellipse 80% 60% at 20% -10%, rgba(96, 165, 250, 0.15) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 110%, rgba(167, 139, 250, 0.15) 0%, transparent 60%),
+    linear-gradient(160deg, #f8fafc 0%, #f1f5f9 40%, #e2e8f0 100%);
 }
 
 /* Subtle animated star-like particles */
@@ -52,6 +66,11 @@ body::after {
     radial-gradient(1px 1px at 65% 85%, rgba(255,255,255,0.09) 0%, transparent 100%);
   pointer-events: none;
   animation: twinkle 8s ease-in-out infinite alternate;
+  transition: opacity 0.3s;
+}
+html.light body::after {
+  opacity: 0;
+  animation: none;
 }
 
 @keyframes twinkle {
@@ -68,18 +87,31 @@ body::after {
 ::-webkit-scrollbar-track {
   background: rgba(15, 23, 42, 0.4);
 }
+html.light ::-webkit-scrollbar-track {
+  background: rgba(203, 213, 225, 0.4);
+}
 ::-webkit-scrollbar-thumb {
   background: rgba(96, 165, 250, 0.3);
   border-radius: 3px;
 }
+html.light ::-webkit-scrollbar-thumb {
+  background: rgba(96, 165, 250, 0.6);
+}
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(96, 165, 250, 0.5);
+}
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(96, 165, 250, 0.8);
 }
 
 /* ── Global selection color ─────────────────────────────── */
 ::selection {
   background: rgba(96, 165, 250, 0.3);
   color: #fff;
+}
+html.light ::selection {
+  background: rgba(96, 165, 250, 0.4);
+  color: #0f172a;
 }
 
 /* ── App loading spinner (used in App.js) ───────────────── */
