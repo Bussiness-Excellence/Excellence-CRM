@@ -2,15 +2,12 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
-import { useToast } from '../contexts/ToastContext';
-import ChartBuilder from '../components/ChartBuilder';
-import { SkeletonCardGrid, SkeletonTable } from '../components/Skeleton';
 import './Dashboard.css';
 
-// ─── i18n ────────────────────────────────────────────────────────────────────
+// ── i18n ──────────────────────────────────────────────────────────────────────
 const T = {
   en: {
-    brandMain:'Excellence - CRM', brandSub:'web app', signOut:'Sign out', adminPanel:'Admin Panel',
+    brand:'EXCELLENCE', signOut:'Sign out', adminPanel:'Admin Panel',
     lastMonth:'Last Month', recent:'Recent  1–15',
     allTeams:'All teams', allUsers:'All reps', search:'Search name or territory…',
     export:'Export', loading:'Loading…', noData:'No data for this period.',
@@ -18,6 +15,7 @@ const T = {
     people: n=>`${n} rep${n!==1?'s':''}`,
     tabs:{ summary:'Summary', specialty:'Specialty', products:'Products', coaching:'Coaching' },
     roleView:{ MR:'My Results', Supervisor:'My Team', 'Area Manager':'My Area', BLM:'Full Team', Admin:'All Teams' },
+    avg:'Avg', sum:'Sum', teamSummary:'Team Summary',
     kpiGroups:[
       { label:'Field Activity', keys:['working_days','complete_field_days','am_shift_days','pm_shift_days','double_visit_days','office_work_days'] },
       { label:'Doctor Calls',   keys:['am_calls','am_call_rate','pm_calls','pm_call_rate'] },
@@ -43,7 +41,7 @@ const T = {
     },
   },
   ar: {
-    brandMain:'إكسيلنس - CRM', brandSub:'تطبيق ويب', signOut:'خروج', adminPanel:'لوحة الإدارة',
+    brand:'إكسيلنس', signOut:'خروج', adminPanel:'لوحة الإدارة',
     lastMonth:'الشهر الماضي', recent:'الأحدث  1–15',
     allTeams:'كل الفرق', allUsers:'كل المندوبين', search:'بحث باسم أو منطقة…',
     export:'تصدير', loading:'جارٍ التحميل…', noData:'لا توجد بيانات.',
@@ -51,6 +49,7 @@ const T = {
     people: n=>`${n} مندوب`,
     tabs:{ summary:'الملخص', specialty:'التخصص', products:'المنتجات', coaching:'التوجيه' },
     roleView:{ MR:'نتائجي', Supervisor:'فريقي', 'Area Manager':'منطقتي', BLM:'الفريق', Admin:'الكل' },
+    avg:'متوسط', sum:'مجموع', teamSummary:'ملخص الفريق',
     kpiGroups:[
       { label:'النشاط الميداني', keys:['working_days','complete_field_days','am_shift_days','pm_shift_days','double_visit_days','office_work_days'] },
       { label:'الزيارات',        keys:['am_calls','am_call_rate','pm_calls','pm_call_rate'] },
@@ -77,9 +76,26 @@ const T = {
   },
 };
 
+// Keys that should show AVG not SUM (rates, days, timing)
+const AVG_KEYS = new Set([
+  'working_days','complete_field_days','am_shift_days','pm_shift_days',
+  'double_visit_days','office_work_days','coaching_days',
+  'am_call_rate','pm_call_rate',
+  'avg_am_start_time','avg_am_shift_hm','avg_pm_shift_hm',
+]);
+
+const NUMERIC_KPI_KEYS = [
+  'working_days','complete_field_days','am_shift_days','pm_shift_days','double_visit_days','office_work_days',
+  'am_calls','am_call_rate','pm_calls','pm_call_rate',
+  'total_am_covered','total_pm_covered','amcenter_covered','hospital_covered','clinic_covered','polyclinic_covered',
+  'pharmacies_visited','pharmacies_covered',
+  'total_product_calls','distinct_products','coaching_days',
+];
+
 function fmtVal(v, key) {
   if (v===null||v===undefined||v==='') return '—';
   if (key?.includes('rate')) return Number(v).toFixed(1);
+  if (typeof v==='number') return Number.isInteger(v)?v:Number(v).toFixed(1);
   return v;
 }
 
@@ -92,7 +108,114 @@ function sortSummary(rows) {
   });
 }
 
-// ─── ShiftToggle ─────────────────────────────────────────────────────────────
+// ── Compute team/level aggregate stats ───────────────────────────────────────
+function computeAggregates(rows) {
+  // Only include non-manager reps for avg/sum (exclude managers from field stats)
+  const reps = rows.filter(r => !r.is_manager);
+  const n = reps.length || 1;
+  const agg = {};
+  NUMERIC_KPI_KEYS.forEach(key => {
+    const vals = reps.map(r => Number(r[key])||0).filter(v => v > 0);
+    agg[key] = {
+      sum: vals.reduce((s,v)=>s+v, 0),
+      avg: vals.length ? (vals.reduce((s,v)=>s+v,0)/vals.length) : 0,
+      isAvg: AVG_KEYS.has(key),
+    };
+  });
+  return { agg, repCount: reps.length };
+}
+
+// ── Team aggregate card ───────────────────────────────────────────────────────
+function TeamAggCard({ rows, shift, t, isMgr, teamLabel }) {
+  const { agg, repCount } = useMemo(() => computeAggregates(rows), [rows]);
+  if (!rows.length) return null;
+
+  return (
+    <div className="agg-card">
+      <div className="agg-hdr">
+        <div className="agg-title">
+          {teamLabel || t.teamSummary}
+        </div>
+        <div className="agg-meta">{repCount} {t.people(repCount)}</div>
+      </div>
+      <div className="agg-cols">
+        {t.kpiGroups.map(g => {
+          const keys = g.keys.filter(k => NUMERIC_KPI_KEYS.includes(k)).filter(k => {
+            if(shift==='AM') return !['pm_calls','pm_call_rate','pm_shift_days','total_pm_covered','clinic_covered','polyclinic_covered','avg_pm_shift_hm'].includes(k);
+            if(shift==='PM') return !['am_calls','am_call_rate','am_shift_days','total_am_covered','amcenter_covered','hospital_covered','avg_am_shift_hm','avg_am_start_time'].includes(k);
+            return true;
+          });
+          if(g.keys.includes('coaching_days') && !isMgr) return null;
+          if(!keys.length) return null;
+          return (
+            <div key={g.label} className="agg-sec">
+              <div className="agg-sec-hd">{g.label}</div>
+              {keys.map(k => {
+                const d = agg[k];
+                if(!d) return null;
+                const isAvgKey = AVG_KEYS.has(k);
+                return (
+                  <div key={k} className="agg-row">
+                    <span className="agg-lbl">{t.kpi[k]||k}</span>
+                    <span className="agg-vals">
+                      <span className="agg-chip agg-sum" title={`Sum: ${fmtVal(d.sum,k)}`}>
+                        Σ {fmtVal(d.sum,k)}
+                      </span>
+                      <span className="agg-chip agg-avg" title={`Avg: ${fmtVal(d.avg,k)}`}>
+                        ⌀ {fmtVal(d.avg,k)}
+                      </span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Pivot summary banner ──────────────────────────────────────────────────────
+function PivotSummaryBanner({ rows, valueKey, rowKey, shift, t }) {
+  // Per-team totals and per-user totals for the pivot data
+  const filtered = useMemo(() => shift==='all'?rows:rows.filter(r=>r.shift===shift), [rows,shift]);
+
+  const byTeam = useMemo(() => {
+    const m = {};
+    filtered.forEach(r => {
+      const team = r.team || 'Unknown';
+      if(!m[team]) m[team] = { total:0, users:new Set() };
+      m[team].total += (r[valueKey]||0);
+      m[team].users.add(r.user_name);
+    });
+    return m;
+  }, [filtered, valueKey]);
+
+  const grandTotal = useMemo(() => filtered.reduce((s,r)=>s+(r[valueKey]||0),0), [filtered,valueKey]);
+  const allUsers   = useMemo(() => new Set(filtered.map(r=>r.user_name)).size, [filtered]);
+  const teamList   = Object.entries(byTeam).sort((a,b)=>a[0].localeCompare(b[0]));
+  if(!filtered.length) return null;
+
+  return (
+    <div className="pivot-banner">
+      <div className="pivot-banner-total">
+        <span className="pb-label">Grand Total</span>
+        <span className="pb-val">{grandTotal.toLocaleString()}</span>
+        <span className="pb-sub">{allUsers} reps</span>
+      </div>
+      {teamList.map(([team,d]) => (
+        <div key={team} className="pivot-banner-team">
+          <span className="pb-team">{team}</span>
+          <span className="pb-val">{d.total.toLocaleString()}</span>
+          <span className="pb-sub">{d.users.size} reps · avg {d.users.size?Math.round(d.total/d.users.size):0}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── ShiftToggle ───────────────────────────────────────────────────────────────
 function ShiftToggle({ value, onChange, t }) {
   return (
     <div className="shift-toggle">
@@ -107,7 +230,7 @@ function ShiftToggle({ value, onChange, t }) {
   );
 }
 
-// ─── Pivot table ─────────────────────────────────────────────────────────────
+// ── Pivot table ───────────────────────────────────────────────────────────────
 function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFilter, lang }) {
   const filtered = useMemo(()=> rows.filter(r=>{
     if(shiftFilter!=='all' && r.shift!==shiftFilter) return false;
@@ -128,16 +251,37 @@ function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFil
     return c;
   },[filtered,rowKey,valueKey]);
 
-  if(!filtered.length) return <div className="empty-state">{lang==='ar'?'لا توجد بيانات':'No data'}</div>;
+  const colTotals = useMemo(()=>{
+    const ct={};
+    users.forEach(u=>ct[u]=filtered.filter(r=>r.user_name===u).reduce((s,r)=>s+(r[valueKey]||0),0));
+    return ct;
+  },[users,filtered,valueKey]);
+
+  if(!filtered.length) return <div className="dash-empty">{lang==='ar'?'لا توجد بيانات':'No data'}</div>;
 
   return (
-    <div className="table-scroll-container" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
+    <div className="pivot-wrap">
       <table className="pivot-tbl">
         <thead>
           <tr>
             <th className="s-col">{rowKey==='specialty'?(lang==='ar'?'التخصص':'Specialty'):(lang==='ar'?'المنتج':'Product')}</th>
             {users.map(u=><th key={u} title={u}>{u.split(' ').slice(0,2).join(' ')}</th>)}
-            <th className="t-col">Total</th>
+            <th className="t-col">Σ Total</th>
+          </tr>
+          {/* Avg row in header */}
+          <tr className="avg-row">
+            <th className="s-col avg-lbl">⌀ Avg / rep</th>
+            {users.map(u=>{
+              const uTotal = colTotals[u]||0;
+              const uRows  = rowKeys.filter(k=>cells[k]?.[u]).length;
+              return <th key={u} className="avg-cell">{uRows>0?Math.round(uTotal/uRows):0}</th>;
+            })}
+            <th className="t-col avg-cell">
+              {(() => {
+                const gt = filtered.reduce((s,r)=>s+(r[valueKey]||0),0);
+                return users.length>0?Math.round(gt/users.length):0;
+              })()}
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -155,8 +299,8 @@ function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFil
             );
           })}
           <tr className="tot-row">
-            <td className="s-col">Total</td>
-            {users.map(u=><td key={u}>{filtered.filter(r=>r.user_name===u).reduce((s,r)=>s+(r[valueKey]||0),0)}</td>)}
+            <td className="s-col">Σ Total</td>
+            {users.map(u=><td key={u}>{colTotals[u]||0}</td>)}
             <td className="t-col">{filtered.reduce((s,r)=>s+(r[valueKey]||0),0)}</td>
           </tr>
         </tbody>
@@ -165,10 +309,9 @@ function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFil
   );
 }
 
-// ─── Main Dashboard ───────────────────────────────────────────────────────────
+// ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { profile, visibleCodes, signOut } = useAuth();
-  const { success: toastSuccess, error: toastError } = useToast();
   const [lang, setLang]       = useState(profile?.preferred_lang||'en');
   const [period, setPeriod]   = useState('last_month');
   const [team, setTeam]       = useState('all');
@@ -188,23 +331,17 @@ export default function Dashboard() {
   const isMgr = profile?.role && profile.role!=='MR';
   const periodLabel = period==='last_month'?'Last Month':'Recent';
 
-  // ── Load data ──────────────────────────────────────────────────────────────
   const load = useCallback(async()=>{
     if(!visibleCodes?.length){setLoading(false);return;}
     setLoading(true); setError('');
     const codes=visibleCodes;
+    const cf=codes.map(c=>`manager_code.eq.${c}`).concat(codes.map(c=>`rep_code.eq.${c}`)).join(',');
     const queries=[
       supabase.from('summaries').select('*').eq('period',periodLabel).in('employee_code',codes),
       supabase.from('specialty_classification').select('*').eq('period',periodLabel).in('employee_code',codes),
       supabase.from('product_calls').select('*').eq('period',periodLabel).in('employee_code',codes),
     ];
-    // No manual manager_code/rep_code filter here — the RLS policy on
-    // coaching_days already enforces the exact same visibility rule at the
-    // database level. Building an .or() filter listing every visible code
-    // client-side produced URLs tens of thousands of characters long for
-    // high-visibility roles (Admin/BLM), which silently failed — RLS makes
-    // that redundant and lets this stay a plain period-scoped query.
-    if(isMgr) queries.push(supabase.from('coaching_days').select('*').eq('period',periodLabel));
+    if(isMgr) queries.push(supabase.from('coaching_days').select('*').eq('period',periodLabel).or(cf));
     const [s,sp,pr,co]=await Promise.all(queries);
     if(s.error) setError(s.error.message);
     setSummary(s.data||[]);
@@ -216,40 +353,14 @@ export default function Dashboard() {
 
   useEffect(()=>{load();},[load]);
 
-  // ── Filter chains ──────────────────────────────────────────────────────────
   const teams=useMemo(()=>[...new Set(summary.map(r=>r.team).filter(Boolean))].sort(),[summary]);
-
   const byTeam=useCallback(rows=>team==='all'?rows:rows.filter(r=>r.team===team),[team]);
 
   const fSummary=useMemo(()=>{
-    let raw = sortSummary(byTeam(summary));
-    if(search) raw = raw.filter(x=>x.user_name?.toLowerCase().includes(search.toLowerCase())||x.territory?.toLowerCase().includes(search.toLowerCase()));
-    if(userFilter!=='all') raw = raw.filter(x=>x.user_name===userFilter);
-    
-    // Aggregate duplicates by employee_code
-    const aggregated = new Map();
-    raw.forEach(r => {
-      if (!r.employee_code) return; // Skip if no code
-      if (!aggregated.has(r.employee_code)) {
-        aggregated.set(r.employee_code, { ...r });
-      } else {
-        const existing = aggregated.get(r.employee_code);
-        // Sum numeric fields
-        Object.keys(r).forEach(k => {
-          if (typeof r[k] === 'number') {
-            existing[k] = (existing[k] || 0) + r[k];
-          }
-        });
-        // Merge text fields (if different, just append or keep first)
-        // Recalculate rates since we summed the raw counts
-        if (existing.field_days) {
-            existing.am_call_rate = existing.am_calls / existing.field_days;
-            existing.pm_call_rate = existing.pm_calls / existing.field_days;
-        }
-      }
-    });
-    
-    return Array.from(aggregated.values());
+    let r=sortSummary(byTeam(summary));
+    if(search) r=r.filter(x=>x.user_name?.toLowerCase().includes(search.toLowerCase())||x.territory?.toLowerCase().includes(search.toLowerCase()));
+    if(userFilter!=='all') r=r.filter(x=>x.user_name===userFilter);
+    return r;
   },[summary,byTeam,search,userFilter]);
 
   const fSpecialty = useMemo(()=>byTeam(specialty),[specialty,byTeam]);
@@ -263,50 +374,53 @@ export default function Dashboard() {
   const allUsers=useMemo(()=>[...new Set(byTeam(summary).map(r=>r.user_name))].sort(),[summary,byTeam]);
   const teamCount=new Set(fSummary.map(r=>r.team)).size;
 
-  // ── Tabs (hide Coaching & Charts for MR) ────────────────────────────────────────────
+  // Group summary rows by team for aggregate cards (when viewing all teams)
+  const teamGroups = useMemo(()=>{
+    if(team!=='all') return [{ label: team||'Team', rows: fSummary }];
+    const groups = {};
+    fSummary.forEach(r=>{
+      const tm = r.team||'Unknown';
+      if(!groups[tm]) groups[tm]=[];
+      groups[tm].push(r);
+    });
+    return Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0])).map(([label,rows])=>({label,rows}));
+  },[fSummary,team]);
+
   const visibleTabs=useMemo(()=>{
     const all=Object.entries(t.tabs);
     return isMgr?all:all.filter(([k])=>k!=='coaching');
   },[t.tabs,isMgr]);
 
-  // ── Export ─────────────────────────────────────────────────────────────────
   function doExport(){
-    try {
-      const wb=XLSX.utils.book_new();
-      const allKpiKeys=t.kpiGroups.flatMap(g=>g.keys);
-      const sh=[['Team','User','Territory','Manager',...allKpiKeys.map(k=>t.kpi[k]||k)]];
-      fSummary.forEach(r=>sh.push([r.team,r.user_name,r.territory,r.is_manager?'✓':'',...allKpiKeys.map(k=>r[k]??'')]));
-      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sh),'Summary');
-      const filename=`excellence_${periodLabel.replace(' ','_')}_${Date.now()}.xlsx`;
-      XLSX.writeFile(wb,filename);
-      toastSuccess(`✓ Exported ${fSummary.length} rows to Excel`);
-    } catch(e) {
-      toastError('Export failed: ' + e.message);
-    }
+    const wb=XLSX.utils.book_new();
+    const allKpiKeys=t.kpiGroups.flatMap(g=>g.keys);
+    const sh=[['Team','User','Territory','Manager',...allKpiKeys.map(k=>t.kpi[k]||k)]];
+    fSummary.forEach(r=>sh.push([r.team,r.user_name,r.territory,r.is_manager?'✓':'',...allKpiKeys.map(k=>r[k]??'')]));
+    // Add aggregate sheet
+    const aggRows=[['Team','KPI','Sum','Avg']];
+    teamGroups.forEach(({label,rows})=>{
+      const {agg}=computeAggregates(rows);
+      NUMERIC_KPI_KEYS.forEach(k=>{
+        if(agg[k]) aggRows.push([label,t.kpi[k]||k,agg[k].sum,+agg[k].avg.toFixed(2)]);
+      });
+    });
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sh),'Summary');
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aggRows),'Team Averages');
+    XLSX.writeFile(wb,`excellence_${periodLabel.replace(' ','_')}_${Date.now()}.xlsx`);
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className={`dash${rtl?' rtl':''}`} dir={rtl?'rtl':'ltr'}>
 
-      {/* ── HEADER ── */}
+      {/* HEADER */}
       <header className="dash-hdr">
         <div className="dash-hdr-l">
-          <div className="dash-brand-wrap">
-            <span className="dash-brand">{t.brandMain}</span>
-            <span className="dash-brand-sub">{t.brandSub}</span>
-          </div>
+          <span className="dash-brand">{t.brand}</span>
           <div className="dash-sep"/>
           <span className="dash-view">{t.roleView[profile?.role]||''}</span>
         </div>
         <div className="dash-hdr-r">
           {profile?.role==='Admin'&&<a className="hbtn hbtn-outline" href="#/admin">{t.adminPanel}</a>}
-          <button className="hbtn hbtn-outline" style={{padding: '8px 12px', fontSize: '16px'}} onClick={() => {
-            const isLight = document.documentElement.classList.toggle('light');
-            localStorage.setItem('theme', isLight ? 'light' : 'dark');
-          }} title="Toggle Theme">
-            ◐
-          </button>
           <button className="hbtn hbtn-lang" onClick={()=>setLang(lang==='en'?'ar':'en')}>
             {lang==='en'?'عربي':'EN'}
           </button>
@@ -318,11 +432,9 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* ── CONTROL BAR ── */}
+      {/* CONTROL BAR */}
       <div className="ctrl-bar">
-        {/* Row 1: Period + Shift + Team + User + Search */}
         <div className="ctrl-row">
-          {/* Period */}
           <div className="ctrl-group">
             <span className="ctrl-lbl">{rtl?'الفترة':'Period'}</span>
             <div className="seg-ctrl">
@@ -331,14 +443,10 @@ export default function Dashboard() {
               ))}
             </div>
           </div>
-
-          {/* Shift */}
           <div className="ctrl-group">
             <span className="ctrl-lbl">{rtl?'الوردية':'Shift'}</span>
             <ShiftToggle value={shift} onChange={setShift} t={t}/>
           </div>
-
-          {/* Team */}
           {teams.length>1&&(
             <div className="ctrl-group">
               <span className="ctrl-lbl">{rtl?'الفريق':'Team'}</span>
@@ -348,8 +456,6 @@ export default function Dashboard() {
               </select>
             </div>
           )}
-
-          {/* User */}
           {isMgr&&allUsers.length>1&&(
             <div className="ctrl-group">
               <span className="ctrl-lbl">{rtl?'المندوب':'Rep'}</span>
@@ -359,8 +465,6 @@ export default function Dashboard() {
               </select>
             </div>
           )}
-
-          {/* Search */}
           <div className="ctrl-group ctrl-search">
             <div className="search-box">
               <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
@@ -371,8 +475,6 @@ export default function Dashboard() {
               {search&&<button className="search-clear" onClick={()=>setSearch('')}>✕</button>}
             </div>
           </div>
-
-          {/* Stats + Export */}
           <div className="ctrl-end">
             <span className="ctrl-stat">{t.people(fSummary.length)}{teamCount>1&&` · ${teamCount} teams`}</span>
             <button className="hbtn hbtn-primary" onClick={doExport}>↓ {t.export}</button>
@@ -380,93 +482,97 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── TABS ── */}
+      {/* TABS */}
       <nav className="dash-tabs">
         {visibleTabs.map(([k,label])=>(
-          <button key={k} className={`dtab${tab===k?' on':''}`} onClick={()=>setTab(k)}>
-            {label}
-          </button>
+          <button key={k} className={`dtab${tab===k?' on':''}`} onClick={()=>setTab(k)}>{label}</button>
         ))}
       </nav>
 
       {error&&<div className="dash-err">{error}</div>}
 
-      {/* ── CONTENT ── */}
       {loading?(
-        <div className="dash-body" style={{maxWidth:1600,margin:'0 auto',padding:'24px 32px'}}>
-          {tab==='summary' && <SkeletonCardGrid count={6}/>}
-          {(tab==='specialty'||tab==='products'||tab==='coaching') && <SkeletonTable rows={8} cols={5}/>}
-        </div>
+        <div className="dash-empty">{t.loading}</div>
       ):(
-        <div className="dash-main-layout">
-          <div className="dash-body">
+        <div className="dash-body">
 
-          {/* ── SUMMARY: vertical KPI cards ── */}
+          {/* SUMMARY TAB */}
           {tab==='summary'&&(
             fSummary.length===0?<div className="dash-empty">{t.noData}</div>:(
-              <div className="cards-grid">
-                {fSummary.map((r,i)=>(
-                  <div key={r.id||i} className={`ucard${r.is_manager?' mgr':''}`}>
-                    {/* Card header */}
-                    <div className="ucard-hdr">
-                      <div className="ucard-info">
-                        <div className="ucard-name">{r.user_name}</div>
-                        <div className="ucard-meta">{r.team||''}{r.is_manager?' · Manager':''}</div>
-                        {r.territory&&<div className="ucard-terr" title={r.territory}>{r.territory}</div>}
-                      </div>
-                      {r.is_manager&&<span className="mgr-pip">MGR</span>}
-                    </div>
-                    {/* KPI groups — filter by shift */}
-                    {t.kpiGroups.map(g=>{
-                      // Filter keys by shift selection
-                      const keys=g.keys.filter(k=>{
-                        if(shift==='all') return true;
-                        if(shift==='AM') return !['pm_calls','pm_call_rate','pm_shift_days','total_pm_covered','clinic_covered','polyclinic_covered','avg_pm_shift_hm'].includes(k);
-                        if(shift==='PM') return !['am_calls','am_call_rate','am_shift_days','total_am_covered','amcenter_covered','hospital_covered','avg_am_shift_hm','avg_am_start_time'].includes(k);
-                        return true;
-                      });
-                      // Skip coaching section for MR
-                      if(g.keys.includes('coaching_days')&&!isMgr) return null;
-                      const rows=keys.map(k=>({k,v:r[k]})).filter(x=>x.v!==null&&x.v!==undefined&&x.v!=='');
-                      if(!rows.length) return null;
-                      return (
-                        <div key={g.label} className="kpi-sec">
-                          <div className="kpi-sec-hd">{g.label}</div>
-                          {rows.map(({k,v})=>(
-                            <div key={k} className="kpi-row">
-                              <span className="kpi-lbl">{t.kpi[k]||k}</span>
-                              <span className={`kpi-v${k.includes('rate')?' rate':''}`}>{fmtVal(v,k)}</span>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })}
-                    {/* Product detail */}
-                    {r.product_calls_detail&&shift!=='AM'&&(
-                      <div className="kpi-sec">
-                        <div className="kpi-sec-hd">{rtl?'تفاصيل المنتج':'Product Detail'}</div>
-                        <div className="prod-det">{r.product_calls_detail}</div>
-                      </div>
-                    )}
+              <>
+                {/* Aggregate cards — one per team (or one overall) pinned at top */}
+                {isMgr&&userFilter==='all'&&(
+                  <div className="agg-cards-row">
+                    {teamGroups.map(({label,rows})=>(
+                      <TeamAggCard key={label} rows={rows} shift={shift} t={t} isMgr={isMgr} teamLabel={label}/>
+                    ))}
                   </div>
-                ))}
-              </div>
+                )}
+                {/* Individual user cards */}
+                <div className="cards-grid">
+                  {fSummary.map((r,i)=>(
+                    <div key={r.id||i} className={`ucard${r.is_manager?' mgr':''}`}>
+                      <div className="ucard-hdr">
+                        <div className="ucard-info">
+                          <div className="ucard-name">{r.user_name}</div>
+                          <div className="ucard-meta">{r.team||''}{r.is_manager?' · Manager':''}</div>
+                          {r.territory&&<div className="ucard-terr" title={r.territory}>{r.territory}</div>}
+                        </div>
+                        {r.is_manager&&<span className="mgr-pip">MGR</span>}
+                      </div>
+                      {t.kpiGroups.map(g=>{
+                        const keys=g.keys.filter(k=>{
+                          if(shift==='AM') return !['pm_calls','pm_call_rate','pm_shift_days','total_pm_covered','clinic_covered','polyclinic_covered','avg_pm_shift_hm'].includes(k);
+                          if(shift==='PM') return !['am_calls','am_call_rate','am_shift_days','total_am_covered','amcenter_covered','hospital_covered','avg_am_shift_hm','avg_am_start_time'].includes(k);
+                          return true;
+                        });
+                        if(g.keys.includes('coaching_days')&&!isMgr) return null;
+                        const kpiRows=keys.map(k=>({k,v:r[k]})).filter(x=>x.v!==null&&x.v!==undefined&&x.v!=='');
+                        if(!kpiRows.length) return null;
+                        return (
+                          <div key={g.label} className="kpi-sec">
+                            <div className="kpi-sec-hd">{g.label}</div>
+                            {kpiRows.map(({k,v})=>(
+                              <div key={k} className="kpi-row">
+                                <span className="kpi-lbl">{t.kpi[k]||k}</span>
+                                <span className={`kpi-v${k.includes('rate')?' rate':''}`}>{fmtVal(v,k)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })}
+                      {r.product_calls_detail&&shift!=='AM'&&(
+                        <div className="kpi-sec">
+                          <div className="kpi-sec-hd">{rtl?'تفاصيل المنتج':'Product Detail'}</div>
+                          <div className="prod-det">{r.product_calls_detail}</div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
             )
           )}
 
-          {/* ── SPECIALTY pivot ── */}
+          {/* SPECIALTY TAB */}
           {tab==='specialty'&&(
-            <PivotTable rows={fSpecialty} rowKey="specialty" valueKey="call_count"
-              shiftFilter={shift} userFilter={userFilter} searchFilter={search} lang={lang}/>
+            <>
+              <PivotSummaryBanner rows={fSpecialty} valueKey="call_count" rowKey="specialty" shift={shift} t={t}/>
+              <PivotTable rows={fSpecialty} rowKey="specialty" valueKey="call_count"
+                shiftFilter={shift} userFilter={userFilter} searchFilter={search} lang={lang}/>
+            </>
           )}
 
-          {/* ── PRODUCTS pivot ── */}
+          {/* PRODUCTS TAB */}
           {tab==='products'&&(
-            <PivotTable rows={fProducts} rowKey="product" valueKey="call_count"
-              shiftFilter={shift} userFilter={userFilter} searchFilter={search} lang={lang}/>
+            <>
+              <PivotSummaryBanner rows={fProducts} valueKey="call_count" rowKey="product" shift={shift} t={t}/>
+              <PivotTable rows={fProducts} rowKey="product" valueKey="call_count"
+                shiftFilter={shift} userFilter={userFilter} searchFilter={search} lang={lang}/>
+            </>
           )}
 
-          {/* ── COACHING ── (managers only, already filtered via visibleTabs) */}
+          {/* COACHING TAB */}
           {tab==='coaching'&&isMgr&&(
             fCoaching.length===0?<div className="dash-empty">{t.noData}</div>:(
               <div className="pivot-wrap">
@@ -477,45 +583,21 @@ export default function Dashboard() {
                       <th>{rtl?'المندوب':'Rep'}</th>
                       <th>{rtl?'التاريخ':'Date'}</th>
                       <th>{rtl?'الفريق':'Team'}</th>
-                      <th style={{textAlign: 'center'}}>AM Visits</th>
-                      <th style={{textAlign: 'center'}}>AM Acc</th>
-                      <th style={{textAlign: 'center'}}>AM %</th>
-                      <th style={{textAlign: 'center'}}>PM Visits</th>
-                      <th style={{textAlign: 'center'}}>PM Acc</th>
-                      <th style={{textAlign: 'center'}}>PM %</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {[...fCoaching].sort((a,b)=>(a.manager_name||'').localeCompare(b.manager_name||'')).map((r,i)=>{
-                      const amPct = r.am_visits > 0 ? Math.round((r.am_accompanied / r.am_visits) * 100) : 0;
-                      const pmPct = r.pm_visits > 0 ? Math.round((r.pm_accompanied / r.pm_visits) * 100) : 0;
-                      return (
+                    {[...fCoaching].sort((a,b)=>(a.manager_name||'').localeCompare(b.manager_name||'')).map((r,i)=>(
                       <tr key={r.id||i}>
                         <td className="s-col">{r.manager_name}</td>
                         <td>{r.rep_name}</td>
                         <td>{r.coaching_date}</td>
                         <td>{r.team||'—'}</td>
-                        <td style={{textAlign: 'center'}}>{r.am_visits || 0}</td>
-                        <td style={{textAlign: 'center'}}>{r.am_accompanied || 0}</td>
-                        <td style={{textAlign: 'center'}}>{amPct}%</td>
-                        <td style={{textAlign: 'center'}}>{r.pm_visits || 0}</td>
-                        <td style={{textAlign: 'center'}}>{r.pm_accompanied || 0}</td>
-                        <td style={{textAlign: 'center'}}>{pmPct}%</td>
                       </tr>
-                    )})}
+                    ))}
                   </tbody>
                 </table>
               </div>
             )
-          )}
-
-          </div>
-
-          {/* ── CHARTS SIDE PANEL ── */}
-          {isMgr&&(
-            <aside className="dash-side-panel">
-              <ChartBuilder data={fSummary} isManager={isMgr} />
-            </aside>
           )}
         </div>
       )}
