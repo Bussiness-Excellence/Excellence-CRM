@@ -317,3 +317,35 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 }
 .avg-row .avg-lbl { text-align:left; color:rgba(200,168,75,.7); font-style:italic; }
 .avg-row .avg-cell { font-variant-numeric:tabular-nums; }
+
+/* ── Team KPI Hover ─────────────────────────────────────────── */
+.team-kpi-btn {
+  position: relative; display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 16px; background: var(--navy); border-radius: 8px;
+  color: #fff; cursor: pointer; border: 1px solid rgba(200,168,75,.3);
+  box-shadow: var(--sh);
+}
+.tk-name { font-weight: 700; font-size: 13px; color: var(--gold); }
+.tk-count { font-size: 11px; color: var(--mute); }
+.tk-dropdown {
+  position: absolute; top: 100%; left: 0; margin-top: 6px;
+  background: var(--surf); border: 1px solid var(--bdr);
+  box-shadow: var(--sh2); border-radius: 8px; padding: 14px;
+  width: 240px; opacity: 0; pointer-events: none;
+  transform: translateY(4px); transition: all 0.2s;
+  z-index: 100; text-align: left;
+}
+.team-kpi-btn:hover .tk-dropdown {
+  opacity: 1; pointer-events: auto; transform: translateY(0);
+}
+.tk-dd-title {
+  font-size: 11px; font-weight: 800; color: var(--mute);
+  text-transform: uppercase; margin-bottom: 8px; border-bottom: 1px solid var(--bdr);
+  padding-bottom: 6px;
+}
+.tk-dd-grid {
+  display: grid; grid-template-columns: 1fr; gap: 6px;
+  font-size: 12px; color: var(--txt);
+}
+.tk-dd-grid > div:nth-child(odd) { font-weight: 600; color: var(--navy); margin-top: 4px; }
+.tk-dd-grid > div:nth-child(even) { color: var(--mute); font-variant-numeric: tabular-nums; }

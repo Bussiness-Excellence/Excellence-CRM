@@ -117,51 +117,28 @@ function computeAggregates(rows) {
   return { agg, repCount: reps.length };
 }
 
-// ── Team aggregate card ───────────────────────────────────────────────────────
-function TeamAggCard({ rows, shift, t, isMgr, teamLabel }) {
+function TeamKpiHover({ rows, teamLabel }) {
   const { agg, repCount } = useMemo(() => computeAggregates(rows), [rows]);
   if (!rows.length) return null;
 
+  const d_am_days = agg['am_shift_days']?.avg || 0;
+  const d_pm_days = agg['pm_shift_days']?.avg || 0;
+  const d_am_doc = agg['total_am_covered']?.avg || 0;
+  const d_pm_doc = agg['total_pm_covered']?.avg || 0;
+  const d_am_dur = agg['avg_am_shift_hm']?.avg || 0;
+  const d_pm_dur = agg['avg_pm_shift_hm']?.avg || 0;
+
   return (
-    <div className="agg-card">
-      <div className="agg-hdr">
-        <div className="agg-title">
-          {teamLabel || t.teamSummary}
+    <div className="team-kpi-btn">
+      <span className="tk-name">{teamLabel}</span>
+      <span className="tk-count">{repCount} reps</span>
+      <div className="tk-dropdown">
+        <div className="tk-dd-title">{teamLabel} Averages</div>
+        <div className="tk-dd-grid">
+          <div>Working Days</div><div>AM: {fmtVal(d_am_days)} | PM: {fmtVal(d_pm_days)}</div>
+          <div>Covered Doctors</div><div>AM: {fmtVal(d_am_doc)} | PM: {fmtVal(d_pm_doc)}</div>
+          <div>Shift Duration</div><div>AM: {fmtVal(d_am_dur)}h | PM: {fmtVal(d_pm_dur)}h</div>
         </div>
-        <div className="agg-meta">{repCount} {t.people(repCount)}</div>
-      </div>
-      <div className="agg-cols">
-        {t.kpiGroups.map(g => {
-          const keys = g.keys.filter(k => NUMERIC_KPI_KEYS.includes(k)).filter(k => {
-            if(shift==='AM') return !['pm_calls','pm_call_rate','pm_shift_days','total_pm_covered','clinic_covered','polyclinic_covered','avg_pm_shift_hm'].includes(k);
-            if(shift==='PM') return !['am_calls','am_call_rate','am_shift_days','total_am_covered','amcenter_covered','hospital_covered','avg_am_shift_hm','avg_am_start_time'].includes(k);
-            return true;
-          });
-          if(g.keys.includes('coaching_days') && !isMgr) return null;
-          if(!keys.length) return null;
-          return (
-            <div key={g.label} className="agg-sec">
-              <div className="agg-sec-hd">{g.label}</div>
-              {keys.map(k => {
-                const d = agg[k];
-                if(!d) return null;
-                return (
-                  <div key={k} className="agg-row">
-                    <span className="agg-lbl">{t.kpi[k]||k}</span>
-                    <span className="agg-vals">
-                      <span className="agg-chip agg-sum" title={`Sum: ${fmtVal(d.sum,k)}`}>
-                        Σ {fmtVal(d.sum,k)}
-                      </span>
-                      <span className="agg-chip agg-avg" title={`Avg: ${fmtVal(d.avg,k)}`}>
-                        ⌀ {fmtVal(d.avg,k)}
-                      </span>
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
       </div>
     </div>
   );
@@ -495,7 +472,7 @@ export default function Dashboard() {
                 {isMgr&&userFilter==='all'&&(
                   <div className="agg-cards-row">
                     {teamGroups.map(({label,rows})=>(
-                      <TeamAggCard key={label} rows={rows} shift={shift} t={t} isMgr={isMgr} teamLabel={label}/>
+                      <TeamKpiHover key={label} rows={rows} teamLabel={label}/>
                     ))}
                   </div>
                 )}
@@ -574,6 +551,10 @@ export default function Dashboard() {
                       <th>{rtl?'المندوب':'Rep'}</th>
                       <th>{rtl?'التاريخ':'Date'}</th>
                       <th>{rtl?'الفريق':'Team'}</th>
+                      <th>{rtl?'زيارات AM':'AM Visits'}</th>
+                      <th>{rtl?'مرافقة AM':'AM Acc.'}</th>
+                      <th>{rtl?'زيارات PM':'PM Visits'}</th>
+                      <th>{rtl?'مرافقة PM':'PM Acc.'}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -583,6 +564,10 @@ export default function Dashboard() {
                         <td>{r.rep_name}</td>
                         <td>{r.coaching_date}</td>
                         <td>{r.team||'—'}</td>
+                        <td>{r.am_visits||0}</td>
+                        <td>{r.am_accompanied||0}</td>
+                        <td>{r.pm_visits||0}</td>
+                        <td>{r.pm_accompanied||0}</td>
                       </tr>
                     ))}
                   </tbody>
