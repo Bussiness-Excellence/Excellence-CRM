@@ -28,11 +28,6 @@ export default function AdminPanel() {
   const [creating, setCreating] = useState(false);
   const [newUser, setNewUser]   = useState({ name: '', code: '', role: 'Stakeholder', teams: [] });
 
-  // Admin Key State
-  const [adminKey, setAdminKey] = useState(localStorage.getItem('supabase_admin_key') || '');
-  const [showKeyPrompt, setShowKeyPrompt] = useState(false);
-  const [pendingAction, setPendingAction] = useState(null);
-
   const [periodStats, setPeriodStats] = useState([]);
 
   const showMsg = (text, type='ok') => {
@@ -72,21 +67,6 @@ export default function AdminPanel() {
   const paged = filtered.slice(page*PER_PAGE, page*PER_PAGE+PER_PAGE);
   const totalPages = Math.ceil(filtered.length/PER_PAGE);
 
-  // ── Save Admin Key ──
-  function handleSaveKey() {
-    if (!adminKey) return;
-    localStorage.setItem('supabase_admin_key', adminKey);
-    setShowKeyPrompt(false);
-    if (pendingAction === 'reset') resetPassword(adminKey);
-    if (pendingAction === 'create') createUser(adminKey);
-  }
-
-  function getAdminClient(key) {
-    return createClient(process.env.REACT_APP_SUPABASE_URL, key, {
-      auth: { autoRefreshToken: false, persistSession: false }
-    });
-  }
-
   // ── Save role ──
   async function saveRole() {
     if (!editing || !editRole) return;
@@ -107,89 +87,77 @@ export default function AdminPanel() {
   }
 
   // ── Reset password ──
-  async function resetPassword(key = adminKey) {
-    if (!key) {
-      setPendingAction('reset');
-      setShowKeyPrompt(true);
-      return;
-    }
+  async function resetPassword() {
     if (!editing || !newPass || newPass.length < 6) {
       showMsg('Password must be at least 6 characters', 'err'); return;
     }
     setSaving(true);
     
-    const adminSupabase = getAdminClient(key);
-    const { error } = await adminSupabase.auth.admin.updateUserById(editing.id, { password: newPass });
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not logged in");
 
-    if (!error) {
+      const response = await fetch('/api/admin-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reset_password',
+          token: session.access_token,
+          payload: {
+            target_user_id: editing.id,
+            new_password: newPass
+          }
+        })
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Server error');
+
       showMsg(`Password reset for ${editing.employee_name}`);
       setNewPass(''); setEditing(null);
-    } else {
-      if (error.message.includes('JWT') || error.message.includes('unauthorized')) {
-        localStorage.removeItem('supabase_admin_key');
-        setAdminKey('');
-        showMsg('Invalid Service Role Key!', 'err');
-      } else {
-        showMsg('Failed: ' + error.message, 'err');
-      }
+    } catch (error) {
+      showMsg('Failed: ' + error.message, 'err');
     }
     setSaving(false);
   }
 
   // ── Create User ──
-  async function createUser(key = adminKey) {
-    if (!key) {
-      setPendingAction('create');
-      setShowKeyPrompt(true);
-      return;
-    }
+  async function createUser() {
     if (!newUser.name || !newUser.code) {
       showMsg('Name and Code are required', 'err'); return;
     }
     setSaving(true);
 
-    const adminSupabase = getAdminClient(key);
-    const email = employeeCodeToEmail(newUser.code);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not logged in");
 
-    // 1. Create Auth User
-    const { data: authData, error: authErr } = await adminSupabase.auth.admin.createUser({
-      email,
-      password: newUser.code,
-      email_confirm: true
-    });
+      const response = await fetch('/api/admin-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create_user',
+          token: session.access_token,
+          payload: {
+            email: employeeCodeToEmail(newUser.code),
+            password: newUser.code,
+            code: newUser.code,
+            name: newUser.name,
+            role: newUser.role,
+            teams: newUser.teams
+          }
+        })
+      });
 
-    if (authErr) {
-      if (authErr.message.includes('JWT') || authErr.message.includes('unauthorized')) {
-        localStorage.removeItem('supabase_admin_key');
-        setAdminKey('');
-        showMsg('Invalid Service Role Key!', 'err');
-      } else {
-        showMsg('Failed: ' + authErr.message, 'err');
-      }
-      setSaving(false);
-      return;
-    }
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Server error');
 
-    // 2. Insert into app_users using adminSupabase to bypass RLS
-    const { error: dbErr } = await adminSupabase.from('app_users').insert({
-      id: authData.user.id,
-      employee_code: newUser.code,
-      employee_name: newUser.name,
-      role: newUser.role,
-      visible_teams: newUser.role === 'Stakeholder' ? newUser.teams : null,
-      is_active: true,
-      is_default_password: true
-    });
-
-    if (dbErr) {
-      showMsg('Failed to add to app_users: ' + dbErr.message, 'err');
-      // Cleanup auth user on failure
-      await adminSupabase.auth.admin.deleteUser(authData.user.id);
-    } else {
       showMsg('User created successfully!');
       setCreating(false);
       setNewUser({ name: '', code: '', role: 'Stakeholder', teams: [] });
       await loadUsers();
+    } catch (error) {
+      showMsg('Failed to create user: ' + error.message, 'err');
     }
     setSaving(false);
   }
@@ -446,34 +414,6 @@ export default function AdminPanel() {
         </div>
       )}
 
-      {/* ── Service Role Key Prompt Modal ── */}
-      {showKeyPrompt && (
-        <div className="modal-backdrop">
-          <div className="modal">
-            <div className="modal-header">
-              <div className="modal-name">Admin Authentication Required</div>
-              <button className="modal-close" onClick={()=>setShowKeyPrompt(false)}>✕</button>
-            </div>
-            <div className="modal-section">
-              <p style={{fontSize: '13px', color: '#64748b', marginBottom: '12px'}}>
-                Since the app is hosted statically on GitHub Pages, you must provide your 
-                <strong> SUPABASE_SERVICE_ROLE_KEY </strong> (from your PowerShell script) 
-                to securely create users or reset passwords directly from the browser.
-              </p>
-              <input 
-                className="filter-input w100" 
-                type="password" 
-                placeholder="sb_secret_..." 
-                value={adminKey} 
-                onChange={e=>setAdminKey(e.target.value)}
-              />
-              <button className="abtn abtn-primary w100 mt16" onClick={handleSaveKey}>
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -160,10 +160,12 @@ export default function ChartBuilder({ data, isManager }) {
         </div>
       </div>
 
-      <div className="cb-chart-area">
-        <ResponsiveContainer width="100%" height={400}>
-          {renderChart()}
-        </ResponsiveContainer>
+      <div className="cb-chart-area" style={{ overflowX: 'auto', overflowY: 'hidden' }}>
+        <div style={{ minWidth: `${Math.max(600, chartData.length * 40)}px`, height: '400px' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            {renderChart()}
+          </ResponsiveContainer>
+        </div>
       </div>
     </div>
   );

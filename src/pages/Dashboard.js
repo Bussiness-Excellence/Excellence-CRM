@@ -131,7 +131,7 @@ function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFil
   if(!filtered.length) return <div className="empty-state">{lang==='ar'?'لا توجد بيانات':'No data'}</div>;
 
   return (
-    <div className="pivot-wrap">
+    <div className="table-scroll-container" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
       <table className="pivot-tbl">
         <thead>
           <tr>
