@@ -1,12 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
 
-// Initialize Supabase with the Service Role Key securely on the server
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'https://xxbfwvlqixnmonxytdxq.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: { autoRefreshToken: false, persistSession: false }
-});
-
 module.exports = async function handler(req, res) {
   // Only allow POST requests
   if (req.method !== 'POST') {
@@ -20,6 +13,16 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'https://xxbfwvlqixnmonxytdxq.supabase.co';
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseServiceKey) {
+      return res.status(500).json({ error: 'SUPABASE_SERVICE_ROLE_KEY is missing in Vercel Environment Variables. Please add it and redeploy.' });
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
     // 1. Verify the caller's identity and role using their JWT token
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) {
