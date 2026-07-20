@@ -471,17 +471,32 @@ export default function Dashboard() {
                       <th>{rtl?'المندوب':'Rep'}</th>
                       <th>{rtl?'التاريخ':'Date'}</th>
                       <th>{rtl?'الفريق':'Team'}</th>
+                      <th style={{textAlign: 'center'}}>AM Visits</th>
+                      <th style={{textAlign: 'center'}}>AM Acc</th>
+                      <th style={{textAlign: 'center'}}>AM %</th>
+                      <th style={{textAlign: 'center'}}>PM Visits</th>
+                      <th style={{textAlign: 'center'}}>PM Acc</th>
+                      <th style={{textAlign: 'center'}}>PM %</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {[...fCoaching].sort((a,b)=>(a.manager_name||'').localeCompare(b.manager_name||'')).map((r,i)=>(
+                    {[...fCoaching].sort((a,b)=>(a.manager_name||'').localeCompare(b.manager_name||'')).map((r,i)=>{
+                      const amPct = r.am_visits > 0 ? Math.round((r.am_accompanied / r.am_visits) * 100) : 0;
+                      const pmPct = r.pm_visits > 0 ? Math.round((r.pm_accompanied / r.pm_visits) * 100) : 0;
+                      return (
                       <tr key={r.id||i}>
                         <td className="s-col">{r.manager_name}</td>
                         <td>{r.rep_name}</td>
                         <td>{r.coaching_date}</td>
                         <td>{r.team||'—'}</td>
+                        <td style={{textAlign: 'center'}}>{r.am_visits || 0}</td>
+                        <td style={{textAlign: 'center'}}>{r.am_accompanied || 0}</td>
+                        <td style={{textAlign: 'center'}}>{amPct}%</td>
+                        <td style={{textAlign: 'center'}}>{r.pm_visits || 0}</td>
+                        <td style={{textAlign: 'center'}}>{r.pm_accompanied || 0}</td>
+                        <td style={{textAlign: 'center'}}>{pmPct}%</td>
                       </tr>
-                    ))}
+                    )})}
                   </tbody>
                 </table>
               </div>
