@@ -68,7 +68,7 @@ export default function ChartBuilder({ data, isManager }) {
 
     const commonProps = {
       data: chartData,
-      margin: { top: 20, right: 30, left: 20, bottom: 60 }
+      margin: { top: 20, right: 30, left: 20, bottom: 100 }
     };
 
     const axes = (
@@ -77,10 +77,11 @@ export default function ChartBuilder({ data, isManager }) {
         <XAxis 
           dataKey="name" 
           stroke="#94a3b8" 
-          tick={{fill: '#94a3b8', fontSize: 12}} 
+          tick={{fill: '#94a3b8', fontSize: 11}} 
           angle={-45} 
           textAnchor="end" 
-          height={80} 
+          height={120}
+          interval={0}
         />
         <YAxis 
           stroke="#94a3b8" 
@@ -161,7 +162,7 @@ export default function ChartBuilder({ data, isManager }) {
       </div>
 
       <div className="cb-chart-area" style={{ overflowX: 'auto', overflowY: 'hidden' }}>
-        <div style={{ minWidth: `${Math.max(600, chartData.length * 40)}px`, height: '400px' }}>
+        <div style={{ minWidth: `${Math.max(600, chartData.length * 60)}px`, height: '450px' }}>
           <ResponsiveContainer width="100%" height="100%">
             {renderChart()}
           </ResponsiveContainer>
