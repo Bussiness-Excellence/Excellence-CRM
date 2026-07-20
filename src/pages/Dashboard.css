@@ -242,6 +242,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .agg-cards-row {
   display:flex; gap:16px; flex-wrap:wrap;
   margin-bottom:20px;
+  overflow:visible;
 }
 
 .agg-card {

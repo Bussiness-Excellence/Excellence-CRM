@@ -281,7 +281,7 @@ function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFil
 export default function Dashboard() {
   const { profile, visibleCodes, signOut } = useAuth();
   const [lang, setLang]       = useState(profile?.preferred_lang||'en');
-  const [period, setPeriod]   = useState('last_month');
+  const [period, setPeriod]   = useState('recent');
   const [team, setTeam]       = useState('all');
   const [shift, setShift]     = useState('all');
   const [search, setSearch]   = useState('');
@@ -322,7 +322,11 @@ export default function Dashboard() {
   useEffect(()=>{load();},[load]);
 
   const teams=useMemo(()=>[...new Set(summary.map(r=>r.team).filter(Boolean))].sort(),[summary]);
-  const byTeam=useCallback(rows=>team==='all'?rows:rows.filter(r=>r.team===team),[team]);
+  const byTeam=useCallback(rows=>{
+    if(team==='all') return rows;
+    const teamUserNames = new Set(summary.filter(r=>r.team===team).map(r=>r.user_name));
+    return rows.filter(r => (r.team !== undefined && r.team !== null && r.team !== '') ? r.team === team : teamUserNames.has(r.user_name));
+  },[team, summary]);
 
   const fSummary=useMemo(()=>{
     let r=sortSummary(byTeam(summary));
@@ -403,14 +407,6 @@ export default function Dashboard() {
       {/* CONTROL BAR */}
       <div className="ctrl-bar">
         <div className="ctrl-row">
-          <div className="ctrl-group">
-            <span className="ctrl-lbl">{rtl?'الفترة':'Period'}</span>
-            <div className="seg-ctrl">
-              {[{k:'last_month',l:t.lastMonth},{k:'recent',l:t.recent}].map(p=>(
-                <button key={p.k} className={`seg${period===p.k?' on':''}`} onClick={()=>setPeriod(p.k)}>{p.l}</button>
-              ))}
-            </div>
-          </div>
           <div className="ctrl-group">
             <span className="ctrl-lbl">{rtl?'الوردية':'Shift'}</span>
             <ShiftToggle value={shift} onChange={setShift} t={t}/>
@@ -553,8 +549,10 @@ export default function Dashboard() {
                       <th>{rtl?'الفريق':'Team'}</th>
                       <th>{rtl?'زيارات AM':'AM Visits'}</th>
                       <th>{rtl?'مرافقة AM':'AM Acc.'}</th>
+                      <th>AM %</th>
                       <th>{rtl?'زيارات PM':'PM Visits'}</th>
                       <th>{rtl?'مرافقة PM':'PM Acc.'}</th>
+                      <th>PM %</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -566,8 +564,10 @@ export default function Dashboard() {
                         <td>{r.team||'—'}</td>
                         <td>{r.am_visits||0}</td>
                         <td>{r.am_accompanied||0}</td>
+                        <td>{r.am_visits ? Math.round((r.am_accompanied/r.am_visits)*100)+'%' : '-'}</td>
                         <td>{r.pm_visits||0}</td>
                         <td>{r.pm_accompanied||0}</td>
+                        <td>{r.pm_visits ? Math.round((r.pm_accompanied/r.pm_visits)*100)+'%' : '-'}</td>
                       </tr>
                     ))}
                   </tbody>
