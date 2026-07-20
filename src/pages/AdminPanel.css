@@ -21,7 +21,7 @@
   text-transform: uppercase;
 }
 .admin-sub { font-size:13px; font-weight:600; color:#8fa1be; text-transform:uppercase; letter-spacing:.1em; }
-.admin-hdr-right { display:flex; align-items:center; gap:12px; }
+.admin-hdr-r { display:flex; align-items:center; gap:12px; }
 .admin-title { font-size:16px; font-weight:600; color:#7a8fbb; }
 .admin-who   { font-size:15px; color:#a0b0cc; }
 
@@ -114,7 +114,7 @@
     text-align: center;
   }
   .admin-hdr-l { flex-direction: column; gap: 8px; }
-  .admin-hdr-right { flex-wrap: wrap; justify-content: center; }
+  .admin-hdr-r { flex-wrap: wrap; justify-content: center; }
   .admin-body { flex-direction: column; }
   .admin-side { 
     width: 100%; 

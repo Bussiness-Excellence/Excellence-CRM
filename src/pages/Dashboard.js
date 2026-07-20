@@ -112,14 +112,12 @@ function sortSummary(rows) {
 function computeAggregates(rows) {
   // Only include non-manager reps for avg/sum (exclude managers from field stats)
   const reps = rows.filter(r => !r.is_manager);
-  const n = reps.length || 1;
   const agg = {};
   NUMERIC_KPI_KEYS.forEach(key => {
     const vals = reps.map(r => Number(r[key])||0).filter(v => v > 0);
     agg[key] = {
       sum: vals.reduce((s,v)=>s+v, 0),
       avg: vals.length ? (vals.reduce((s,v)=>s+v,0)/vals.length) : 0,
-      isAvg: AVG_KEYS.has(key),
     };
   });
   return { agg, repCount: reps.length };
@@ -153,7 +151,6 @@ function TeamAggCard({ rows, shift, t, isMgr, teamLabel }) {
               {keys.map(k => {
                 const d = agg[k];
                 if(!d) return null;
-                const isAvgKey = AVG_KEYS.has(k);
                 return (
                   <div key={k} className="agg-row">
                     <span className="agg-lbl">{t.kpi[k]||k}</span>
