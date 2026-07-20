@@ -76,13 +76,7 @@ const T = {
   },
 };
 
-// Keys that should show AVG not SUM (rates, days, timing)
-const AVG_KEYS = new Set([
-  'working_days','complete_field_days','am_shift_days','pm_shift_days',
-  'double_visit_days','office_work_days','coaching_days',
-  'am_call_rate','pm_call_rate',
-  'avg_am_start_time','avg_am_shift_hm','avg_pm_shift_hm',
-]);
+
 
 const NUMERIC_KPI_KEYS = [
   'working_days','complete_field_days','am_shift_days','pm_shift_days','double_visit_days','office_work_days',
