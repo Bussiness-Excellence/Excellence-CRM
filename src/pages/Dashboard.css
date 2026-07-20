@@ -177,8 +177,10 @@
 .dash-main-layout {
   display: flex;
   gap: 24px;
+  width: 100%;
   max-width: 1600px;
   margin: 0 auto;
+  padding: 0 24px;
   align-items: flex-start;
 }
 .dash-side-panel {
@@ -269,6 +271,8 @@
   border-radius:var(--r); box-shadow:var(--sh);
   border:1px solid var(--bdr);
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  width: 100%;
+  max-width: 100%;
 }
 .pivot-tbl{border-collapse:collapse;font-size:14px;min-width:100%}
 .pivot-tbl th{
