@@ -43,33 +43,228 @@ html.dark {
   --sh3: 0 4px 12px rgba(0,0,0,.6), 0 12px 36px rgba(0,0,0,.5);
 }
 
+/* ── Dark Mode Overrides for High Contrast ───────────────── */
 html.dark .ctrl-bar {
-  background: rgba(18, 29, 51, 0.95);
+  background: #0d1629;
+  border-color: #1e2d4a;
+}
+
+html.dark .ctrl-lbl {
+  color: #94a3b8;
+}
+
+html.dark .ctrl-sel, html.dark .search-inp {
+  background: #16243f;
+  color: #f8fafc;
+  border-color: #2b3f68;
+}
+
+html.dark .ctrl-stat {
+  background: #16243f;
+  color: #cbd5e1;
+  border-color: #2b3f68;
+}
+
+html.dark .dash-tabs {
+  background: #0d1629;
+  border-color: #1e2d4a;
+}
+
+html.dark .dtab {
+  color: #94a3b8;
+}
+
+html.dark .dtab:hover {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 html.dark .dtab.on {
   color: var(--gold);
 }
 
-html.dark .pivot-tbl {
-  background: var(--surf);
-  color: var(--txt);
+/* Sidebar Dark Overrides */
+html.dark .dash-sidebar {
+  background: #0d1629;
+  border-color: #1e2d4a;
 }
 
-html.dark .pivot-tbl tr:hover {
+html.dark .sb-panel {
+  color: #e2e8f0;
+}
+
+html.dark .sb-section-hd {
+  color: #94a3b8;
+}
+
+html.dark .sb-slicer-hd {
+  color: #94a3b8;
+}
+
+html.dark .sb-rep-name, html.dark .sb-mgr-name {
+  color: #f8fafc;
+}
+
+html.dark .sb-rep-meta, html.dark .sb-mgr-meta {
+  color: #94a3b8;
+}
+
+html.dark .sb-rep-stat, html.dark .sb-mgr-stat {
+  color: #cbd5e1;
+}
+
+html.dark .sb-kpi-row span {
+  color: #cbd5e1;
+}
+
+html.dark .sb-kpi-val {
+  color: #f8fafc;
+}
+
+html.dark .sb-rep-item:hover, html.dark .sb-mgr-item:hover {
   background: rgba(200, 168, 75, 0.08);
 }
 
+/* Banner Cards Dark Overrides */
+html.dark .pivot-banner-team {
+  background: #16243f;
+  border-color: #2b3f68;
+}
+
+html.dark .pivot-banner-team .pb-team {
+  color: #94a3b8;
+}
+
+html.dark .pivot-banner-team .pb-val {
+  color: #f8fafc;
+}
+
+html.dark .pivot-banner-team .pb-sub {
+  color: #94a3b8;
+}
+
+/* KPI Rep Cards Dark Overrides */
+html.dark .ucard {
+  background: #121e36;
+  border-color: #233554;
+}
+
+html.dark .kpi-sec-hd {
+  color: var(--gold);
+}
+
+html.dark .kpi-lbl {
+  color: #cbd5e1;
+}
+
+html.dark .kpi-v {
+  color: #f8fafc;
+}
+
+html.dark .kpi-v.rate {
+  color: #60a5fa;
+}
+
+html.dark .prod-det {
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Team Aggregate Hover Cards Dark Overrides */
+html.dark .team-kpi-btn {
+  background: #16243f;
+  border-color: #2b3f68;
+  color: #f8fafc;
+}
+
+html.dark .tk-name {
+  color: var(--gold);
+}
+
+html.dark .tk-count {
+  color: #94a3b8;
+}
+
+html.dark .tk-dropdown {
+  background: #0d1629;
+  border-color: #2b3f68;
+  color: #f8fafc;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+html.dark .tk-dd-title {
+  color: var(--gold);
+}
+
+html.dark .tk-dd-grid div {
+  color: #cbd5e1;
+}
+
+/* Pivot Tables Dark Overrides */
+html.dark .pivot-wrap {
+  border-color: #233554;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+html.dark .pivot-tbl {
+  background: #121e36;
+  color: #f8fafc;
+}
+
+html.dark .pivot-tbl th {
+  background: #0f192d;
+  color: #f8fafc;
+  border-color: #233554;
+}
+
+html.dark .pivot-tbl td {
+  background: #121e36;
+  color: #f8fafc;
+  border-color: #233554;
+}
+
+html.dark .pivot-tbl td.s-col {
+  background: #16243f;
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+html.dark .pivot-tbl td.has-val {
+  background: #1e2f52;
+  color: #ffffff;
+}
+
+html.dark .pivot-tbl tr:hover td {
+  background: #1c2b4a;
+}
+
+html.dark .pivot-tbl tr.total-row td {
+  background: #182846;
+  color: var(--gold);
+}
+
+html.dark .avg-row th {
+  background: #15223c;
+  color: var(--gold);
+}
+
+/* Slicers & Filters Dark Overrides */
 html.dark .slicer-pill {
-  background: #1a2844;
+  background: #16243f;
   color: #cbd5e1;
   border-color: #2b3f68;
 }
 
+html.dark .slicer-pill:hover {
+  border-color: var(--gold);
+  color: #f8fafc;
+}
+
 html.dark .slicer-pill.on {
   background: var(--gold);
-  color: var(--navy);
+  color: #0d1629;
   border-color: var(--gold);
+  font-weight: 800;
 }
 
 html.dark .sb-slicer-clear {
