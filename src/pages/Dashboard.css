@@ -26,7 +26,7 @@
 
 /* ── Base ───────────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg)}
+body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg)}
 .dash{min-height:100vh;background:var(--bg);color:var(--txt)}
 .dash.rtl{direction:rtl}
 
@@ -34,7 +34,9 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .dash-hdr{
   display:flex;justify-content:space-between;align-items:center;
   height:54px;padding:0 24px;
-  background:var(--navy);
+  background:rgba(15, 31, 61, 0.85);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
   border-bottom:1px solid rgba(255,255,255,.05);
   position:sticky;top:0;z-index:200;
 }
@@ -67,10 +69,12 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 
 /* ── Control bar ─────────────────────────────────────── */
 .ctrl-bar{
-  background:var(--surf);
+  background:rgba(255, 255, 255, 0.95);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
   border-bottom:1px solid var(--bdr);
   padding:10px 24px;
-  box-shadow:0 1px 4px rgba(15,31,61,.04);
+  box-shadow:0 4px 20px rgba(15,31,61,.06);
 }
 .ctrl-row{
   display:flex;align-items:center;flex-wrap:wrap;gap:12px;
@@ -145,7 +149,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   transition:all .14s;letter-spacing:.01em
 }
 .dtab:hover{color:var(--txt)}
-.dtab.on{color:var(--navy);border-bottom-color:var(--gold)}
+.dtab.on{color:var(--navy);border-bottom-color:var(--gold);background:linear-gradient(to top, rgba(200,168,75,0.1), transparent)}
 
 /* ── System messages ─────────────────────────────────── */
 .dash-err{margin:10px 24px;padding:10px 14px;background:#fff0f0;border:1px solid #fcc;color:#c00;border-radius:6px;font-size:13px}

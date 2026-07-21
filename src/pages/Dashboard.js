@@ -84,6 +84,7 @@ const NUMERIC_KPI_KEYS = [
   'total_am_covered','total_pm_covered','amcenter_covered','hospital_covered','clinic_covered','polyclinic_covered',
   'pharmacies_visited','pharmacies_covered',
   'total_product_calls','distinct_products','coaching_days',
+  'avg_am_shift_hm', 'avg_pm_shift_hm'
 ];
 
 function fmtVal(v, key) {
@@ -281,7 +282,7 @@ function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFil
 export default function Dashboard() {
   const { profile, visibleCodes, signOut } = useAuth();
   const [lang, setLang]       = useState(profile?.preferred_lang||'en');
-  const [period]              = useState('recent');
+  const [period, setPeriod]   = useState('recent');
   const [team, setTeam]       = useState('all');
   const [shift, setShift]     = useState('all');
   const [search, setSearch]   = useState('');
@@ -407,6 +408,13 @@ export default function Dashboard() {
       {/* CONTROL BAR */}
       <div className="ctrl-bar">
         <div className="ctrl-row">
+          <div className="ctrl-group">
+            <span className="ctrl-lbl">{rtl?'الفترة':'Period'}</span>
+            <div className="shift-toggle">
+              <button className={`stoggle${period==='recent'?' on':''}`} onClick={()=>setPeriod('recent')}>{t.recent}</button>
+              <button className={`stoggle${period==='last_month'?' on':''}`} disabled style={{opacity:0.5, cursor:'not-allowed'}}>{t.lastMonth}</button>
+            </div>
+          </div>
           <div className="ctrl-group">
             <span className="ctrl-lbl">{rtl?'الوردية':'Shift'}</span>
             <ShiftToggle value={shift} onChange={setShift} t={t}/>
