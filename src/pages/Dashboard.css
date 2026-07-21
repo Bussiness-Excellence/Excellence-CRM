@@ -339,6 +339,8 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 
 /* ── Team Aggregate Cards ────────────────────────────────────── */
 .agg-cards-row {
+  position: relative;
+  z-index: 10;
   display:flex; gap:14px; flex-wrap:wrap;
   margin-bottom:22px;
   overflow:visible;
