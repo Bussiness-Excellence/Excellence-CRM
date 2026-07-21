@@ -306,25 +306,66 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
   border-radius:var(--r);box-shadow:var(--sh);
   border:1px solid var(--bdr);
 }
-.pivot-tbl{border-collapse:collapse;font-size:12px;min-width:100%}
-.pivot-tbl th{
-  padding:10px 12px;background:var(--navy);color:#fff;font-weight:700;
-  text-align:center;white-space:nowrap;
-  border-right:1px solid rgba(255,255,255,.06);
-  position:sticky;top:0;z-index:2;
+.pivot-tbl {
+  border-collapse: collapse;
+  font-size: 13px;
+  width: max-content;
+  min-width: 100%;
 }
-.pivot-tbl th:first-child{text-align:left;min-width:150px}
-.pivot-tbl .s-col{position:sticky;left:0;z-index:3}
-.pivot-tbl th.s-col{z-index:4}
-.pivot-tbl .t-col{background:var(--navy3)}
-.pivot-tbl td{
-  padding:8px 12px;border-bottom:1px solid var(--bdr);
-  border-right:1px solid #f0f4fa;text-align:center;white-space:nowrap;
-  transition:background var(--transition);
+.pivot-tbl th {
+  padding: 10px 12px;
+  background: var(--navy);
+  color: #fff;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+  border-right: 1px solid rgba(255,255,255,.06);
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
-.pivot-tbl td.s-col{
-  position:sticky;left:0;background:var(--surf);z-index:1;
-  text-align:left;font-weight:600;color:var(--navy)
+.pivot-tbl th:first-child,
+.pivot-tbl td.s-col {
+  text-align: left;
+  min-width: 170px;
+  width: 190px;
+}
+.pivot-tbl th:not(:first-child):not(.t-col),
+.pivot-tbl td:not(:first-child):not(.t-col) {
+  min-width: 110px;
+  width: 120px;
+  max-width: 140px;
+}
+.pivot-tbl th.t-col,
+.pivot-tbl td.t-col {
+  min-width: 100px;
+  width: 110px;
+  background: var(--navy3);
+}
+.pivot-tbl .s-col {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+}
+.pivot-tbl th.s-col {
+  z-index: 4;
+}
+.pivot-tbl td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--bdr);
+  border-right: 1px solid #f0f4fa;
+  text-align: center;
+  white-space: nowrap;
+  transition: background var(--transition);
+}
+.pivot-tbl td.s-col {
+  position: sticky;
+  left: 0;
+  background: var(--surf);
+  z-index: 1;
+  text-align: left;
+  font-weight: 600;
+  color: var(--navy);
 }
 .pivot-tbl .has-v{background:#eff6ff;color:var(--navy);font-weight:700}
 .pivot-tbl .nil{color:#d0dae8}
