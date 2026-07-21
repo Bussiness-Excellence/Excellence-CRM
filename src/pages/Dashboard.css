@@ -32,7 +32,7 @@
 /* ── Base ───────────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg)}
-.dash{min-height:100vh;background:var(--bg);color:var(--txt)}
+.dash{min-height:100vh;background:var(--bg);color:var(--txt);overflow-x:hidden}
 .dash.rtl{direction:rtl}
 
 /* ── Header ─────────────────────────────────────────── */
@@ -1027,6 +1027,44 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 .ucard-selected {
   border-color: var(--gold) !important;
   box-shadow: 0 6px 20px rgba(200,168,75,.15) !important;
+}
+
+/* ── Header Responsive Adapters ────────────────────────────── */
+@media (max-width: 1250px) {
+  .dash-hdr {
+    padding: 0 16px;
+  }
+  .dash-hdr-l {
+    gap: 8px;
+  }
+  .dash-brand {
+    font-size: 13px;
+    letter-spacing: .15em;
+  }
+  .dash-view {
+    font-size: 10px;
+  }
+  .dash-hdr-r {
+    gap: 8px;
+  }
+  .du-role {
+    display: none;
+  }
+  .du-name {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 1050px) {
+  .dash-view {
+    display: none !important;
+  }
+  .dash-sep {
+    display: none !important;
+  }
+  .dash-user {
+    display: none !important;
+  }
 }
 
 /* ── Mobile Responsive ─────────────────────────────────────── */
