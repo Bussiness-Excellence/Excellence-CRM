@@ -501,6 +501,20 @@ export default function Dashboard() {
     return map;
   }, [summary]);
 
+  const pmCoveragePieData = useMemo(() => {
+    let rows = fSummary.filter(r => !r.is_manager);
+    if (selectedRep) {
+      rows = rows.filter(r => r.user_name === selectedRep);
+    }
+    const totalClinic = rows.reduce((s, r) => s + (Number(r.clinic_covered) || 0), 0);
+    const totalPolyClinic = rows.reduce((s, r) => s + (Number(r.polyclinic_covered) || 0), 0);
+    if (!totalClinic && !totalPolyClinic) return [];
+    return [
+      { label: rtl ? 'Clinic (عيادات)' : 'Clinic', value: totalClinic, color: '#1a6fc4' },
+      { label: rtl ? 'Poly Clinic (مراكز)' : 'Poly Clinic', value: totalPolyClinic, color: '#10b981' }
+    ];
+  }, [fSummary, selectedRep, rtl]);
+
   const allUsers=useMemo(()=>[...new Set(byTeam(summary).map(r=>r.user_name))].sort(),[summary,byTeam]);
   const teamCount=new Set(fSummary.map(r=>r.team)).size;
 
@@ -687,6 +701,12 @@ export default function Dashboard() {
         </div>
         <div className="dash-hdr-r">
           {profile?.role==='Admin'&&<a className="hbtn hbtn-outline" href="#/admin">{t.adminPanel}</a>}
+          <button className="hbtn hbtn-outline" style={{padding: '6px 10px', fontSize: '15px'}} onClick={() => {
+            const isLight = document.documentElement.classList.toggle('light');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+          }} title="Toggle Dark/Light Mode">
+            ◐
+          </button>
           <button className="hbtn hbtn-lang" onClick={()=>setLang(lang==='en'?'ar':'en')}>
             {lang==='en'?'عربي':'EN'}
           </button>
@@ -709,6 +729,16 @@ export default function Dashboard() {
             {/* ─── SUMMARY SIDEBAR ─────────────────────────────── */}
             {tab==='summary' && (
               <div className="sb-panel">
+              {pmCoveragePieData.length > 0 && (
+                <>
+                  <div className="sb-section-hd">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+                    {rtl ? 'توزيع تغطية PM (عيادات vs مراكز)' : 'PM Coverage (Clinic vs Poly Clinic)'}
+                  </div>
+                  <PieChart data={pmCoveragePieData} title={rtl ? 'نسبة المساهمة %' : 'Contribution %'} />
+                  <div className="sb-divider"/>
+                </>
+              )}
               {selectedRepData ? (
                 <div className="sb-rep-detail">
                   <button className="sb-back" onClick={()=>setSelectedRep(null)}>
