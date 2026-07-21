@@ -87,8 +87,18 @@ const NUMERIC_KPI_KEYS = [
   'avg_am_shift_hm', 'avg_pm_shift_hm'
 ];
 
+function fmtDuration(decimalHours) {
+  const h = Math.floor(decimalHours);
+  const m = Math.round((decimalHours - h) * 60);
+  if (h === 0 && m === 0) return '—';
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
 function fmtVal(v, key) {
   if (v===null||v===undefined||v==='') return '—';
+  if (key==='avg_am_shift_hm'||key==='avg_pm_shift_hm') return fmtDuration(Number(v));
   if (key?.includes('rate')) return Number(v).toFixed(1);
   if (typeof v==='number') return Number.isInteger(v)?v:Number(v).toFixed(1);
   return v;
@@ -138,7 +148,7 @@ function TeamKpiHover({ rows, teamLabel }) {
         <div className="tk-dd-grid">
           <div>Working Days</div><div>AM: {fmtVal(d_am_days)} | PM: {fmtVal(d_pm_days)}</div>
           <div>Covered Doctors</div><div>AM: {fmtVal(d_am_doc)} | PM: {fmtVal(d_pm_doc)}</div>
-          <div>Shift Duration</div><div>AM: {fmtVal(d_am_dur)}h | PM: {fmtVal(d_pm_dur)}h</div>
+          <div>Shift Duration</div><div>AM: {fmtDuration(d_am_dur)} | PM: {fmtDuration(d_pm_dur)}</div>
         </div>
       </div>
     </div>
@@ -330,10 +340,38 @@ export default function Dashboard() {
   },[team, summary]);
 
   const fSummary=useMemo(()=>{
-    let r=sortSummary(byTeam(summary));
+    let r=byTeam(summary);
     if(search) r=r.filter(x=>x.user_name?.toLowerCase().includes(search.toLowerCase())||x.territory?.toLowerCase().includes(search.toLowerCase()));
     if(userFilter!=='all') r=r.filter(x=>x.user_name===userFilter);
-    return r;
+    
+    // Aggregate duplicates
+    const m=new Map();
+    r.forEach(x=>{
+      const k=x.user_name;
+      if(!m.has(k)){
+        m.set(k,{...x,_am_days_sum:x.am_shift_days||0,_pm_days_sum:x.pm_shift_days||0,_am_dur_sum:(x.avg_am_shift_hm||0)*(x.am_shift_days||0),_pm_dur_sum:(x.avg_pm_shift_hm||0)*(x.pm_shift_days||0)});
+      }else{
+        const existing=m.get(k);
+        const sumKeys=['working_days','complete_field_days','am_shift_days','pm_shift_days','double_visit_days','office_work_days','am_calls','pm_calls','total_am_covered','total_pm_covered','amcenter_covered','hospital_covered','clinic_covered','polyclinic_covered','pharmacies_visited','pharmacies_covered','total_product_calls','distinct_products','coaching_days'];
+        sumKeys.forEach(sk=>existing[sk]=(existing[sk]||0)+(x[sk]||0));
+        
+        if(x.territory && !existing.territory?.includes(x.territory)){
+          existing.territory=existing.territory?`${existing.territory}; ${x.territory}`:x.territory;
+        }
+        
+        existing._am_days_sum+=(x.am_shift_days||0);
+        existing._pm_days_sum+=(x.pm_shift_days||0);
+        existing._am_dur_sum+=(x.avg_am_shift_hm||0)*(x.am_shift_days||0);
+        existing._pm_dur_sum+=(x.avg_pm_shift_hm||0)*(x.pm_shift_days||0);
+        
+        existing.am_call_rate=existing.am_shift_days?(existing.am_calls/existing.am_shift_days):0;
+        existing.pm_call_rate=existing.pm_shift_days?(existing.pm_calls/existing.pm_shift_days):0;
+        
+        existing.avg_am_shift_hm=existing._am_days_sum>0?(existing._am_dur_sum/existing._am_days_sum):0;
+        existing.avg_pm_shift_hm=existing._pm_days_sum>0?(existing._pm_dur_sum/existing._pm_days_sum):0;
+      }
+    });
+    return sortSummary(Array.from(m.values()));
   },[summary,byTeam,search,userFilter]);
 
   const fSpecialty = useMemo(()=>byTeam(specialty),[specialty,byTeam]);
@@ -489,6 +527,13 @@ export default function Dashboard() {
                           <div className="ucard-name">{r.user_name}</div>
                           <div className="ucard-meta">{r.team||''}{r.is_manager?' · Manager':''}</div>
                           {r.territory&&<div className="ucard-terr" title={r.territory}>{r.territory}</div>}
+                          {(r.avg_am_shift_hm||r.avg_pm_shift_hm)&&(
+                            <div className="ucard-dur">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                              {r.avg_am_shift_hm?<span className="dur-am">AM {fmtDuration(r.avg_am_shift_hm)}</span>:null}
+                              {r.avg_pm_shift_hm?<span className="dur-pm">PM {fmtDuration(r.avg_pm_shift_hm)}</span>:null}
+                            </div>
+                          )}
                         </div>
                         {r.is_manager&&<span className="mgr-pip">MGR</span>}
                       </div>
@@ -502,7 +547,7 @@ export default function Dashboard() {
                         const kpiRows=keys.map(k=>({k,v:r[k]})).filter(x=>x.v!==null&&x.v!==undefined&&x.v!=='');
                         if(!kpiRows.length) return null;
                         return (
-                          <div key={g.label} className="kpi-sec">
+                          <div key={g.label} className={`kpi-sec${g.keys.includes('avg_am_shift_hm')?' kpi-timing':''}`}>
                             <div className="kpi-sec-hd">{g.label}</div>
                             {kpiRows.map(({k,v})=>(
                               <div key={k} className="kpi-row">
