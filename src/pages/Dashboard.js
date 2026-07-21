@@ -76,8 +76,6 @@ const T = {
   },
 };
 
-
-
 const NUMERIC_KPI_KEYS = [
   'working_days','complete_field_days','am_shift_days','pm_shift_days','double_visit_days','office_work_days',
   'am_calls','am_call_rate','pm_calls','pm_call_rate',
@@ -87,6 +85,13 @@ const NUMERIC_KPI_KEYS = [
   'avg_am_shift_hm', 'avg_pm_shift_hm'
 ];
 
+const PIE_COLORS = [
+  '#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444',
+  '#06b6d4','#ec4899','#84cc16','#f97316','#6366f1',
+  '#14b8a6','#e11d48','#a855f7','#0ea5e9','#eab308',
+];
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
 function fmtDuration(decimalHours) {
   const h = Math.floor(decimalHours);
   const m = Math.round((decimalHours - h) * 60);
@@ -113,9 +118,7 @@ function sortSummary(rows) {
   });
 }
 
-// ── Compute team/level aggregate stats ───────────────────────────────────────
 function computeAggregates(rows) {
-  // Only include non-manager reps for avg/sum (exclude managers from field stats)
   const reps = rows.filter(r => !r.is_manager);
   const agg = {};
   NUMERIC_KPI_KEYS.forEach(key => {
@@ -128,17 +131,68 @@ function computeAggregates(rows) {
   return { agg, repCount: reps.length };
 }
 
+function daysUntil15th() {
+  const now = new Date();
+  let target = new Date(now.getFullYear(), now.getMonth(), 15, 23, 59, 59);
+  if (now > target) target = new Date(now.getFullYear(), now.getMonth() + 1, 15, 23, 59, 59);
+  return Math.max(0, Math.ceil((target - now) / (1000 * 60 * 60 * 24)));
+}
+
+// ── PieChart (SVG donut) ─────────────────────────────────────────────────────
+function PieChart({ data, title, size = 140, thickness = 22 }) {
+  const total = data.reduce((s, d) => s + d.value, 0);
+  if (!total) return <div className="pie-empty">No data</div>;
+  const center = size / 2;
+  const radius = (size - thickness) / 2;
+  const circumference = 2 * Math.PI * radius;
+  let accumulated = 0;
+  const segments = data.map((d) => {
+    const pct = d.value / total;
+    const arc = pct * circumference;
+    const offset = accumulated;
+    accumulated += arc;
+    return { ...d, pct, arc, offset };
+  });
+  return (
+    <div className="pie-chart">
+      {title && <div className="pie-title">{title}</div>}
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="pie-svg">
+        <circle cx={center} cy={center} r={radius} fill="none" stroke="rgba(255,255,255,.06)" strokeWidth={thickness}/>
+        {segments.map((seg, i) => (
+          <circle key={i} cx={center} cy={center} r={radius} fill="none"
+            stroke={seg.color} strokeWidth={thickness}
+            strokeDasharray={`${seg.arc} ${circumference - seg.arc}`}
+            strokeDashoffset={-seg.offset}
+            transform={`rotate(-90 ${center} ${center})`}
+            className="pie-segment" strokeLinecap="butt"/>
+        ))}
+        <text x={center} y={center-6} textAnchor="middle" dominantBaseline="central" className="pie-center-val">{total}</text>
+        <text x={center} y={center+10} textAnchor="middle" dominantBaseline="central" className="pie-center-lbl">calls</text>
+      </svg>
+      <div className="pie-legend">
+        {segments.slice(0, 6).map((seg, i) => (
+          <div key={i} className="pie-leg-item">
+            <span className="pie-dot" style={{ background: seg.color }}/>
+            <span className="pie-leg-label">{seg.label}</span>
+            <span className="pie-leg-val">{Math.round(seg.pct * 100)}%</span>
+          </div>
+        ))}
+        {segments.length > 6 && <div className="pie-leg-more">+{segments.length - 6} more</div>}
+      </div>
+    </div>
+  );
+}
+
+// ── TeamKpiHover ─────────────────────────────────────────────────────────────
 function TeamKpiHover({ rows, teamLabel }) {
   const { agg, repCount } = useMemo(() => computeAggregates(rows), [rows]);
   if (!rows.length) return null;
-
   const d_am_days = agg['am_shift_days']?.avg || 0;
   const d_pm_days = agg['pm_shift_days']?.avg || 0;
   const d_am_doc = agg['total_am_covered']?.avg || 0;
   const d_pm_doc = agg['total_pm_covered']?.avg || 0;
   const d_am_dur = agg['avg_am_shift_hm']?.avg || 0;
   const d_pm_dur = agg['avg_pm_shift_hm']?.avg || 0;
-
   return (
     <div className="team-kpi-btn">
       <span className="tk-name">{teamLabel}</span>
@@ -155,11 +209,9 @@ function TeamKpiHover({ rows, teamLabel }) {
   );
 }
 
-// ── Pivot summary banner ──────────────────────────────────────────────────────
+// ── PivotSummaryBanner ───────────────────────────────────────────────────────
 function PivotSummaryBanner({ rows, valueKey, rowKey, shift, t }) {
-  // Per-team totals and per-user totals for the pivot data
   const filtered = useMemo(() => shift==='all'?rows:rows.filter(r=>r.shift===shift), [rows,shift]);
-
   const byTeam = useMemo(() => {
     const m = {};
     filtered.forEach(r => {
@@ -170,12 +222,10 @@ function PivotSummaryBanner({ rows, valueKey, rowKey, shift, t }) {
     });
     return m;
   }, [filtered, valueKey]);
-
   const grandTotal = useMemo(() => filtered.reduce((s,r)=>s+(r[valueKey]||0),0), [filtered,valueKey]);
   const allUsers   = useMemo(() => new Set(filtered.map(r=>r.user_name)).size, [filtered]);
   const teamList   = Object.entries(byTeam).sort((a,b)=>a[0].localeCompare(b[0]));
   if(!filtered.length) return null;
-
   return (
     <div className="pivot-banner">
       <div className="pivot-banner-total">
@@ -194,7 +244,7 @@ function PivotSummaryBanner({ rows, valueKey, rowKey, shift, t }) {
   );
 }
 
-// ── ShiftToggle ───────────────────────────────────────────────────────────────
+// ── ShiftToggle ──────────────────────────────────────────────────────────────
 function ShiftToggle({ value, onChange, t }) {
   return (
     <div className="shift-toggle">
@@ -209,16 +259,15 @@ function ShiftToggle({ value, onChange, t }) {
   );
 }
 
-// ── Pivot table ───────────────────────────────────────────────────────────────
+// ── PivotTable ───────────────────────────────────────────────────────────────
 function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFilter, lang }) {
-  const filtered = useMemo(()=> rows.filter(r=>{
+  const filtered = useMemo(()=>rows.filter(r=>{
     if(shiftFilter!=='all' && r.shift!==shiftFilter) return false;
     if(userFilter && userFilter!=='all' && r.user_name!==userFilter) return false;
     if(searchFilter && !r[rowKey]?.toLowerCase().includes(searchFilter.toLowerCase())
        && !r.user_name?.toLowerCase().includes(searchFilter.toLowerCase())) return false;
     return true;
   }), [rows, rowKey, shiftFilter, userFilter, searchFilter]);
-
   const users = useMemo(()=>[...new Set(filtered.map(r=>r.user_name))].sort(),[filtered]);
   const rowKeys = useMemo(()=>[...new Set(filtered.map(r=>r[rowKey]))].sort(),[filtered,rowKey]);
   const cells = useMemo(()=>{
@@ -229,15 +278,12 @@ function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFil
     });
     return c;
   },[filtered,rowKey,valueKey]);
-
   const colTotals = useMemo(()=>{
     const ct={};
     users.forEach(u=>ct[u]=filtered.filter(r=>r.user_name===u).reduce((s,r)=>s+(r[valueKey]||0),0));
     return ct;
   },[users,filtered,valueKey]);
-
   if(!filtered.length) return <div className="dash-empty">{lang==='ar'?'لا توجد بيانات':'No data'}</div>;
-
   return (
     <div className="pivot-wrap">
       <table className="pivot-tbl">
@@ -247,7 +293,6 @@ function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFil
             {users.map(u=><th key={u} title={u}>{u.split(' ').slice(0,2).join(' ')}</th>)}
             <th className="t-col">Σ Total</th>
           </tr>
-          {/* Avg row in header */}
           <tr className="avg-row">
             <th className="s-col avg-lbl">⌀ Avg / rep</th>
             {users.map(u=>{
@@ -305,6 +350,12 @@ export default function Dashboard() {
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState('');
 
+  // Sidebar states
+  const [selectedRep, setSelectedRep]         = useState(null);
+  const [specialtyFilter, setSpecialtyFilter] = useState(new Set());
+  const [selectedManager, setSelectedManager] = useState(null);
+  const [sidebarOpen, setSidebarOpen]         = useState(false);
+
   const t   = T[lang]||T.en;
   const rtl = lang==='ar';
   const isMgr = profile?.role && profile.role!=='MR';
@@ -332,6 +383,7 @@ export default function Dashboard() {
 
   useEffect(()=>{load();},[load]);
 
+  // ── Filtering ──────────────────────────────────────────────────────────────
   const teams=useMemo(()=>[...new Set(summary.map(r=>r.team).filter(Boolean))].sort(),[summary]);
   const byTeam=useCallback(rows=>{
     if(team==='all') return rows;
@@ -343,8 +395,6 @@ export default function Dashboard() {
     let r=byTeam(summary);
     if(search) r=r.filter(x=>x.user_name?.toLowerCase().includes(search.toLowerCase())||x.territory?.toLowerCase().includes(search.toLowerCase()));
     if(userFilter!=='all') r=r.filter(x=>x.user_name===userFilter);
-    
-    // Aggregate duplicates
     const m=new Map();
     r.forEach(x=>{
       const k=x.user_name;
@@ -354,19 +404,15 @@ export default function Dashboard() {
         const existing=m.get(k);
         const sumKeys=['working_days','complete_field_days','am_shift_days','pm_shift_days','double_visit_days','office_work_days','am_calls','pm_calls','total_am_covered','total_pm_covered','amcenter_covered','hospital_covered','clinic_covered','polyclinic_covered','pharmacies_visited','pharmacies_covered','total_product_calls','distinct_products','coaching_days'];
         sumKeys.forEach(sk=>existing[sk]=(existing[sk]||0)+(x[sk]||0));
-        
         if(x.territory && !existing.territory?.includes(x.territory)){
           existing.territory=existing.territory?`${existing.territory}; ${x.territory}`:x.territory;
         }
-        
         existing._am_days_sum+=(x.am_shift_days||0);
         existing._pm_days_sum+=(x.pm_shift_days||0);
         existing._am_dur_sum+=(x.avg_am_shift_hm||0)*(x.am_shift_days||0);
         existing._pm_dur_sum+=(x.avg_pm_shift_hm||0)*(x.pm_shift_days||0);
-        
         existing.am_call_rate=existing.am_shift_days?(existing.am_calls/existing.am_shift_days):0;
         existing.pm_call_rate=existing.pm_shift_days?(existing.pm_calls/existing.pm_shift_days):0;
-        
         existing.avg_am_shift_hm=existing._am_days_sum>0?(existing._am_dur_sum/existing._am_days_sum):0;
         existing.avg_pm_shift_hm=existing._pm_days_sum>0?(existing._pm_dur_sum/existing._pm_days_sum):0;
       }
@@ -385,7 +431,6 @@ export default function Dashboard() {
   const allUsers=useMemo(()=>[...new Set(byTeam(summary).map(r=>r.user_name))].sort(),[summary,byTeam]);
   const teamCount=new Set(fSummary.map(r=>r.team)).size;
 
-  // Group summary rows by team for aggregate cards (when viewing all teams)
   const teamGroups = useMemo(()=>{
     if(team!=='all') return [{ label: team||'Team', rows: fSummary }];
     const groups = {};
@@ -402,12 +447,97 @@ export default function Dashboard() {
     return isMgr?all:all.filter(([k])=>k!=='coaching');
   },[t.tabs,isMgr]);
 
+  // ── Sidebar computed data ──────────────────────────────────────────────────
+  const selectedRepData = useMemo(() => {
+    if (!selectedRep) return null;
+    return fSummary.find(r => r.user_name === selectedRep) || null;
+  }, [fSummary, selectedRep]);
+
+  // Specialty pie charts (shift-filtered)
+  const shiftFilteredSpecialty = useMemo(() =>
+    shift==='all' ? fSpecialty : fSpecialty.filter(r => r.shift===shift)
+  , [fSpecialty, shift]);
+
+  const specialtyPieData = useMemo(() => {
+    const m = {};
+    shiftFilteredSpecialty.forEach(r => { const s=r.specialty||'Other'; m[s]=(m[s]||0)+(r.call_count||0); });
+    return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,10)
+      .map(([label,value],i) => ({ label, value, color: PIE_COLORS[i%PIE_COLORS.length] }));
+  }, [shiftFilteredSpecialty]);
+
+  const classificationPieData = useMemo(() => {
+    const m = {};
+    shiftFilteredSpecialty.forEach(r => { const c=r.classification||'Unclassified'; m[c]=(m[c]||0)+(r.call_count||0); });
+    return Object.entries(m).sort((a,b)=>b[1]-a[1])
+      .map(([label,value],i) => ({ label, value, color: PIE_COLORS[i%PIE_COLORS.length] }));
+  }, [shiftFilteredSpecialty]);
+
+  const allSpecialties = useMemo(() =>
+    [...new Set(fSpecialty.map(r => r.specialty).filter(Boolean))].sort()
+  , [fSpecialty]);
+
+  const filteredSpecialty = useMemo(() => {
+    if (specialtyFilter.size === 0) return fSpecialty;
+    return fSpecialty.filter(r => specialtyFilter.has(r.specialty));
+  }, [fSpecialty, specialtyFilter]);
+
+  // Products pie chart (shift-filtered)
+  const shiftFilteredProducts = useMemo(() =>
+    shift==='all' ? fProducts : fProducts.filter(r => r.shift===shift)
+  , [fProducts, shift]);
+
+  const productPieData = useMemo(() => {
+    const m = {};
+    shiftFilteredProducts.forEach(r => { const p=r.product||'Other'; m[p]=(m[p]||0)+(r.call_count||0); });
+    return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,10)
+      .map(([label,value],i) => ({ label, value, color: PIE_COLORS[i%PIE_COLORS.length] }));
+  }, [shiftFilteredProducts]);
+
+  const topProducts = useMemo(() => {
+    const m = {};
+    shiftFilteredProducts.forEach(r => { const p=r.product||'Other'; m[p]=(m[p]||0)+(r.call_count||0); });
+    const sorted = Object.entries(m).sort((a,b)=>b[1]-a[1]);
+    const max = sorted[0]?.[1]||1;
+    return sorted.slice(0,8).map(([name,count]) => ({ name, count, pct: Math.round(count/max*100) }));
+  }, [shiftFilteredProducts]);
+
+  // Coaching manager groups
+  const managerGroups = useMemo(() => {
+    const m = {};
+    fCoaching.forEach(r => {
+      const mgr = r.manager_name||'Unknown';
+      if(!m[mgr]) m[mgr] = { name: mgr, team: r.team||'', dates: new Set(), reps: new Set() };
+      m[mgr].dates.add(r.coaching_date);
+      m[mgr].reps.add(r.rep_name);
+    });
+    return Object.values(m).sort((a,b) => a.team.localeCompare(b.team) || a.name.localeCompare(b.name))
+      .map(g => ({ ...g, dayCount: g.dates.size, repCount: g.reps.size }));
+  }, [fCoaching]);
+
+  const filteredCoaching = useMemo(() => {
+    if (!selectedManager) return fCoaching;
+    return fCoaching.filter(r => r.manager_name === selectedManager);
+  }, [fCoaching, selectedManager]);
+
+  // ── Actions ────────────────────────────────────────────────────────────────
+  function toggleSpecialty(s) {
+    setSpecialtyFilter(prev => {
+      const next = new Set(prev);
+      if (next.has(s)) next.delete(s); else next.add(s);
+      return next;
+    });
+  }
+
+  function changeTab(k) {
+    setTab(k);
+    setSidebarOpen(false);
+  }
+
   function doExport(){
     const wb=XLSX.utils.book_new();
     const allKpiKeys=t.kpiGroups.flatMap(g=>g.keys);
     const sh=[['Team','User','Territory','Manager',...allKpiKeys.map(k=>t.kpi[k]||k)]];
     fSummary.forEach(r=>sh.push([r.team,r.user_name,r.territory,r.is_manager?'✓':'',...allKpiKeys.map(k=>r[k]??'')]));
-    // Add aggregate sheet
     const aggRows=[['Team','KPI','Sum','Avg']];
     teamGroups.forEach(({label,rows})=>{
       const {agg}=computeAggregates(rows);
@@ -419,6 +549,9 @@ export default function Dashboard() {
     XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aggRows),'Team Averages');
     XLSX.writeFile(wb,`excellence_${periodLabel.replace(' ','_')}_${Date.now()}.xlsx`);
   }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+  const countdown = daysUntil15th();
 
   return (
     <div className={`dash${rtl?' rtl':''}`} dir={rtl?'rtl':'ltr'}>
@@ -443,193 +576,416 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* CONTROL BAR */}
-      <div className="ctrl-bar">
-        <div className="ctrl-row">
-          <div className="ctrl-group">
-            <span className="ctrl-lbl">{rtl?'الفترة':'Period'}</span>
-            <div className="shift-toggle">
-              <button className={`stoggle${period==='recent'?' on':''}`} onClick={()=>setPeriod('recent')}>{t.recent}</button>
-              <button className={`stoggle${period==='last_month'?' on':''}`} disabled style={{opacity:0.5, cursor:'not-allowed'}}>{t.lastMonth}</button>
-            </div>
-          </div>
-          <div className="ctrl-group">
-            <span className="ctrl-lbl">{rtl?'الوردية':'Shift'}</span>
-            <ShiftToggle value={shift} onChange={setShift} t={t}/>
-          </div>
-          {teams.length>1&&(
-            <div className="ctrl-group">
-              <span className="ctrl-lbl">{rtl?'الفريق':'Team'}</span>
-              <select className="ctrl-sel" value={team} onChange={e=>{setTeam(e.target.value);setUser('all');}}>
-                <option value="all">{t.allTeams}</option>
-                {teams.map(tm=><option key={tm} value={tm}>{tm}</option>)}
-              </select>
-            </div>
-          )}
-          {isMgr&&allUsers.length>1&&(
-            <div className="ctrl-group">
-              <span className="ctrl-lbl">{rtl?'المندوب':'Rep'}</span>
-              <select className="ctrl-sel" value={userFilter} onChange={e=>setUser(e.target.value)}>
-                <option value="all">{t.allUsers}</option>
-                {allUsers.map(u=><option key={u} value={u}>{u}</option>)}
-              </select>
-            </div>
-          )}
-          <div className="ctrl-group ctrl-search">
-            <div className="search-box">
-              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="9" cy="9" r="6"/><path d="M15 15l-3.5-3.5"/>
-              </svg>
-              <input className="search-inp" placeholder={t.search}
-                value={search} onChange={e=>setSearch(e.target.value)}/>
-              {search&&<button className="search-clear" onClick={()=>setSearch('')}>✕</button>}
-            </div>
-          </div>
-          <div className="ctrl-end">
-            <span className="ctrl-stat">{t.people(fSummary.length)}{teamCount>1&&` · ${teamCount} teams`}</span>
-            <button className="hbtn hbtn-primary" onClick={doExport}>↓ {t.export}</button>
-          </div>
-        </div>
-      </div>
+      {/* LAYOUT: SIDEBAR + CONTENT */}
+      <div className="dash-with-sidebar">
 
-      {/* TABS */}
-      <nav className="dash-tabs">
-        {visibleTabs.map(([k,label])=>(
-          <button key={k} className={`dtab${tab===k?' on':''}`} onClick={()=>setTab(k)}>{label}</button>
-        ))}
-      </nav>
+        {/* ── SIDEBAR ────────────────────────────────────────────── */}
+        <aside className={`dash-sidebar${sidebarOpen?' open':''}`}>
+          <button className="sb-close" onClick={()=>setSidebarOpen(false)}>✕</button>
 
-      {error&&<div className="dash-err">{error}</div>}
-
-      {loading?(
-        <div className="dash-empty">{t.loading}</div>
-      ):(
-        <div className="dash-body">
-
-          {/* SUMMARY TAB */}
-          {tab==='summary'&&(
-            fSummary.length===0?<div className="dash-empty">{t.noData}</div>:(
-              <>
-                {/* Aggregate cards — one per team (or one overall) pinned at top */}
-                {isMgr&&userFilter==='all'&&(
-                  <div className="agg-cards-row">
-                    {teamGroups.map(({label,rows})=>(
-                      <TeamKpiHover key={label} rows={rows} teamLabel={label}/>
-                    ))}
+          {/* ─── SUMMARY SIDEBAR ─────────────────────────────── */}
+          {tab==='summary' && (
+            <div className="sb-panel">
+              {selectedRepData ? (
+                <div className="sb-rep-detail">
+                  <button className="sb-back" onClick={()=>setSelectedRep(null)}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    {rtl?'رجوع':'Back to list'}
+                  </button>
+                  <div className="sb-rep-hdr">
+                    <div className="sb-rep-name-lg">{selectedRepData.user_name}</div>
+                    <div className="sb-rep-team">{selectedRepData.team}{selectedRepData.is_manager?' · Manager':''}</div>
+                    {selectedRepData.territory&&<div className="sb-rep-terr">{selectedRepData.territory}</div>}
                   </div>
-                )}
-                {/* Individual user cards */}
-                <div className="cards-grid">
-                  {fSummary.map((r,i)=>(
-                    <div key={r.id||i} className={`ucard${r.is_manager?' mgr':''}`}>
-                      <div className="ucard-hdr">
-                        <div className="ucard-info">
-                          <div className="ucard-name">{r.user_name}</div>
-                          <div className="ucard-meta">{r.team||''}{r.is_manager?' · Manager':''}</div>
-                          {r.territory&&<div className="ucard-terr" title={r.territory}>{r.territory}</div>}
-                          {(r.avg_am_shift_hm||r.avg_pm_shift_hm)&&(
-                            <div className="ucard-dur">
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                              {r.avg_am_shift_hm?<span className="dur-am">AM {fmtDuration(r.avg_am_shift_hm)}</span>:null}
-                              {r.avg_pm_shift_hm?<span className="dur-pm">PM {fmtDuration(r.avg_pm_shift_hm)}</span>:null}
+                  {t.kpiGroups.map(g => {
+                    const keys = g.keys.filter(k => {
+                      if(shift==='AM') return !['pm_calls','pm_call_rate','pm_shift_days','total_pm_covered','clinic_covered','polyclinic_covered','avg_pm_shift_hm'].includes(k);
+                      if(shift==='PM') return !['am_calls','am_call_rate','am_shift_days','total_am_covered','amcenter_covered','hospital_covered','avg_am_shift_hm','avg_am_start_time'].includes(k);
+                      return true;
+                    });
+                    if(g.keys.includes('coaching_days')&&!isMgr) return null;
+                    const kpiRows = keys.map(k=>({k,v:selectedRepData[k]})).filter(x=>x.v!==null&&x.v!==undefined&&x.v!=='');
+                    if(!kpiRows.length) return null;
+                    return (
+                      <div key={g.label} className="sb-kpi-sec">
+                        <div className="sb-kpi-hd">{g.label}</div>
+                        {kpiRows.map(({k,v})=>(
+                          <div key={k} className="sb-kpi-row">
+                            <span>{t.kpi[k]||k}</span>
+                            <span className="sb-kpi-val">{fmtVal(v,k)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <>
+                  <div className="sb-section-hd">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    {rtl?'زيارات PM حسب المندوب':'PM Visits by Rep'}
+                  </div>
+                  {teamGroups.map(({label, rows}) => {
+                    const reps = [...rows].filter(r=>!r.is_manager).sort((a,b)=>(b.pm_calls||0)-(a.pm_calls||0));
+                    if(!reps.length) return null;
+                    return (
+                      <div key={label} className="sb-team-group">
+                        <div className="sb-team-label">{label}</div>
+                        {reps.map(r => (
+                          <div key={r.user_name}
+                            className={`sb-rep-row${selectedRep===r.user_name?' active':''}`}
+                            onClick={()=>setSelectedRep(r.user_name)}>
+                            <span className="sb-rep-name">{r.user_name}</span>
+                            <div className="sb-rep-bar-wrap">
+                              <div className="sb-rep-bar" style={{width:`${Math.min(100, (r.pm_calls||0) / Math.max(1,...reps.map(x=>x.pm_calls||1)) * 100)}%`}}/>
+                            </div>
+                            <span className="sb-rep-val">{r.pm_calls||0}</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* ─── SPECIALTY SIDEBAR ───────────────────────────── */}
+          {tab==='specialty' && (
+            <div className="sb-panel">
+              <div className="sb-section-hd">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+                {rtl?'تغطية التخصصات':'Specialty Coverage'}
+              </div>
+              <PieChart data={specialtyPieData} title={rtl?'حسب التخصص':'By Specialty'}/>
+
+              <div className="sb-divider"/>
+
+              <PieChart data={classificationPieData} title={rtl?'حسب التصنيف':'By Classification'}/>
+
+              <div className="sb-divider"/>
+
+              {/* Specialty Slicer */}
+              <div className="sb-slicer">
+                <div className="sb-slicer-hd">
+                  <span>{rtl?'فلتر التخصص':'Filter Specialty'}</span>
+                  {specialtyFilter.size > 0 && (
+                    <button className="sb-slicer-clear" onClick={()=>setSpecialtyFilter(new Set())}>
+                      {rtl?'مسح':'Clear'}
+                    </button>
+                  )}
+                </div>
+                <div className="sb-slicer-pills">
+                  {allSpecialties.map(s => (
+                    <button key={s}
+                      className={`slicer-pill${specialtyFilter.has(s)?' on':''}`}
+                      onClick={()=>toggleSpecialty(s)}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="sb-divider"/>
+
+              {/* Countdown Card */}
+              <div className="sb-countdown">
+                <div className="sb-countdown-ring">
+                  <svg width="80" height="80" viewBox="0 0 80 80">
+                    <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,.08)" strokeWidth="5"/>
+                    <circle cx="40" cy="40" r="34" fill="none" stroke="var(--gold)"
+                      strokeWidth="5" strokeLinecap="round"
+                      strokeDasharray={`${(1 - countdown/30) * 213.6} 213.6`}
+                      transform="rotate(-90 40 40)"/>
+                  </svg>
+                  <div className="sb-countdown-num">{countdown}</div>
+                </div>
+                <div className="sb-countdown-label">{rtl?'أيام متبقية':'Days Remaining'}</div>
+                <div className="sb-countdown-sub">{rtl?'حتى نهاية الفترة':'Until period closes'}</div>
+              </div>
+            </div>
+          )}
+
+          {/* ─── PRODUCTS SIDEBAR ────────────────────────────── */}
+          {tab==='products' && (
+            <div className="sb-panel">
+              <div className="sb-section-hd">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                {rtl?'مساهمة المنتجات':'Product Contribution'}
+              </div>
+              <PieChart data={productPieData} title={rtl?'حسب المنتج':'By Product'}/>
+
+              <div className="sb-divider"/>
+
+              <div className="sb-section-hd" style={{marginTop:0}}>
+                {rtl?'أعلى المنتجات':'Top Products'}
+              </div>
+              <div className="sb-top-list">
+                {topProducts.map((p,i) => (
+                  <div key={p.name} className="sb-top-item">
+                    <span className="sb-top-rank">#{i+1}</span>
+                    <div className="sb-top-info">
+                      <div className="sb-top-name">{p.name}</div>
+                      <div className="sb-top-bar-wrap">
+                        <div className="sb-top-bar" style={{width:`${p.pct}%`}}/>
+                      </div>
+                    </div>
+                    <span className="sb-top-count">{p.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ─── COACHING SIDEBAR ────────────────────────────── */}
+          {tab==='coaching' && isMgr && (
+            <div className="sb-panel">
+              <div className="sb-section-hd">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                {rtl?'المديرون':'Managers'}
+              </div>
+              {selectedManager && (
+                <button className="sb-back" onClick={()=>setSelectedManager(null)}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                  {rtl?'عرض الكل':'Show all'}
+                </button>
+              )}
+              {managerGroups.map(mgr => (
+                <div key={mgr.name}
+                  className={`sb-mgr-card${selectedManager===mgr.name?' active':''}`}
+                  onClick={()=>setSelectedManager(selectedManager===mgr.name?null:mgr.name)}>
+                  <div className="sb-mgr-avatar">
+                    {mgr.name.split(' ').map(w=>w[0]).slice(0,2).join('')}
+                  </div>
+                  <div className="sb-mgr-info">
+                    <div className="sb-mgr-name">{mgr.name}</div>
+                    <div className="sb-mgr-meta">{mgr.team}</div>
+                  </div>
+                  <div className="sb-mgr-stats">
+                    <div className="sb-mgr-stat">{mgr.dayCount}<small> days</small></div>
+                    <div className="sb-mgr-stat">{mgr.repCount}<small> reps</small></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </aside>
+
+        {/* Mobile backdrop */}
+        {sidebarOpen && <div className="sb-backdrop" onClick={()=>setSidebarOpen(false)}/>}
+
+        {/* ── MAIN CONTENT ───────────────────────────────────── */}
+        <div className="dash-content">
+
+          {/* CONTROL BAR */}
+          <div className="ctrl-bar">
+            <div className="ctrl-row">
+              <div className="ctrl-group">
+                <span className="ctrl-lbl">{rtl?'الفترة':'Period'}</span>
+                <div className="shift-toggle">
+                  <button className={`stoggle${period==='recent'?' on':''}`} onClick={()=>setPeriod('recent')}>{t.recent}</button>
+                  <button className={`stoggle${period==='last_month'?' on':''}`} disabled style={{opacity:0.5, cursor:'not-allowed'}}>{t.lastMonth}</button>
+                </div>
+              </div>
+              <div className="ctrl-group">
+                <span className="ctrl-lbl">{rtl?'الوردية':'Shift'}</span>
+                <ShiftToggle value={shift} onChange={setShift} t={t}/>
+              </div>
+              {teams.length>1&&(
+                <div className="ctrl-group">
+                  <span className="ctrl-lbl">{rtl?'الفريق':'Team'}</span>
+                  <select className="ctrl-sel" value={team} onChange={e=>{setTeam(e.target.value);setUser('all');}}>
+                    <option value="all">{t.allTeams}</option>
+                    {teams.map(tm=><option key={tm} value={tm}>{tm}</option>)}
+                  </select>
+                </div>
+              )}
+              {isMgr&&allUsers.length>1&&(
+                <div className="ctrl-group">
+                  <span className="ctrl-lbl">{rtl?'المندوب':'Rep'}</span>
+                  <select className="ctrl-sel" value={userFilter} onChange={e=>setUser(e.target.value)}>
+                    <option value="all">{t.allUsers}</option>
+                    {allUsers.map(u=><option key={u} value={u}>{u}</option>)}
+                  </select>
+                </div>
+              )}
+              <div className="ctrl-group ctrl-search">
+                <div className="search-box">
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="9" cy="9" r="6"/><path d="M15 15l-3.5-3.5"/>
+                  </svg>
+                  <input className="search-inp" placeholder={t.search}
+                    value={search} onChange={e=>setSearch(e.target.value)}/>
+                  {search&&<button className="search-clear" onClick={()=>setSearch('')}>✕</button>}
+                </div>
+              </div>
+              <div className="ctrl-end">
+                <span className="ctrl-stat">{t.people(fSummary.length)}{teamCount>1&&` · ${teamCount} teams`}</span>
+                <button className="hbtn hbtn-primary" onClick={doExport}>↓ {t.export}</button>
+              </div>
+            </div>
+          </div>
+
+          {/* TABS */}
+          <nav className="dash-tabs">
+            <button className="sidebar-toggle" onClick={()=>setSidebarOpen(!sidebarOpen)} title="Toggle panel">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/>
+              </svg>
+            </button>
+            {visibleTabs.map(([k,label])=>(
+              <button key={k} className={`dtab${tab===k?' on':''}`} onClick={()=>changeTab(k)}>{label}</button>
+            ))}
+          </nav>
+
+          {error&&<div className="dash-err">{error}</div>}
+
+          {loading?(
+            <div className="dash-empty">{t.loading}</div>
+          ):(
+            <div className="dash-body">
+
+              {/* SUMMARY TAB */}
+              {tab==='summary'&&(
+                fSummary.length===0?<div className="dash-empty">{t.noData}</div>:(
+                  <>
+                    {isMgr&&userFilter==='all'&&(
+                      <div className="agg-cards-row">
+                        {teamGroups.map(({label,rows})=>(
+                          <TeamKpiHover key={label} rows={rows} teamLabel={label}/>
+                        ))}
+                      </div>
+                    )}
+                    <div className="cards-grid">
+                      {fSummary.map((r,i)=>(
+                        <div key={r.id||i} className={`ucard${r.is_manager?' mgr':''}${selectedRep===r.user_name?' ucard-selected':''}`}
+                          onClick={()=>setSelectedRep(selectedRep===r.user_name?null:r.user_name)}>
+                          <div className="ucard-hdr">
+                            <div className="ucard-info">
+                              <div className="ucard-name">{r.user_name}</div>
+                              <div className="ucard-meta">{r.team||''}{r.is_manager?' · Manager':''}</div>
+                              {r.territory&&<div className="ucard-terr" title={r.territory}>{r.territory}</div>}
+                              {(r.avg_am_shift_hm||r.avg_pm_shift_hm)&&(
+                                <div className="ucard-dur">
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                                  {r.avg_am_shift_hm?<span className="dur-am">AM {fmtDuration(r.avg_am_shift_hm)}</span>:null}
+                                  {r.avg_pm_shift_hm?<span className="dur-pm">PM {fmtDuration(r.avg_pm_shift_hm)}</span>:null}
+                                </div>
+                              )}
+                            </div>
+                            {r.is_manager&&<span className="mgr-pip">MGR</span>}
+                          </div>
+                          {t.kpiGroups.map(g=>{
+                            const keys=g.keys.filter(k=>{
+                              if(shift==='AM') return !['pm_calls','pm_call_rate','pm_shift_days','total_pm_covered','clinic_covered','polyclinic_covered','avg_pm_shift_hm'].includes(k);
+                              if(shift==='PM') return !['am_calls','am_call_rate','am_shift_days','total_am_covered','amcenter_covered','hospital_covered','avg_am_shift_hm','avg_am_start_time'].includes(k);
+                              return true;
+                            });
+                            if(g.keys.includes('coaching_days')&&!isMgr) return null;
+                            const kpiRows=keys.map(k=>({k,v:r[k]})).filter(x=>x.v!==null&&x.v!==undefined&&x.v!=='');
+                            if(!kpiRows.length) return null;
+                            return (
+                              <div key={g.label} className={`kpi-sec${g.keys.includes('avg_am_shift_hm')?' kpi-timing':''}`}>
+                                <div className="kpi-sec-hd">{g.label}</div>
+                                {kpiRows.map(({k,v})=>(
+                                  <div key={k} className="kpi-row">
+                                    <span className="kpi-lbl">{t.kpi[k]||k}</span>
+                                    <span className={`kpi-v${k.includes('rate')?' rate':''}`}>{fmtVal(v,k)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })}
+                          {r.product_calls_detail&&shift!=='AM'&&(
+                            <div className="kpi-sec">
+                              <div className="kpi-sec-hd">{rtl?'تفاصيل المنتج':'Product Detail'}</div>
+                              <div className="prod-det">{r.product_calls_detail}</div>
                             </div>
                           )}
                         </div>
-                        {r.is_manager&&<span className="mgr-pip">MGR</span>}
-                      </div>
-                      {t.kpiGroups.map(g=>{
-                        const keys=g.keys.filter(k=>{
-                          if(shift==='AM') return !['pm_calls','pm_call_rate','pm_shift_days','total_pm_covered','clinic_covered','polyclinic_covered','avg_pm_shift_hm'].includes(k);
-                          if(shift==='PM') return !['am_calls','am_call_rate','am_shift_days','total_am_covered','amcenter_covered','hospital_covered','avg_am_shift_hm','avg_am_start_time'].includes(k);
-                          return true;
-                        });
-                        if(g.keys.includes('coaching_days')&&!isMgr) return null;
-                        const kpiRows=keys.map(k=>({k,v:r[k]})).filter(x=>x.v!==null&&x.v!==undefined&&x.v!=='');
-                        if(!kpiRows.length) return null;
-                        return (
-                          <div key={g.label} className={`kpi-sec${g.keys.includes('avg_am_shift_hm')?' kpi-timing':''}`}>
-                            <div className="kpi-sec-hd">{g.label}</div>
-                            {kpiRows.map(({k,v})=>(
-                              <div key={k} className="kpi-row">
-                                <span className="kpi-lbl">{t.kpi[k]||k}</span>
-                                <span className={`kpi-v${k.includes('rate')?' rate':''}`}>{fmtVal(v,k)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        );
-                      })}
-                      {r.product_calls_detail&&shift!=='AM'&&(
-                        <div className="kpi-sec">
-                          <div className="kpi-sec-hd">{rtl?'تفاصيل المنتج':'Product Detail'}</div>
-                          <div className="prod-det">{r.product_calls_detail}</div>
-                        </div>
-                      )}
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </>
-            )
-          )}
+                  </>
+                )
+              )}
 
-          {/* SPECIALTY TAB */}
-          {tab==='specialty'&&(
-            <>
-              <PivotSummaryBanner rows={fSpecialty} valueKey="call_count" rowKey="specialty" shift={shift} t={t}/>
-              <PivotTable rows={fSpecialty} rowKey="specialty" valueKey="call_count"
-                shiftFilter={shift} userFilter={userFilter} searchFilter={search} lang={lang}/>
-            </>
-          )}
+              {/* SPECIALTY TAB */}
+              {tab==='specialty'&&(
+                <>
+                  <PivotSummaryBanner rows={filteredSpecialty} valueKey="call_count" rowKey="specialty" shift={shift} t={t}/>
+                  <PivotTable rows={filteredSpecialty} rowKey="specialty" valueKey="call_count"
+                    shiftFilter={shift} userFilter={userFilter} searchFilter={search} lang={lang}/>
+                </>
+              )}
 
-          {/* PRODUCTS TAB */}
-          {tab==='products'&&(
-            <>
-              <PivotSummaryBanner rows={fProducts} valueKey="call_count" rowKey="product" shift={shift} t={t}/>
-              <PivotTable rows={fProducts} rowKey="product" valueKey="call_count"
-                shiftFilter={shift} userFilter={userFilter} searchFilter={search} lang={lang}/>
-            </>
-          )}
+              {/* PRODUCTS TAB */}
+              {tab==='products'&&(
+                <>
+                  <PivotSummaryBanner rows={fProducts} valueKey="call_count" rowKey="product" shift={shift} t={t}/>
+                  <PivotTable rows={fProducts} rowKey="product" valueKey="call_count"
+                    shiftFilter={shift} userFilter={userFilter} searchFilter={search} lang={lang}/>
+                </>
+              )}
 
-          {/* COACHING TAB */}
-          {tab==='coaching'&&isMgr&&(
-            fCoaching.length===0?<div className="dash-empty">{t.noData}</div>:(
-              <div className="pivot-wrap">
-                <table className="pivot-tbl">
-                  <thead>
-                    <tr>
-                      <th className="s-col">{rtl?'المدير':'Manager'}</th>
-                      <th>{rtl?'المندوب':'Rep'}</th>
-                      <th>{rtl?'التاريخ':'Date'}</th>
-                      <th>{rtl?'الفريق':'Team'}</th>
-                      <th>{rtl?'زيارات AM':'AM Visits'}</th>
-                      <th>{rtl?'مرافقة AM':'AM Acc.'}</th>
-                      <th>AM %</th>
-                      <th>{rtl?'زيارات PM':'PM Visits'}</th>
-                      <th>{rtl?'مرافقة PM':'PM Acc.'}</th>
-                      <th>PM %</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[...fCoaching].sort((a,b)=>(a.manager_name||'').localeCompare(b.manager_name||'')).map((r,i)=>(
-                      <tr key={r.id||i}>
-                        <td className="s-col">{r.manager_name}</td>
-                        <td>{r.rep_name}</td>
-                        <td>{r.coaching_date}</td>
-                        <td>{r.team||'—'}</td>
-                        <td>{r.am_visits||0}</td>
-                        <td>{r.am_accompanied||0}</td>
-                        <td>{r.am_visits ? Math.round((r.am_accompanied/r.am_visits)*100)+'%' : '-'}</td>
-                        <td>{r.pm_visits||0}</td>
-                        <td>{r.pm_accompanied||0}</td>
-                        <td>{r.pm_visits ? Math.round((r.pm_accompanied/r.pm_visits)*100)+'%' : '-'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )
+              {/* COACHING TAB */}
+              {tab==='coaching'&&isMgr&&(
+                filteredCoaching.length===0?(
+                  <div className="dash-empty">
+                    {selectedManager
+                      ? (rtl?'لا توجد بيانات لهذا المدير':'No coaching data for this manager')
+                      : t.noData}
+                  </div>
+                ):(
+                  <>
+                    {selectedManager && (
+                      <div className="coaching-selected-hdr">
+                        <span className="coaching-sel-name">{selectedManager}</span>
+                        <span className="coaching-sel-meta">
+                          {filteredCoaching.length} {rtl?'جلسة':'session'}{filteredCoaching.length!==1?'s':''}
+                        </span>
+                      </div>
+                    )}
+                    <div className="pivot-wrap">
+                      <table className="pivot-tbl">
+                        <thead>
+                          <tr>
+                            <th className="s-col">{rtl?'المدير':'Manager'}</th>
+                            <th>{rtl?'المندوب':'Rep'}</th>
+                            <th>{rtl?'التاريخ':'Date'}</th>
+                            <th>{rtl?'الفريق':'Team'}</th>
+                            <th>{rtl?'زيارات AM':'AM Visits'}</th>
+                            <th>{rtl?'مرافقة AM':'AM Acc.'}</th>
+                            <th>AM %</th>
+                            <th>{rtl?'زيارات PM':'PM Visits'}</th>
+                            <th>{rtl?'مرافقة PM':'PM Acc.'}</th>
+                            <th>PM %</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[...filteredCoaching].sort((a,b)=>(a.manager_name||'').localeCompare(b.manager_name||'')||(a.coaching_date||'').localeCompare(b.coaching_date||'')).map((r,i)=>(
+                            <tr key={r.id||i}>
+                              <td className="s-col">{r.manager_name}</td>
+                              <td>{r.rep_name}</td>
+                              <td>{r.coaching_date}</td>
+                              <td>{r.team||'—'}</td>
+                              <td>{r.am_visits||0}</td>
+                              <td>{r.am_accompanied||0}</td>
+                              <td>{r.am_visits ? Math.round((r.am_accompanied/r.am_visits)*100)+'%' : '-'}</td>
+                              <td>{r.pm_visits||0}</td>
+                              <td>{r.pm_accompanied||0}</td>
+                              <td>{r.pm_visits ? Math.round((r.pm_accompanied/r.pm_visits)*100)+'%' : '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )
+              )}
+            </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
