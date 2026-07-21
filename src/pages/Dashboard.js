@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
+import EnhancementRoadmap from '../components/EnhancementRoadmap';
 import './Dashboard.css';
 
 // ── i18n ──────────────────────────────────────────────────────────────────────
@@ -13,7 +14,7 @@ const T = {
     export:'Export', loading:'Loading…', noData:'No data for this period.',
     shiftAll:'Both', shiftAM:'AM', shiftPM:'PM',
     people: n=>`${n} rep${n!==1?'s':''}`,
-    tabs:{ summary:'Summary', specialty:'Specialty', products:'Products', coaching:'Coaching' },
+    tabs:{ summary:'Summary', specialty:'Specialty', products:'Products', coaching:'Coaching', roadmap:'Roadmap' },
     roleView:{ MR:'My Results', Supervisor:'My Team', 'Area Manager':'My Area', BLM:'Full Team', Admin:'All Teams' },
     avg:'Avg', sum:'Sum', teamSummary:'Team Summary',
     kpiGroups:[
@@ -47,7 +48,7 @@ const T = {
     export:'تصدير', loading:'جارٍ التحميل…', noData:'لا توجد بيانات.',
     shiftAll:'الكل', shiftAM:'AM', shiftPM:'PM',
     people: n=>`${n} مندوب`,
-    tabs:{ summary:'الملخص', specialty:'التخصص', products:'المنتجات', coaching:'التوجيه' },
+    tabs:{ summary:'الملخص', specialty:'التخصص', products:'المنتجات', coaching:'التوجيه', roadmap:'خارطة الطريق' },
     roleView:{ MR:'نتائجي', Supervisor:'فريقي', 'Area Manager':'منطقتي', BLM:'الفريق', Admin:'الكل' },
     avg:'متوسط', sum:'مجموع', teamSummary:'ملخص الفريق',
     kpiGroups:[
@@ -139,7 +140,20 @@ function daysUntil15th() {
 }
 
 // ── PieChart (SVG donut) ─────────────────────────────────────────────────────
-function PieChart({ data, title, size = 140, thickness = 22 }) {
+// ── KPI targets for progress indicators ─────────────────────────────────────
+const KPI_TARGETS = {
+  working_days: 22,
+  complete_field_days: 20,
+  am_calls: 120,
+  pm_calls: 120,
+  total_am_covered: 80,
+  total_pm_covered: 80,
+  pharmacies_visited: 40,
+  coaching_days: 4,
+};
+
+// ── PieChart (SVG donut) ─────────────────────────────────────────────────────
+function PieChart({ data, title, size = 140, thickness = 22, onSelect, activeFilters = new Set() }) {
   const total = data.reduce((s, d) => s + d.value, 0);
   if (!total) return <div className="pie-empty">No data</div>;
   const center = size / 2;
@@ -153,30 +167,60 @@ function PieChart({ data, title, size = 140, thickness = 22 }) {
     accumulated += arc;
     return { ...d, pct, arc, offset };
   });
+
+  const hasSelections = activeFilters && activeFilters.size > 0;
+
   return (
     <div className="pie-chart">
       {title && <div className="pie-title">{title}</div>}
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="pie-svg">
         <circle cx={center} cy={center} r={radius} fill="none" stroke="rgba(255,255,255,.06)" strokeWidth={thickness}/>
-        {segments.map((seg, i) => (
-          <circle key={i} cx={center} cy={center} r={radius} fill="none"
-            stroke={seg.color} strokeWidth={thickness}
-            strokeDasharray={`${seg.arc} ${circumference - seg.arc}`}
-            strokeDashoffset={-seg.offset}
-            transform={`rotate(-90 ${center} ${center})`}
-            className="pie-segment" strokeLinecap="butt"/>
-        ))}
+        {segments.map((seg, i) => {
+          const isSelected = activeFilters?.has(seg.label);
+          const fade = hasSelections && !isSelected;
+          return (
+            <circle key={i} cx={center} cy={center} r={radius} fill="none"
+              stroke={seg.color} strokeWidth={isSelected ? thickness + 4 : thickness}
+              strokeDasharray={`${seg.arc} ${circumference - seg.arc}`}
+              strokeDashoffset={-seg.offset}
+              transform={`rotate(-90 ${center} ${center})`}
+              className="pie-segment" strokeLinecap="butt"
+              style={{
+                cursor: onSelect ? 'pointer' : 'default',
+                opacity: fade ? 0.25 : 1,
+                transition: 'opacity 0.2s, stroke-width 0.2s, stroke 0.2s',
+              }}
+              onClick={() => onSelect && onSelect(seg.label)}
+            />
+          );
+        })}
         <text x={center} y={center-6} textAnchor="middle" dominantBaseline="central" className="pie-center-val">{total}</text>
         <text x={center} y={center+10} textAnchor="middle" dominantBaseline="central" className="pie-center-lbl">calls</text>
       </svg>
       <div className="pie-legend">
-        {segments.slice(0, 6).map((seg, i) => (
-          <div key={i} className="pie-leg-item">
-            <span className="pie-dot" style={{ background: seg.color }}/>
-            <span className="pie-leg-label">{seg.label}</span>
-            <span className="pie-leg-val">{Math.round(seg.pct * 100)}%</span>
-          </div>
-        ))}
+        {segments.slice(0, 6).map((seg, i) => {
+          const isSelected = activeFilters?.has(seg.label);
+          const fade = hasSelections && !isSelected;
+          return (
+            <div key={i} 
+              className={`pie-leg-item ${isSelected ? 'selected' : ''}`}
+              style={{
+                cursor: onSelect ? 'pointer' : 'default',
+                opacity: fade ? 0.4 : 1,
+                background: isSelected ? 'rgba(200, 168, 75, 0.12)' : 'none',
+                border: isSelected ? '1px solid rgba(200, 168, 75, 0.3)' : '1px solid transparent',
+                padding: '4px 6px',
+                borderRadius: '4px',
+                transition: 'opacity 0.2s, background 0.2s, border-color 0.2s',
+              }}
+              onClick={() => onSelect && onSelect(seg.label)}
+            >
+              <span className="pie-dot" style={{ background: seg.color }}/>
+              <span className="pie-leg-label">{seg.label}</span>
+              <span className="pie-leg-val">{Math.round(seg.pct * 100)}%</span>
+            </div>
+          );
+        })}
         {segments.length > 6 && <div className="pie-leg-more">+{segments.length - 6} more</div>}
       </div>
     </div>
@@ -339,7 +383,7 @@ export default function Dashboard() {
   const [lang, setLang]       = useState(profile?.preferred_lang||'en');
   const [period, setPeriod]   = useState('recent');
   const [team, setTeam]       = useState('all');
-  const [shift, setShift]     = useState('all');
+  const [shift, setShift]     = useState('PM'); // Default is PM
   const [search, setSearch]   = useState('');
   const [userFilter, setUser] = useState('all');
   const [tab, setTab]         = useState('summary');
@@ -353,6 +397,8 @@ export default function Dashboard() {
   // Sidebar states
   const [selectedRep, setSelectedRep]         = useState(null);
   const [specialtyFilter, setSpecialtyFilter] = useState(new Set());
+  const [productFilter, setProductFilter]     = useState(new Set());
+  const [classificationFilter, setClassificationFilter] = useState(new Set());
   const [selectedManager, setSelectedManager] = useState(null);
   const [sidebarOpen, setSidebarOpen]         = useState(false);
 
@@ -428,6 +474,16 @@ export default function Dashboard() {
     return r;
   },[coaching,byTeam,search]);
 
+  const companyAverages = useMemo(() => {
+    const reps = summary.filter(r => !r.is_manager);
+    const avgs = {};
+    NUMERIC_KPI_KEYS.forEach(key => {
+      const vals = reps.map(r => Number(r[key])||0).filter(v => v > 0);
+      avgs[key] = vals.length ? (vals.reduce((s,v)=>s+v, 0) / vals.length) : 0;
+    });
+    return avgs;
+  }, [summary]);
+
   const allUsers=useMemo(()=>[...new Set(byTeam(summary).map(r=>r.user_name))].sort(),[summary,byTeam]);
   const teamCount=new Set(fSummary.map(r=>r.team)).size;
 
@@ -453,10 +509,14 @@ export default function Dashboard() {
     return fSummary.find(r => r.user_name === selectedRep) || null;
   }, [fSummary, selectedRep]);
 
-  // Specialty pie charts (shift-filtered)
-  const shiftFilteredSpecialty = useMemo(() =>
-    shift==='all' ? fSpecialty : fSpecialty.filter(r => r.shift===shift)
-  , [fSpecialty, shift]);
+  // Specialty pie charts (shift-filtered & rep-filtered)
+  const shiftFilteredSpecialty = useMemo(() => {
+    let list = fSpecialty;
+    if (selectedRep) {
+      list = list.filter(r => r.user_name === selectedRep);
+    }
+    return shift==='all' ? list : list.filter(r => r.shift===shift);
+  }, [fSpecialty, shift, selectedRep]);
 
   const specialtyPieData = useMemo(() => {
     const m = {};
@@ -477,14 +537,33 @@ export default function Dashboard() {
   , [fSpecialty]);
 
   const filteredSpecialty = useMemo(() => {
-    if (specialtyFilter.size === 0) return fSpecialty;
-    return fSpecialty.filter(r => specialtyFilter.has(r.specialty));
-  }, [fSpecialty, specialtyFilter]);
+    let res = fSpecialty;
+    if (specialtyFilter.size > 0) {
+      res = res.filter(r => specialtyFilter.has(r.specialty));
+    }
+    if (classificationFilter.size > 0) {
+      res = res.filter(r => classificationFilter.has(r.classification));
+    }
+    return res;
+  }, [fSpecialty, specialtyFilter, classificationFilter]);
 
-  // Products pie chart (shift-filtered)
-  const shiftFilteredProducts = useMemo(() =>
-    shift==='all' ? fProducts : fProducts.filter(r => r.shift===shift)
-  , [fProducts, shift]);
+  const filteredProducts = useMemo(() => {
+    if (productFilter.size === 0) return fProducts;
+    return fProducts.filter(r => productFilter.has(r.product));
+  }, [fProducts, productFilter]);
+
+  const allProducts = useMemo(() =>
+    [...new Set(fProducts.map(r => r.product).filter(Boolean))].sort()
+  , [fProducts]);
+
+  // Products pie chart (shift-filtered & rep-filtered)
+  const shiftFilteredProducts = useMemo(() => {
+    let list = fProducts;
+    if (selectedRep) {
+      list = list.filter(r => r.user_name === selectedRep);
+    }
+    return shift==='all' ? list : list.filter(r => r.shift===shift);
+  }, [fProducts, shift, selectedRep]);
 
   const productPieData = useMemo(() => {
     const m = {};
@@ -527,6 +606,32 @@ export default function Dashboard() {
       return next;
     });
   }
+
+  function toggleProduct(p) {
+    setProductFilter(prev => {
+      const next = new Set(prev);
+      if (next.has(p)) next.delete(p); else next.add(p);
+      return next;
+    });
+  }
+
+  function toggleClassification(c) {
+    setClassificationFilter(prev => {
+      const next = new Set(prev);
+      if (next.has(c)) next.delete(c); else next.add(c);
+      return next;
+    });
+  }
+
+  const handleSelectRep = (repName) => {
+    if (selectedRep === repName) {
+      setSelectedRep(null);
+      setUser('all');
+    } else {
+      setSelectedRep(repName);
+      setUser(repName);
+    }
+  };
 
   function changeTab(k) {
     setTab(k);
@@ -580,12 +685,13 @@ export default function Dashboard() {
       <div className="dash-with-sidebar">
 
         {/* ── SIDEBAR ────────────────────────────────────────────── */}
-        <aside className={`dash-sidebar${sidebarOpen?' open':''}`}>
-          <button className="sb-close" onClick={()=>setSidebarOpen(false)}>✕</button>
+        {tab !== 'roadmap' && (
+          <aside className={`dash-sidebar${sidebarOpen?' open':''}`}>
+            <button className="sb-close" onClick={()=>setSidebarOpen(false)}>✕</button>
 
-          {/* ─── SUMMARY SIDEBAR ─────────────────────────────── */}
-          {tab==='summary' && (
-            <div className="sb-panel">
+            {/* ─── SUMMARY SIDEBAR ─────────────────────────────── */}
+            {tab==='summary' && (
+              <div className="sb-panel">
               {selectedRepData ? (
                 <div className="sb-rep-detail">
                   <button className="sb-back" onClick={()=>setSelectedRep(null)}>
@@ -657,11 +763,21 @@ export default function Dashboard() {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
                 {rtl?'تغطية التخصصات':'Specialty Coverage'}
               </div>
-              <PieChart data={specialtyPieData} title={rtl?'حسب التخصص':'By Specialty'}/>
+              <PieChart 
+                data={specialtyPieData} 
+                title={rtl?'حسب التخصص':'By Specialty'}
+                onSelect={toggleSpecialty}
+                activeFilters={specialtyFilter}
+              />
 
               <div className="sb-divider"/>
 
-              <PieChart data={classificationPieData} title={rtl?'حسب التصنيف':'By Classification'}/>
+              <PieChart 
+                data={classificationPieData} 
+                title={rtl?'حسب التصنيف':'By Classification'}
+                onSelect={toggleClassification}
+                activeFilters={classificationFilter}
+              />
 
               <div className="sb-divider"/>
 
@@ -669,8 +785,8 @@ export default function Dashboard() {
               <div className="sb-slicer">
                 <div className="sb-slicer-hd">
                   <span>{rtl?'فلتر التخصص':'Filter Specialty'}</span>
-                  {specialtyFilter.size > 0 && (
-                    <button className="sb-slicer-clear" onClick={()=>setSpecialtyFilter(new Set())}>
+                  {(specialtyFilter.size > 0 || classificationFilter.size > 0) && (
+                    <button className="sb-slicer-clear" onClick={()=>{setSpecialtyFilter(new Set()); setClassificationFilter(new Set());}}>
                       {rtl?'مسح':'Clear'}
                     </button>
                   )}
@@ -713,9 +829,35 @@ export default function Dashboard() {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                 {rtl?'مساهمة المنتجات':'Product Contribution'}
               </div>
-              <PieChart data={productPieData} title={rtl?'حسب المنتج':'By Product'}/>
+              <PieChart 
+                data={productPieData} 
+                title={rtl?'حسب المنتج':'By Product'}
+                onSelect={toggleProduct}
+                activeFilters={productFilter}
+              />
 
               <div className="sb-divider"/>
+
+              {/* Product Slicer */}
+              <div className="sb-slicer">
+                <div className="sb-slicer-hd">
+                  <span>{rtl?'فلتر المنتج':'Filter Product'}</span>
+                  {productFilter.size > 0 && (
+                    <button className="sb-slicer-clear" onClick={()=>setProductFilter(new Set())}>
+                      {rtl?'مسح':'Clear'}
+                    </button>
+                  )}
+                </div>
+                <div className="sb-slicer-pills">
+                  {allProducts.map(p => (
+                    <button key={p}
+                      className={`slicer-pill${productFilter.has(p)?' on':''}`}
+                      onClick={()=>toggleProduct(p)}>
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               <div className="sb-section-hd" style={{marginTop:0}}>
                 {rtl?'أعلى المنتجات':'Top Products'}
@@ -768,8 +910,9 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
-          )}
-        </aside>
+            )}
+          </aside>
+        )}
 
         {/* Mobile backdrop */}
         {sidebarOpen && <div className="sb-backdrop" onClick={()=>setSidebarOpen(false)}/>}
@@ -803,7 +946,11 @@ export default function Dashboard() {
               {isMgr&&allUsers.length>1&&(
                 <div className="ctrl-group">
                   <span className="ctrl-lbl">{rtl?'المندوب':'Rep'}</span>
-                  <select className="ctrl-sel" value={userFilter} onChange={e=>setUser(e.target.value)}>
+                  <select className="ctrl-sel" value={userFilter} onChange={e=>{
+                    const val = e.target.value;
+                    setUser(val);
+                    setSelectedRep(val==='all'?null:val);
+                  }}>
                     <option value="all">{t.allUsers}</option>
                     {allUsers.map(u=><option key={u} value={u}>{u}</option>)}
                   </select>
@@ -828,11 +975,13 @@ export default function Dashboard() {
 
           {/* TABS */}
           <nav className="dash-tabs">
-            <button className="sidebar-toggle" onClick={()=>setSidebarOpen(!sidebarOpen)} title="Toggle panel">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/>
-              </svg>
-            </button>
+            {tab!=='roadmap' && (
+              <button className="sidebar-toggle" onClick={()=>setSidebarOpen(!sidebarOpen)} title="Toggle panel">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/>
+                </svg>
+              </button>
+            )}
             {visibleTabs.map(([k,label])=>(
               <button key={k} className={`dtab${tab===k?' on':''}`} onClick={()=>changeTab(k)}>{label}</button>
             ))}
@@ -859,7 +1008,7 @@ export default function Dashboard() {
                     <div className="cards-grid">
                       {fSummary.map((r,i)=>(
                         <div key={r.id||i} className={`ucard${r.is_manager?' mgr':''}${selectedRep===r.user_name?' ucard-selected':''}`}
-                          onClick={()=>setSelectedRep(selectedRep===r.user_name?null:r.user_name)}>
+                          onClick={()=>handleSelectRep(r.user_name)}>
                           <div className="ucard-hdr">
                             <div className="ucard-info">
                               <div className="ucard-name">{r.user_name}</div>
@@ -887,12 +1036,34 @@ export default function Dashboard() {
                             return (
                               <div key={g.label} className={`kpi-sec${g.keys.includes('avg_am_shift_hm')?' kpi-timing':''}`}>
                                 <div className="kpi-sec-hd">{g.label}</div>
-                                {kpiRows.map(({k,v})=>(
-                                  <div key={k} className="kpi-row">
-                                    <span className="kpi-lbl">{t.kpi[k]||k}</span>
-                                    <span className={`kpi-v${k.includes('rate')?' rate':''}`}>{fmtVal(v,k)}</span>
-                                  </div>
-                                ))}
+                                {kpiRows.map(({k,v})=>{
+                                  const target = KPI_TARGETS[k];
+                                  const avgVal = companyAverages[k] || 0;
+                                  const numVal = Number(v) || 0;
+                                  let benchmarkClass = '';
+                                  if (avgVal > 0 && typeof numVal === 'number' && !k.includes('time') && !k.includes('hm')) {
+                                    if (numVal > avgVal * 1.05) benchmarkClass = 'above-avg';
+                                    else if (numVal < avgVal * 0.95) benchmarkClass = 'below-avg';
+                                  }
+                                  const pct = target ? Math.min(100, Math.round((numVal / target) * 100)) : null;
+                                  return (
+                                    <div key={k} className="kpi-row-wrapper">
+                                      <div className="kpi-row">
+                                        <span className="kpi-lbl">
+                                          {t.kpi[k]||k}
+                                          {benchmarkClass === 'above-avg' && <span className="bench-arrow up" title="Above company average">▲</span>}
+                                          {benchmarkClass === 'below-avg' && <span className="bench-arrow down" title="Below company average">▼</span>}
+                                        </span>
+                                        <span className={`kpi-v ${k.includes('rate')?'rate':''} ${benchmarkClass}`}>{fmtVal(v,k)}</span>
+                                      </div>
+                                      {pct !== null && (
+                                        <div className="kpi-card-progress" title={`${pct}% of target (${target})`}>
+                                          <div className="kpi-card-progress-bar" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#10b981' : pct >= 70 ? '#3b82f6' : '#ef4444' }} />
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             );
                           })}
@@ -921,8 +1092,8 @@ export default function Dashboard() {
               {/* PRODUCTS TAB */}
               {tab==='products'&&(
                 <>
-                  <PivotSummaryBanner rows={fProducts} valueKey="call_count" rowKey="product" shift={shift} t={t}/>
-                  <PivotTable rows={fProducts} rowKey="product" valueKey="call_count"
+                  <PivotSummaryBanner rows={filteredProducts} valueKey="call_count" rowKey="product" shift={shift} t={t}/>
+                  <PivotTable rows={filteredProducts} rowKey="product" valueKey="call_count"
                     shiftFilter={shift} userFilter={userFilter} searchFilter={search} lang={lang}/>
                 </>
               )}
@@ -981,6 +1152,10 @@ export default function Dashboard() {
                     </div>
                   </>
                 )
+              )}
+              {/* ROADMAP TAB */}
+              {tab==='roadmap' && (
+                <EnhancementRoadmap lang={lang} rtl={rtl} />
               )}
             </div>
           )}

@@ -1278,3 +1278,59 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
   }
 }
 
+/* ── KPI Benchmarking and Progress Bars ────────────────── */
+.kpi-row-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 0;
+}
+
+.kpi-row-wrapper .kpi-row {
+  padding: 0;
+}
+
+.bench-arrow {
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  vertical-align: middle;
+}
+
+.rtl .bench-arrow {
+  margin-left: 0;
+  margin-right: 6px;
+}
+
+.bench-arrow.up {
+  color: #10b981;
+}
+
+.bench-arrow.down {
+  color: #ef4444;
+}
+
+.kpi-card-progress {
+  width: 100%;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 2px;
+  margin-top: 3px;
+  overflow: hidden;
+}
+
+.kpi-card-progress-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease-in-out;
+}
+
+.pie-leg-item.selected {
+  animation: pulseHighlight 1.5s infinite alternate;
+}
+
+@keyframes pulseHighlight {
+  from { box-shadow: 0 0 4px rgba(200, 168, 75, 0.15); }
+  to { box-shadow: 0 0 12px rgba(200, 168, 75, 0.35); }
+}
+
