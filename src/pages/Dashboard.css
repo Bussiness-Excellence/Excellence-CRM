@@ -54,10 +54,25 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
   opacity:.7;
 }
 .dash-hdr-l{display:flex;align-items:center;gap:14px}
-.dash-brand{
-  font-family:'Georgia',serif;letter-spacing:.28em;
-  font-size:14px;font-weight:700;color:var(--gold);
-  text-shadow:0 0 20px rgba(200,168,75,.3);
+.dash-brand-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.dash-brand {
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--gold);
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 20px rgba(200, 168, 75, .3);
+}
+.dash-brand-sub {
+  font-size: 10px;
+  font-weight: 500;
+  color: #7088b0;
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
 }
 .dash-sep{width:1px;height:18px;background:rgba(255,255,255,.12)}
 .dash-view{font-size:11px;color:#7088b0;text-transform:uppercase;letter-spacing:.07em}

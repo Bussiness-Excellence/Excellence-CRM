@@ -695,7 +695,10 @@ export default function Dashboard() {
       {/* HEADER */}
       <header className="dash-hdr">
         <div className="dash-hdr-l">
-          <span className="dash-brand">{t.brand}</span>
+          <div className="dash-brand-wrap">
+            <span className="dash-brand">{rtl ? 'إكسيلنس - CRM' : 'Excellence - CRM'}</span>
+            <span className="dash-brand-sub">{rtl ? 'تطبيق الويب' : 'web app'}</span>
+          </div>
           <div className="dash-sep"/>
           <span className="dash-view">{t.roleView[profile?.role]||''}</span>
         </div>
