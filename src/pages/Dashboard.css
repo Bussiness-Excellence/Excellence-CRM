@@ -29,6 +29,57 @@
   --transition: .2s cubic-bezier(.4,0,.2,1);
 }
 
+html.dark {
+  --bg:     #090f1d;
+  --surf:   #121d33;
+  --bdr:    #1f2e4d;
+  --bdr2:   #2b3f68;
+  --txt:    #f8fafc;
+  --mute:   #94a3b8;
+  --am-bg:  rgba(26,111,196,.2);
+  --pm-bg:  rgba(13,158,110,.2);
+  --sh: 0 1px 3px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.3);
+  --sh2: 0 2px 8px rgba(0,0,0,.5), 0 8px 28px rgba(0,0,0,.4);
+  --sh3: 0 4px 12px rgba(0,0,0,.6), 0 12px 36px rgba(0,0,0,.5);
+}
+
+html.dark .ctrl-bar {
+  background: rgba(18, 29, 51, 0.95);
+}
+
+html.dark .dtab.on {
+  color: var(--gold);
+}
+
+html.dark .pivot-tbl {
+  background: var(--surf);
+  color: var(--txt);
+}
+
+html.dark .pivot-tbl tr:hover {
+  background: rgba(200, 168, 75, 0.08);
+}
+
+html.dark .slicer-pill {
+  background: #1a2844;
+  color: #cbd5e1;
+  border-color: #2b3f68;
+}
+
+html.dark .slicer-pill.on {
+  background: var(--gold);
+  color: var(--navy);
+  border-color: var(--gold);
+}
+
+html.dark .sb-slicer-clear {
+  color: #cbd5e1;
+}
+
+html.dark .kpi-card-progress {
+  background: rgba(255, 255, 255, 0.1);
+}
+
 /* ── Base ───────────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg)}

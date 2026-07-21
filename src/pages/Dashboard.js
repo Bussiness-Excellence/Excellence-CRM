@@ -408,6 +408,20 @@ export default function Dashboard() {
   const [classificationFilter, setClassificationFilter] = useState(new Set());
   const [selectedManager, setSelectedManager] = useState(null);
   const [sidebarOpen, setSidebarOpen]         = useState(false);
+  const [theme, setTheme]                     = useState(() => localStorage.getItem('theme') || 'light');
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    localStorage.setItem('theme', nextTheme);
+    if (nextTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
+    }
+  };
 
   const t   = T[lang]||T.en;
   const rtl = lang==='ar';
@@ -704,11 +718,8 @@ export default function Dashboard() {
         </div>
         <div className="dash-hdr-r">
           {profile?.role==='Admin'&&<a className="hbtn hbtn-outline" href="#/admin">{t.adminPanel}</a>}
-          <button className="hbtn hbtn-outline" style={{padding: '6px 10px', fontSize: '15px'}} onClick={() => {
-            const isLight = document.documentElement.classList.toggle('light');
-            localStorage.setItem('theme', isLight ? 'light' : 'dark');
-          }} title="Toggle Dark/Light Mode">
-            ◐
+          <button className="hbtn hbtn-outline" style={{padding: '6px 12px', fontSize: '13px'}} onClick={toggleTheme} title="Toggle Dark/Light Mode">
+            {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
           </button>
           <button className="hbtn hbtn-lang" onClick={()=>setLang(lang==='en'?'ar':'en')}>
             {lang==='en'?'عربي':'EN'}

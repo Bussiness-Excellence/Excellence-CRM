@@ -43,8 +43,13 @@ function AppContent() {
 
 export default function App() {
   React.useEffect(() => {
-    if (localStorage.getItem('theme') === 'light') {
+    const theme = localStorage.getItem('theme') || 'light';
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    } else {
       document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
     }
   }, []);
 
