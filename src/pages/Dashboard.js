@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
-import EnhancementRoadmap from '../components/EnhancementRoadmap';
 import './Dashboard.css';
 
 // ── i18n ──────────────────────────────────────────────────────────────────────
@@ -14,7 +13,7 @@ const T = {
     export:'Export', loading:'Loading…', noData:'No data for this period.',
     shiftAll:'Both', shiftAM:'AM', shiftPM:'PM',
     people: n=>`${n} rep${n!==1?'s':''}`,
-    tabs:{ summary:'Summary', specialty:'Specialty', products:'Products', coaching:'Coaching', roadmap:'Roadmap' },
+    tabs:{ summary:'Summary', specialty:'Specialty', products:'Products', coaching:'Coaching' },
     roleView:{ MR:'My Results', Supervisor:'My Team', 'Area Manager':'My Area', BLM:'Full Team', Admin:'All Teams' },
     avg:'Avg', sum:'Sum', teamSummary:'Team Summary',
     kpiGroups:[
@@ -48,7 +47,7 @@ const T = {
     export:'تصدير', loading:'جارٍ التحميل…', noData:'لا توجد بيانات.',
     shiftAll:'الكل', shiftAM:'AM', shiftPM:'PM',
     people: n=>`${n} مندوب`,
-    tabs:{ summary:'الملخص', specialty:'التخصص', products:'المنتجات', coaching:'التوجيه', roadmap:'خارطة الطريق' },
+    tabs:{ summary:'الملخص', specialty:'التخصص', products:'المنتجات', coaching:'التوجيه' },
     roleView:{ MR:'نتائجي', Supervisor:'فريقي', 'Area Manager':'منطقتي', BLM:'الفريق', Admin:'الكل' },
     avg:'متوسط', sum:'مجموع', teamSummary:'ملخص الفريق',
     kpiGroups:[
@@ -254,31 +253,39 @@ function TeamKpiHover({ rows, teamLabel }) {
 }
 
 // ── PivotSummaryBanner ───────────────────────────────────────────────────────
-function PivotSummaryBanner({ rows, valueKey, rowKey, shift, t }) {
+function PivotSummaryBanner({ rows, valueKey, rowKey, shift, t, selectedTeam, onSelectTeam, userTeamMap }) {
   const filtered = useMemo(() => shift==='all'?rows:rows.filter(r=>r.shift===shift), [rows,shift]);
   const byTeam = useMemo(() => {
     const m = {};
     filtered.forEach(r => {
-      const team = r.team || 'Unknown';
+      const team = (r.team && r.team !== 'Unknown') ? r.team : (userTeamMap && userTeamMap[r.user_name]) || 'Other';
       if(!m[team]) m[team] = { total:0, users:new Set() };
       m[team].total += (r[valueKey]||0);
       m[team].users.add(r.user_name);
     });
     return m;
-  }, [filtered, valueKey]);
+  }, [filtered, valueKey, userTeamMap]);
   const grandTotal = useMemo(() => filtered.reduce((s,r)=>s+(r[valueKey]||0),0), [filtered,valueKey]);
   const allUsers   = useMemo(() => new Set(filtered.map(r=>r.user_name)).size, [filtered]);
   const teamList   = Object.entries(byTeam).sort((a,b)=>a[0].localeCompare(b[0]));
   if(!filtered.length) return null;
   return (
     <div className="pivot-banner">
-      <div className="pivot-banner-total">
+      <div 
+        className={`pivot-banner-total ${selectedTeam === 'all' ? 'active' : ''}`}
+        onClick={() => onSelectTeam && onSelectTeam('all')}
+        style={{ cursor: onSelectTeam ? 'pointer' : 'default' }}
+      >
         <span className="pb-label">Grand Total</span>
         <span className="pb-val">{grandTotal.toLocaleString()}</span>
         <span className="pb-sub">{allUsers} reps</span>
       </div>
       {teamList.map(([team,d]) => (
-        <div key={team} className="pivot-banner-team">
+        <div key={team} 
+          className={`pivot-banner-team ${selectedTeam === team ? 'active' : ''}`}
+          onClick={() => onSelectTeam && onSelectTeam(selectedTeam === team ? 'all' : team)}
+          style={{ cursor: onSelectTeam ? 'pointer' : 'default' }}
+        >
           <span className="pb-team">{team}</span>
           <span className="pb-val">{d.total.toLocaleString()}</span>
           <span className="pb-sub">{d.users.size} reps · avg {d.users.size?Math.round(d.total/d.users.size):0}</span>
@@ -482,6 +489,16 @@ export default function Dashboard() {
       avgs[key] = vals.length ? (vals.reduce((s,v)=>s+v, 0) / vals.length) : 0;
     });
     return avgs;
+  }, [summary]);
+
+  const userTeamMap = useMemo(() => {
+    const map = {};
+    summary.forEach(r => {
+      if (r.user_name && r.team) {
+        map[r.user_name] = r.team;
+      }
+    });
+    return map;
   }, [summary]);
 
   const allUsers=useMemo(()=>[...new Set(byTeam(summary).map(r=>r.user_name))].sort(),[summary,byTeam]);
@@ -1083,7 +1100,16 @@ export default function Dashboard() {
               {/* SPECIALTY TAB */}
               {tab==='specialty'&&(
                 <>
-                  <PivotSummaryBanner rows={filteredSpecialty} valueKey="call_count" rowKey="specialty" shift={shift} t={t}/>
+                  <PivotSummaryBanner 
+                    rows={filteredSpecialty} 
+                    valueKey="call_count" 
+                    rowKey="specialty" 
+                    shift={shift} 
+                    t={t}
+                    selectedTeam={team}
+                    onSelectTeam={setTeam}
+                    userTeamMap={userTeamMap}
+                  />
                   <PivotTable rows={filteredSpecialty} rowKey="specialty" valueKey="call_count"
                     shiftFilter={shift} userFilter={userFilter} searchFilter={search} lang={lang}/>
                 </>
@@ -1092,7 +1118,16 @@ export default function Dashboard() {
               {/* PRODUCTS TAB */}
               {tab==='products'&&(
                 <>
-                  <PivotSummaryBanner rows={filteredProducts} valueKey="call_count" rowKey="product" shift={shift} t={t}/>
+                  <PivotSummaryBanner 
+                    rows={filteredProducts} 
+                    valueKey="call_count" 
+                    rowKey="product" 
+                    shift={shift} 
+                    t={t}
+                    selectedTeam={team}
+                    onSelectTeam={setTeam}
+                    userTeamMap={userTeamMap}
+                  />
                   <PivotTable rows={filteredProducts} rowKey="product" valueKey="call_count"
                     shiftFilter={shift} userFilter={userFilter} searchFilter={search} lang={lang}/>
                 </>
@@ -1152,10 +1187,6 @@ export default function Dashboard() {
                     </div>
                   </>
                 )
-              )}
-              {/* ROADMAP TAB */}
-              {tab==='roadmap' && (
-                <EnhancementRoadmap lang={lang} rtl={rtl} />
               )}
             </div>
           )}
