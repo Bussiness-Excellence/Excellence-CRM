@@ -17,6 +17,9 @@ export default async function handler(req) {
       return new Response(JSON.stringify({ error: 'Missing or invalid messages array' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     // Ensure the user has provided a Gemini API Key in Vercel
     if (!process.env.GEMINI_API_KEY) {
       return new Response(JSON.stringify({ 
