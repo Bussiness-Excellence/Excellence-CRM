@@ -17,7 +17,7 @@ body {
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #020617;
+  background: #0B1120;
   color: #f8fafc;
   min-height: 100vh;
   overflow-x: hidden;
@@ -25,7 +25,7 @@ body {
 }
 
 html.light body {
-  background: #f0f9ff;
+  background: #f4f7fb;
   color: #0f172a;
 }
 
@@ -38,7 +38,7 @@ body::before {
   background:
     radial-gradient(ellipse 80% 60% at 20% -10%, rgba(96, 165, 250, 0.12) 0%, transparent 60%),
     radial-gradient(ellipse 60% 50% at 80% 110%, rgba(167, 139, 250, 0.1) 0%, transparent 60%),
-    linear-gradient(160deg, #020817 0%, #061838 40%, #041029 70%, #020617 100%);
+    linear-gradient(160deg, transparent 0%, rgba(255,255,255,0.01) 100%);
   pointer-events: none;
   transition: opacity 0.3s;
 }
@@ -47,7 +47,7 @@ html.light body::before {
   background:
     radial-gradient(ellipse 80% 60% at 20% -10%, rgba(96, 165, 250, 0.15) 0%, transparent 60%),
     radial-gradient(ellipse 60% 50% at 80% 110%, rgba(167, 139, 250, 0.15) 0%, transparent 60%),
-    linear-gradient(160deg, #f0f9ff 0%, #e0f2fe 40%, #bae6fd 100%);
+    linear-gradient(160deg, transparent 0%, rgba(255,255,255,0.01) 100%);
 }
 
 /* Subtle animated star-like particles */
@@ -212,9 +212,7 @@ html.light ::selection {
   100% { background-position: 600px 0; }
 }
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    rgba(255,255,255,0.04) 25%,
+  background: linear-gradient(160deg, transparent 0%, rgba(255,255,255,0.01) 100%) 25%,
     rgba(255,255,255,0.09) 50%,
     rgba(255,255,255,0.04) 75%
   );
