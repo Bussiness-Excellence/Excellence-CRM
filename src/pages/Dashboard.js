@@ -436,9 +436,9 @@ export default function Dashboard() {
     const isAdmin = profile?.role === 'Admin';
     const codes = visibleCodes;
 
-    let sQ = supabase.from('summaries').select('*').eq('period', periodLabel);
-    let spQ = supabase.from('specialty_classification').select('*').eq('period', periodLabel);
-    let prQ = supabase.from('product_calls').select('*').eq('period', periodLabel);
+    let sQ = supabase.from('summaries').select('*').eq('period', periodLabel).range(0, 5000);
+    let spQ = supabase.from('specialty_classification').select('*').eq('period', periodLabel).range(0, 5000);
+    let prQ = supabase.from('product_calls').select('*').eq('period', periodLabel).range(0, 5000);
 
     if (!isAdmin) {
       sQ = sQ.in('employee_code', codes);
@@ -447,7 +447,7 @@ export default function Dashboard() {
     }
 
     const queries = [sQ, spQ, prQ];
-    if(isMgr) queries.push(supabase.from('coaching_days').select('*').eq('period',periodLabel));
+    if(isMgr) queries.push(supabase.from('coaching_days').select('*').eq('period',periodLabel).range(0, 5000));
     const [s,sp,pr,co]=await Promise.all(queries);
     if(s.error) setError(s.error.message);
     setSummary(s.data||[]);
