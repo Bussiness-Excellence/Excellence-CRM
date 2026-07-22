@@ -487,15 +487,31 @@ export default function Dashboard() {
   const allManagerTerritories = useMemo(() => {
     const list = new Set();
     (hierarchy || []).forEach(h => {
-      if (h.division_name) list.add(h.division_name);
-    });
-    summary.forEach(s => {
-      if (s.territory) {
-        s.territory.split(';').forEach(t => list.add(t.trim()));
+      if (h.role === 'Area Manager' && h.division_name) {
+        list.add(h.division_name.trim());
       }
     });
-    return [...list].filter(Boolean).sort();
-  }, [hierarchy, summary]);
+    return [...list].sort();
+  }, [hierarchy]);
+
+  const territoryEmployeeNamesMap = useMemo(() => {
+    const map = {};
+    if (!hierarchy?.length) return map;
+    (hierarchy || []).forEach(h => {
+      if (h.role === 'Area Manager' && h.division_name && h.employee_name) {
+        const div = h.division_name.trim();
+        const amName = h.employee_name;
+        if (!map[div]) map[div] = new Set();
+        map[div].add(amName);
+        hierarchy.forEach(sub => {
+          if (sub.area_manager_name === amName || sub.employee_name === amName) {
+            if (sub.employee_name) map[div].add(sub.employee_name);
+          }
+        });
+      }
+    });
+    return map;
+  }, [hierarchy]);
 
   const byLineManager = useCallback(rows => {
     if (lineManagerFilter === 'all') return rows;
@@ -508,15 +524,15 @@ export default function Dashboard() {
 
   const byManagerTerritory = useCallback(rows => {
     if (managerTerritoryFilter === 'all') return rows;
+    const allowedNames = territoryEmployeeNamesMap[managerTerritoryFilter];
     return rows.filter(r => {
       const name = r.user_name || r.employee_name || r.manager_name || r.rep_name;
-      const userMeta = userHierarchyMap[name];
-      if (userMeta?.territory === managerTerritoryFilter || userMeta?.area_manager === managerTerritoryFilter) return true;
+      if (allowedNames && allowedNames.has(name)) return true;
       if (r.territory && r.territory.includes(managerTerritoryFilter)) return true;
       if (r.division_name === managerTerritoryFilter) return true;
       return false;
     });
-  }, [managerTerritoryFilter, userHierarchyMap]);
+  }, [managerTerritoryFilter, territoryEmployeeNamesMap]);
 
   const fSummary=useMemo(()=>{
     let r=byManagerTerritory(byLineManager(byTeam(summary)));
