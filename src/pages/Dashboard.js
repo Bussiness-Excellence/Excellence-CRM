@@ -629,13 +629,15 @@ export default function Dashboard() {
     }
     if(search) r=r.filter(x=>x.manager_name?.toLowerCase().includes(search.toLowerCase())||x.rep_name?.toLowerCase().includes(search.toLowerCase()));
     if(userFilter!=='all') {
-      const targetNames = new Set(
-        (hierarchy || [])
-          .filter(h => h.area_manager_name === userFilter || h.supervisor_name === userFilter || h.employee_name === userFilter)
-          .map(h => h.employee_name)
-      );
-      targetNames.add(userFilter);
-      r = r.filter(x => targetNames.has(x.manager_name) || targetNames.has(x.rep_name));
+      const managerNames = new Set([userFilter]);
+      (hierarchy || []).forEach(h => {
+        if (h.area_manager_name === userFilter || h.supervisor_name === userFilter) {
+          if (h.role === 'Area Manager' || h.role === 'Supervisor' || h.employee_name === userFilter) {
+            if (h.employee_name) managerNames.add(h.employee_name);
+          }
+        }
+      });
+      r = r.filter(x => managerNames.has(x.manager_name));
     }
     return r;
   },[coaching,byTeam,byLineManager,byManagerTerritory,search,userFilter,visibleNames,profile,hierarchy]);
