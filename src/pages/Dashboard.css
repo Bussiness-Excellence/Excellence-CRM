@@ -5,29 +5,29 @@
 
 /* ── Tokens ─────────────────────────────────────────── */
 :root{
-  --navy:   #0284c7;
-  --navy2:  #0369a1;
-  --navy3:  #075985;
-  --navy4:  #0c4a6e;
-  --gold:   #0ea5e9;
-  --gold2:  #38bdf8;
-  --gold-glow: rgba(14, 165, 233, 0.4);
-  --bg:     #f0f9ff;
-  --surf:   rgba(255, 255, 255, 0.6);
-  --bdr:    rgba(14, 165, 233, 0.3);
-  --bdr2:   rgba(14, 165, 233, 0.4);
-  --txt:    #0c4a6e;
-  --mute:   #0284c7;
-  --am:     #0284c7;
-  --am-bg:  rgba(2, 132, 199, 0.15);
-  --pm:     #0d9488;
-  --pm-bg:  rgba(13, 148, 136, 0.15);
-  --r: 4px;
-  --sh: 0 4px 16px rgba(14, 165, 233, 0.08), inset 0 1px 1px rgba(255,255,255,0.5);
-  --sh2:0 8px 24px rgba(14, 165, 233, 0.12), inset 0 1px 2px rgba(255,255,255,0.6);
-  --sh3:0 12px 36px rgba(14, 165, 233, 0.16), inset 0 1px 3px rgba(255,255,255,0.7);
-  --transition: .3s cubic-bezier(0.2, 0.8, 0.2, 1);
-  --glass-blur: blur(12px);
+  --navy:   #0f172a;
+  --navy2:  #1e293b;
+  --navy3:  #334155;
+  --navy4:  #475569;
+  --gold:   #2563eb; /* Vibrant startup blue */
+  --gold2:  #1d4ed8;
+  --gold-glow: rgba(37, 99, 235, 0.2);
+  --bg:     #ffffff;
+  --surf:   #ffffff;
+  --bdr:    #e2e8f0;
+  --bdr2:   #cbd5e1;
+  --txt:    #0f172a;
+  --mute:   #64748b;
+  --am:     #2563eb;
+  --am-bg:  rgba(37, 99, 235, 0.1);
+  --pm:     #059669;
+  --pm-bg:  rgba(5, 150, 105, 0.1);
+  --r: 8px;
+  --sh: 0 4px 12px rgba(15, 23, 42, 0.05);
+  --sh2: 0 10px 24px rgba(15, 23, 42, 0.08);
+  --sh3: 0 20px 40px rgba(15, 23, 42, 0.1);
+  --transition: .2s cubic-bezier(0.4, 0, 0.2, 1);
+  --glass-blur: none;
 }
 
 html.dark {
@@ -35,17 +35,17 @@ html.dark {
   --navy2:  #e2e8f0;
   --navy3:  #cbd5e1;
   --navy4:  #94a3b8;
-  --gold:   #3b82f6;
+  --gold:   #3b82f6; /* Vibrant startup blue for dark mode */
   --gold2:  #60a5fa;
   --gold-glow: rgba(59, 130, 246, 0.3);
-  --bg:     #0B1120;
+  --bg:     #0f172a; 
   --surf:   #1e293b;
   --bdr:    #334155;
   --bdr2:   #475569;
   --txt:    #f8fafc;
   --mute:   #94a3b8;
-  --am:     #38bdf8;
-  --am-bg:  rgba(56, 189, 248, 0.15);
+  --am:     #3b82f6;
+  --am-bg:  rgba(59, 130, 246, 0.15);
   --pm:     #34d399;
   --pm-bg:  rgba(52, 211, 153, 0.15);
   --sh: 0 4px 16px rgba(0, 0, 0, 0.4);
@@ -298,10 +298,12 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 .dash-hdr{
   display:flex;justify-content:space-between;align-items:center;
   height:58px;padding:0 28px;
-  background: var(--surf);
+  background: rgba(10, 15, 30, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--bdr);
   position:sticky;top:0;z-index:200;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
 }
 /* Gold accent line at bottom of header */
 .dash-hdr::after{
@@ -356,6 +358,8 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 /* ── Control bar ─────────────────────────────────────── */
 .ctrl-bar{
   background: var(--surf);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   backdrop-filter:blur(12px);
   -webkit-backdrop-filter:blur(12px);
   border-bottom:1px solid var(--bdr);
@@ -443,6 +447,8 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 /* ── Tabs ───────────────────────────────────────────── */
 .dash-tabs{
   display:flex;background: var(--surf);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   
   padding:0 28px;
   border-bottom:2px solid var(--bdr);
@@ -484,6 +490,8 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 }
 .ucard{
   background: var(--surf);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-radius:var(--r);
   border:1px solid var(--bdr);box-shadow:var(--sh);
   overflow:hidden;transition:box-shadow var(--transition),transform var(--transition);
@@ -500,7 +508,7 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 .ucard-hdr{
   display:flex;justify-content:space-between;align-items:flex-start;
   padding:16px 16px 14px;
-  background: var(--surf);
+  background: rgba(255, 255, 255, 0.03);
   border-bottom: 1px solid var(--bdr);
 }
 .ucard-info{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
@@ -577,6 +585,8 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 /* ── Pivot tables ────────────────────────────────────── */
 .pivot-wrap{
   overflow-x:auto;background: var(--surf);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   
   border-radius:var(--r);box-shadow:var(--sh);
   border:1px solid var(--bdr);
@@ -708,15 +718,17 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 
 .pivot-banner-total {
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  background: var(--surf); border: 1px solid var(--bdr);
+  background: rgba(255, 255, 255, 0.05);
   border-radius:var(--r);
   padding:16px 24px; min-width:130px;
-  border:1px solid rgba(200,168,75,.3);
-  box-shadow:0 4px 16px rgba(15,31,61,.15);
+  border:1px solid var(--bdr);
+  box-shadow:var(--sh);
 }
 .pivot-banner-team {
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   background: var(--surf);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
    border-radius:var(--r);
   padding:16px 24px; min-width:130px;
   border:1px solid var(--bdr);
@@ -768,6 +780,8 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 .tk-dropdown {
   position: absolute; top: 100%; left: 0; margin-top: 8px;
   background: var(--surf);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
    border: 1px solid var(--bdr);
   box-shadow: var(--sh3); border-radius: 10px; padding: 16px;
   width: 260px; opacity: 0; pointer-events: none;
@@ -807,6 +821,8 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 .dash-sidebar {
   width: 290px;
   background: var(--surf);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   
   border-right: 1px solid var(--bdr);
   overflow-y: auto;
