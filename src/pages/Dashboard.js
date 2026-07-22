@@ -407,6 +407,8 @@ export default function Dashboard() {
   const [productFilter, setProductFilter]     = useState(new Set());
   const [classificationFilter, setClassificationFilter] = useState(new Set());
   const [selectedManager, setSelectedManager] = useState(null);
+  const [lineManagerFilter, setLineManagerFilter] = useState('all');
+  const [managerTerritoryFilter, setManagerTerritoryFilter] = useState('all');
   const [sidebarOpen, setSidebarOpen]         = useState(false);
   const [theme, setTheme]                     = useState(() => localStorage.getItem('theme') || 'light');
 
@@ -432,13 +434,12 @@ export default function Dashboard() {
     if(!visibleCodes?.length){setLoading(false);return;}
     setLoading(true); setError('');
     const codes=visibleCodes;
-    const cf=codes.map(c=>`manager_code.eq.${c}`).concat(codes.map(c=>`rep_code.eq.${c}`)).join(',');
     const queries=[
       supabase.from('summaries').select('*').eq('period',periodLabel).in('employee_code',codes),
       supabase.from('specialty_classification').select('*').eq('period',periodLabel).in('employee_code',codes),
       supabase.from('product_calls').select('*').eq('period',periodLabel).in('employee_code',codes),
     ];
-    if(isMgr) queries.push(supabase.from('coaching_days').select('*').eq('period',periodLabel).or(cf));
+    if(isMgr) queries.push(supabase.from('coaching_days').select('*').eq('period',periodLabel));
     const [s,sp,pr,co]=await Promise.all(queries);
     if(s.error) setError(s.error.message);
     setSummary(s.data||[]);
@@ -458,8 +459,67 @@ export default function Dashboard() {
     return rows.filter(r => (r.team !== undefined && r.team !== null && r.team !== '') ? r.team === team : teamUserNames.has(r.user_name));
   },[team, summary]);
 
+  const userHierarchyMap = useMemo(() => {
+    const map = {};
+    (hierarchy || []).forEach(h => {
+      if (h.employee_name && !map[h.employee_name]) {
+        map[h.employee_name] = {
+          blm_name: h.blm_name,
+          territory: h.division_name,
+          area_manager: h.area_manager_name,
+          supervisor: h.supervisor_name,
+        };
+      }
+    });
+    return map;
+  }, [hierarchy]);
+
+  const allLineManagers = useMemo(() => {
+    const list = new Set();
+    (hierarchy || []).forEach(h => {
+      if (h.blm_name && !h.blm_name.includes('Directory') && !h.blm_name.includes('TEAM')) {
+        list.add(h.blm_name);
+      }
+    });
+    return [...list].sort();
+  }, [hierarchy]);
+
+  const allManagerTerritories = useMemo(() => {
+    const list = new Set();
+    (hierarchy || []).forEach(h => {
+      if (h.division_name) list.add(h.division_name);
+    });
+    summary.forEach(s => {
+      if (s.territory) {
+        s.territory.split(';').forEach(t => list.add(t.trim()));
+      }
+    });
+    return [...list].filter(Boolean).sort();
+  }, [hierarchy, summary]);
+
+  const byLineManager = useCallback(rows => {
+    if (lineManagerFilter === 'all') return rows;
+    return rows.filter(r => {
+      const name = r.user_name || r.employee_name || r.manager_name || r.rep_name;
+      const userMeta = userHierarchyMap[name];
+      return userMeta?.blm_name === lineManagerFilter;
+    });
+  }, [lineManagerFilter, userHierarchyMap]);
+
+  const byManagerTerritory = useCallback(rows => {
+    if (managerTerritoryFilter === 'all') return rows;
+    return rows.filter(r => {
+      const name = r.user_name || r.employee_name || r.manager_name || r.rep_name;
+      const userMeta = userHierarchyMap[name];
+      if (userMeta?.territory === managerTerritoryFilter || userMeta?.area_manager === managerTerritoryFilter) return true;
+      if (r.territory && r.territory.includes(managerTerritoryFilter)) return true;
+      if (r.division_name === managerTerritoryFilter) return true;
+      return false;
+    });
+  }, [managerTerritoryFilter, userHierarchyMap]);
+
   const fSummary=useMemo(()=>{
-    let r=byTeam(summary);
+    let r=byManagerTerritory(byLineManager(byTeam(summary)));
     if(search) r=r.filter(x=>x.user_name?.toLowerCase().includes(search.toLowerCase())||x.territory?.toLowerCase().includes(search.toLowerCase()));
     if(userFilter!=='all') r=r.filter(x=>x.user_name===userFilter);
     const m=new Map();
@@ -485,10 +545,10 @@ export default function Dashboard() {
       }
     });
     return sortSummary(Array.from(m.values()));
-  },[summary,byTeam,search,userFilter]);
+  },[summary,byTeam,byLineManager,byManagerTerritory,search,userFilter]);
 
-  const fSpecialty = useMemo(()=>byTeam(specialty),[specialty,byTeam]);
-  const fProducts  = useMemo(()=>byTeam(products),[products,byTeam]);
+  const fSpecialty = useMemo(()=>byManagerTerritory(byLineManager(byTeam(specialty))),[specialty,byTeam,byLineManager,byManagerTerritory]);
+  const fProducts  = useMemo(()=>byManagerTerritory(byLineManager(byTeam(products))),[products,byTeam,byLineManager,byManagerTerritory]);
 
   const visibleNames = useMemo(() => {
     if (!hierarchy?.length || !visibleCodes?.length) return null;
@@ -504,7 +564,7 @@ export default function Dashboard() {
   }, [hierarchy, visibleCodes, profile]);
 
   const fCoaching  = useMemo(()=>{
-    let r=byTeam(coaching);
+    let r=byManagerTerritory(byLineManager(byTeam(coaching)));
     if (visibleNames && profile?.role !== 'Admin') {
       r = r.filter(x => visibleNames.has(x.manager_name) || visibleNames.has(x.rep_name));
     }
@@ -519,7 +579,7 @@ export default function Dashboard() {
       r = r.filter(x => targetNames.has(x.manager_name) || targetNames.has(x.rep_name));
     }
     return r;
-  },[coaching,byTeam,search,userFilter,visibleNames,profile,hierarchy]);
+  },[coaching,byTeam,byLineManager,byManagerTerritory,search,userFilter,visibleNames,profile,hierarchy]);
 
   const companyAverages = useMemo(() => {
     const reps = summary.filter(r => !r.is_manager);
@@ -1027,6 +1087,24 @@ export default function Dashboard() {
                   <select className="ctrl-sel" value={team} onChange={e=>{setTeam(e.target.value);setUser('all');}}>
                     <option value="all">{t.allTeams}</option>
                     {teams.map(tm=><option key={tm} value={tm}>{tm}</option>)}
+                  </select>
+                </div>
+              )}
+              {allLineManagers.length > 0 && (
+                <div className="ctrl-group">
+                  <span className="ctrl-lbl">{rtl ? 'مدير الخط' : 'Line Manager'}</span>
+                  <select className="ctrl-sel" value={lineManagerFilter} onChange={e => { setLineManagerFilter(e.target.value); setUser('all'); }}>
+                    <option value="all">{rtl ? 'كل مديري الخطوط' : 'All Line Managers'}</option>
+                    {allLineManagers.map(lm => <option key={lm} value={lm}>{lm}</option>)}
+                  </select>
+                </div>
+              )}
+              {allManagerTerritories.length > 0 && (
+                <div className="ctrl-group">
+                  <span className="ctrl-lbl">{rtl ? 'منطقة المدير' : 'Manager Territory'}</span>
+                  <select className="ctrl-sel" value={managerTerritoryFilter} onChange={e => setManagerTerritoryFilter(e.target.value)}>
+                    <option value="all">{rtl ? 'كل المناطق' : 'All Territories'}</option>
+                    {allManagerTerritories.map(mt => <option key={mt} value={mt}>{mt}</option>)}
                   </select>
                 </div>
               )}
