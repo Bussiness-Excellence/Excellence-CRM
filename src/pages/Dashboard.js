@@ -509,9 +509,17 @@ export default function Dashboard() {
       r = r.filter(x => visibleNames.has(x.manager_name) || visibleNames.has(x.rep_name));
     }
     if(search) r=r.filter(x=>x.manager_name?.toLowerCase().includes(search.toLowerCase())||x.rep_name?.toLowerCase().includes(search.toLowerCase()));
-    if(userFilter!=='all') r=r.filter(x=>x.manager_name===userFilter||x.rep_name===userFilter);
+    if(userFilter!=='all') {
+      const targetNames = new Set(
+        (hierarchy || [])
+          .filter(h => h.area_manager_name === userFilter || h.supervisor_name === userFilter || h.employee_name === userFilter)
+          .map(h => h.employee_name)
+      );
+      targetNames.add(userFilter);
+      r = r.filter(x => targetNames.has(x.manager_name) || targetNames.has(x.rep_name));
+    }
     return r;
-  },[coaching,byTeam,search,userFilter,visibleNames,profile]);
+  },[coaching,byTeam,search,userFilter,visibleNames,profile,hierarchy]);
 
   const companyAverages = useMemo(() => {
     const reps = summary.filter(r => !r.is_manager);
