@@ -17,16 +17,16 @@ body {
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #0f172a;
-  color: #f8fafc;
+  background: #f0f4f8; /* Default Light Mode Background */
+  color: #0f172a;
   min-height: 100vh;
   overflow-x: hidden;
   transition: background-color 0.3s, color 0.3s;
 }
 
-html.light body {
-  background: #f0f4f8;
-  color: #0f172a;
+html.dark body {
+  background: #0f172a; /* Dark Mode Background */
+  color: #f8fafc;
 }
 
 /* ── Animated deep-space background ────────────────────── */
@@ -35,14 +35,14 @@ body::before {
   position: fixed;
   inset: 0;
   z-index: -2;
-  background: radial-gradient(circle at top right, rgba(0, 85, 255, 0.08), transparent 400px),
-              radial-gradient(circle at bottom left, rgba(0, 85, 255, 0.05), transparent 400px);
+  background: linear-gradient(135deg, #e6f0fa 0%, #e0e7ff 100%);
   pointer-events: none;
   transition: opacity 0.3s;
 }
 
-html.light body::before {
-  background: linear-gradient(135deg, #e6f0fa 0%, #e0e7ff 100%);
+html.dark body::before {
+  background: radial-gradient(circle at top right, rgba(0, 85, 255, 0.08), transparent 400px),
+              radial-gradient(circle at bottom left, rgba(0, 85, 255, 0.05), transparent 400px);
 }
 
 /* Subtle animated star-like particles */
