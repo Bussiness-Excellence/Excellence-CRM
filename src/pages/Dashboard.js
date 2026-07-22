@@ -258,10 +258,13 @@ function PivotSummaryBanner({ rows, valueKey, rowKey, shift, t, selectedTeam, on
   const byTeam = useMemo(() => {
     const m = {};
     filtered.forEach(r => {
-      const team = (r.team && r.team !== 'Unknown') ? r.team : (userTeamMap && userTeamMap[r.user_name]) || 'Other';
-      if(!m[team]) m[team] = { total:0, users:new Set() };
-      m[team].total += (r[valueKey]||0);
-      m[team].users.add(r.user_name);
+      const teamStr = (r.team && r.team !== 'Unknown') ? r.team : (userTeamMap && userTeamMap[r.user_name]) || 'Other';
+      const tms = (typeof teamStr === 'string') ? teamStr.split('; ') : [teamStr];
+      tms.forEach(team => {
+        if(!m[team]) m[team] = { total:0, users:new Set() };
+        m[team].total += (r[valueKey]||0);
+        m[team].users.add(r.user_name);
+      });
     });
     return m;
   }, [filtered, valueKey, userTeamMap]);
@@ -460,11 +463,11 @@ export default function Dashboard() {
   useEffect(()=>{load();},[load]);
 
   // ── Filtering ──────────────────────────────────────────────────────────────
-  const teams=useMemo(()=>[...new Set(summary.map(r=>r.team).filter(Boolean))].sort(),[summary]);
+  const teams=useMemo(()=>[...new Set(summary.flatMap(r=>(r.team||'').split('; ')).filter(Boolean))].sort(),[summary]);
   const byTeam=useCallback(rows=>{
     if(team==='all') return rows;
-    const teamUserNames = new Set(summary.filter(r=>r.team===team).map(r=>r.user_name));
-    return rows.filter(r => (r.team !== undefined && r.team !== null && r.team !== '') ? r.team === team : teamUserNames.has(r.user_name));
+    const teamUserNames = new Set(summary.filter(r=>(r.team||'').split('; ').includes(team)).map(r=>r.user_name));
+    return rows.filter(r => (r.team !== undefined && r.team !== null && r.team !== '') ? r.team.split('; ').includes(team) : teamUserNames.has(r.user_name));
   },[team, summary]);
 
   const userHierarchyMap = useMemo(() => {
@@ -494,13 +497,39 @@ export default function Dashboard() {
 
   const allManagerTerritories = useMemo(() => {
     const list = new Set();
+    const currentTeamUsers = new Set();
+    if (team === 'all') {
+      summary.forEach(r => currentTeamUsers.add(r.user_name));
+    } else {
+      summary.forEach(r => {
+        if ((r.team || '').split('; ').includes(team)) {
+          currentTeamUsers.add(r.user_name);
+        }
+      });
+    }
+
     (hierarchy || []).forEach(h => {
       if (h.role === 'Area Manager' && h.division_name) {
-        list.add(h.division_name.trim());
+        const divName = h.division_name.trim();
+        if (team === 'all') {
+          list.add(divName);
+        } else {
+          const namesInDiv = territoryEmployeeNamesMap[divName] || new Set();
+          let hasOverlap = false;
+          for (const n of namesInDiv) {
+            if (currentTeamUsers.has(n)) {
+              hasOverlap = true;
+              break;
+            }
+          }
+          if (hasOverlap) {
+            list.add(divName);
+          }
+        }
       }
     });
     return [...list].sort();
-  }, [hierarchy]);
+  }, [hierarchy, team, summary, territoryEmployeeNamesMap]);
 
   const territoryEmployeeNamesMap = useMemo(() => {
     const map = {};
@@ -683,9 +712,11 @@ export default function Dashboard() {
     if(team!=='all') return [{ label: team||'Team', rows: fSummary }];
     const groups = {};
     fSummary.forEach(r=>{
-      const tm = r.team||'Unknown';
-      if(!groups[tm]) groups[tm]=[];
-      groups[tm].push(r);
+      const tms = r.team ? r.team.split('; ') : ['Unknown'];
+      tms.forEach(tm => {
+        if(!groups[tm]) groups[tm]=[];
+        groups[tm].push(r);
+      });
     });
     return Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0])).map(([label,rows])=>({label,rows}));
   },[fSummary,team]);
