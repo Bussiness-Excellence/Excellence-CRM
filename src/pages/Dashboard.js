@@ -495,6 +495,25 @@ export default function Dashboard() {
     return [...list].sort();
   }, [hierarchy]);
 
+  const territoryEmployeeNamesMap = useMemo(() => {
+    const map = {};
+    if (!hierarchy?.length) return map;
+    (hierarchy || []).forEach(h => {
+      if (h.role === 'Area Manager' && h.division_name && h.employee_name) {
+        const div = h.division_name.trim();
+        const amName = h.employee_name;
+        if (!map[div]) map[div] = new Set();
+        map[div].add(amName);
+        hierarchy.forEach(sub => {
+          if (sub.area_manager_name === amName || sub.employee_name === amName) {
+            if (sub.employee_name) map[div].add(sub.employee_name);
+          }
+        });
+      }
+    });
+    return map;
+  }, [hierarchy]);
+
   const allManagerTerritories = useMemo(() => {
     const list = new Set();
     const currentTeamUsers = new Set();
@@ -530,25 +549,6 @@ export default function Dashboard() {
     });
     return [...list].sort();
   }, [hierarchy, team, summary, territoryEmployeeNamesMap]);
-
-  const territoryEmployeeNamesMap = useMemo(() => {
-    const map = {};
-    if (!hierarchy?.length) return map;
-    (hierarchy || []).forEach(h => {
-      if (h.role === 'Area Manager' && h.division_name && h.employee_name) {
-        const div = h.division_name.trim();
-        const amName = h.employee_name;
-        if (!map[div]) map[div] = new Set();
-        map[div].add(amName);
-        hierarchy.forEach(sub => {
-          if (sub.area_manager_name === amName || sub.employee_name === amName) {
-            if (sub.employee_name) map[div].add(sub.employee_name);
-          }
-        });
-      }
-    });
-    return map;
-  }, [hierarchy]);
 
   const byLineManager = useCallback(rows => {
     if (lineManagerFilter === 'all') return rows;
