@@ -25,7 +25,7 @@ body {
 }
 
 html.light body {
-  background: #ffffff;
+  background: #f0f4f8;
   color: #0f172a;
 }
 
@@ -42,8 +42,7 @@ body::before {
 }
 
 html.light body::before {
-  background: radial-gradient(circle at top left, rgba(0, 85, 255, 0.06), transparent 500px),
-              radial-gradient(circle at bottom right, rgba(167, 139, 250, 0.04), transparent 500px);
+  background: linear-gradient(135deg, #e6f0fa 0%, #e0e7ff 100%);
 }
 
 /* Subtle animated star-like particles */

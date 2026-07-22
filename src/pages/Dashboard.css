@@ -9,24 +9,24 @@
   --navy2:  #1e293b;
   --navy3:  #334155;
   --navy4:  #475569;
-  --gold:   #2563eb; /* Vibrant startup blue */
-  --gold2:  #1d4ed8;
-  --gold-glow: rgba(37, 99, 235, 0.2);
-  --bg:     #ffffff;
+  --gold:   #0055ff; /* Extremely vibrant startup blue */
+  --gold2:  #2563eb;
+  --gold-glow: rgba(0, 85, 255, 0.2);
+  --bg:     transparent; /* Let index.css linear gradient show */
   --surf:   #ffffff;
-  --bdr:    #e2e8f0;
-  --bdr2:   #cbd5e1;
+  --bdr:    rgba(226, 232, 240, 0.5); /* Very soft borders */
+  --bdr2:   rgba(226, 232, 240, 0.8);
   --txt:    #0f172a;
   --mute:   #64748b;
-  --am:     #2563eb;
-  --am-bg:  rgba(37, 99, 235, 0.1);
-  --pm:     #059669;
-  --pm-bg:  rgba(5, 150, 105, 0.1);
-  --r: 8px;
-  --sh: 0 4px 12px rgba(15, 23, 42, 0.05);
-  --sh2: 0 10px 24px rgba(15, 23, 42, 0.08);
-  --sh3: 0 20px 40px rgba(15, 23, 42, 0.1);
-  --transition: .2s cubic-bezier(0.4, 0, 0.2, 1);
+  --am:     #0055ff;
+  --am-bg:  rgba(0, 85, 255, 0.1);
+  --pm:     #0ea5e9;
+  --pm-bg:  rgba(14, 165, 233, 0.1);
+  --r: 20px; /* Heavily rounded modern cards */
+  --sh: 0 10px 30px rgba(0, 0, 0, 0.04); /* Soft floating shadow */
+  --sh2: 0 16px 40px rgba(0, 0, 0, 0.06);
+  --sh3: 0 24px 48px rgba(0, 0, 0, 0.08);
+  --transition: .25s cubic-bezier(0.4, 0, 0.2, 1);
   --glass-blur: none;
 }
 
