@@ -17,47 +17,61 @@ export default async function handler(req) {
       return new Response(JSON.stringify({ error: 'Missing or invalid messages array' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
-      });
+    // Ensure the user has provided a Gemini API Key in Vercel
+    if (!process.env.GEMINI_API_KEY) {
+      return new Response(JSON.stringify({ 
+        reply: 'To use the AI Chat, please generate a free Gemini API Key from Google AI Studio and add it to your Vercel Environment Variables as GEMINI_API_KEY.' 
+      }), { status: 200 });
     }
 
-    const systemPrompt = `You are a highly intelligent CRM data analyst for EXCELLENCE CRM.
-Your job is to answer questions about the sales, field activity, doctor calls, and product/specialty data provided to you.
-Be extremely brief, concise, and professional. Only output markdown.
-Do not hallucinate data. If the answer is not in the context data, say you cannot find it in the current view.
-Here is the raw context data for the currently filtered view on the user's dashboard:
-${JSON.stringify(contextData).slice(0, 8000)} // Truncated to avoid token limits
-`;
+    // Build context string safely
+    const contextStr = JSON.stringify(contextData).substring(0, 8000);
 
-    const apiMessages = [
-      { role: 'system', content: systemPrompt },
-      ...messages.map(m => ({ role: m.role, content: m.content }))
-    ];
+    const systemPrompt = `You are Excellence AI, an expert CRM data analyst.
+You are helping a pharmaceutical manager analyze their dashboard data.
+Answer briefly and professionally based ONLY on the following JSON data.
+Current Data context: ${contextStr}`;
 
-    // Using Pollinations.ai for completely free, keyless AI text generation
-    const response = await fetch('https://text.pollinations.ai/openai', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'openai', // uses the default free model (often Llama 3 or GPT-4o-mini equivalent)
-        messages: apiMessages,
+    // Format messages for Gemini API
+    const geminiMessages = messages.map(msg => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }]
+    }));
+
+    // Inject system prompt into the first user message
+    if (geminiMessages.length > 0 && geminiMessages[0].role === 'user') {
+      geminiMessages[0].parts[0].text = `${systemPrompt}\n\nUser: ${geminiMessages[0].parts[0].text}`;
+    }
+
+    const payload = {
+      contents: geminiMessages,
+      generationConfig: {
         temperature: 0.1,
-        jsonMode: false
-      })
+        maxOutputTokens: 500,
+      }
+    };
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     });
 
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error?.message || 'AI API Error');
     
-    return new Response(JSON.stringify({ reply: data.choices[0].message.content }), {
+    if (data.error) {
+      throw new Error(data.error.message || 'Gemini API Error');
+    }
+
+    const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Sorry, no valid response was returned.';
+
+    return new Response(JSON.stringify({ reply: replyText }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
-
-  } catch (err) {
-    console.error('AI Error:', err);
-    return new Response(JSON.stringify({ error: 'Failed to process AI request' }), {
+  } catch (error) {
+    console.error('AI Edge Function Error:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
