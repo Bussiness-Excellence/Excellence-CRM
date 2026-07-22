@@ -545,7 +545,15 @@ export default function Dashboard() {
   const fSummary=useMemo(()=>{
     let r=byManagerTerritory(byLineManager(byTeam(summary)));
     if(search) r=r.filter(x=>x.user_name?.toLowerCase().includes(search.toLowerCase())||x.territory?.toLowerCase().includes(search.toLowerCase()));
-    if(userFilter!=='all') r=r.filter(x=>x.user_name===userFilter);
+    if(userFilter!=='all') {
+      const targetNames = new Set([userFilter]);
+      (hierarchy || []).forEach(h => {
+        if (h.area_manager_name === userFilter || h.supervisor_name === userFilter) {
+          if (h.employee_name) targetNames.add(h.employee_name);
+        }
+      });
+      r = r.filter(x => targetNames.has(x.user_name));
+    }
     const m=new Map();
     r.forEach(x=>{
       const k=x.user_name;
@@ -569,10 +577,37 @@ export default function Dashboard() {
       }
     });
     return sortSummary(Array.from(m.values()));
-  },[summary,byTeam,byLineManager,byManagerTerritory,search,userFilter]);
+  },[summary,byTeam,byLineManager,byManagerTerritory,search,userFilter,hierarchy]);
 
-  const fSpecialty = useMemo(()=>byManagerTerritory(byLineManager(byTeam(specialty))),[specialty,byTeam,byLineManager,byManagerTerritory]);
-  const fProducts  = useMemo(()=>byManagerTerritory(byLineManager(byTeam(products))),[products,byTeam,byLineManager,byManagerTerritory]);
+  const fSpecialty = useMemo(()=>{
+    let r=byManagerTerritory(byLineManager(byTeam(specialty)));
+    if(search) r=r.filter(x=>x.user_name?.toLowerCase().includes(search.toLowerCase())||x.territory?.toLowerCase().includes(search.toLowerCase()));
+    if(userFilter!=='all') {
+      const targetNames = new Set([userFilter]);
+      (hierarchy || []).forEach(h => {
+        if (h.area_manager_name === userFilter || h.supervisor_name === userFilter) {
+          if (h.employee_name) targetNames.add(h.employee_name);
+        }
+      });
+      r = r.filter(x => targetNames.has(x.user_name));
+    }
+    return r;
+  },[specialty,byTeam,byLineManager,byManagerTerritory,search,userFilter,hierarchy]);
+
+  const fProducts  = useMemo(()=>{
+    let r=byManagerTerritory(byLineManager(byTeam(products)));
+    if(search) r=r.filter(x=>x.user_name?.toLowerCase().includes(search.toLowerCase())||x.territory?.toLowerCase().includes(search.toLowerCase()));
+    if(userFilter!=='all') {
+      const targetNames = new Set([userFilter]);
+      (hierarchy || []).forEach(h => {
+        if (h.area_manager_name === userFilter || h.supervisor_name === userFilter) {
+          if (h.employee_name) targetNames.add(h.employee_name);
+        }
+      });
+      r = r.filter(x => targetNames.has(x.user_name));
+    }
+    return r;
+  },[products,byTeam,byLineManager,byManagerTerritory,search,userFilter,hierarchy]);
 
   const visibleNames = useMemo(() => {
     if (!hierarchy?.length || !visibleCodes?.length) return null;
