@@ -433,12 +433,20 @@ export default function Dashboard() {
   const load = useCallback(async()=>{
     if(!visibleCodes?.length){setLoading(false);return;}
     setLoading(true); setError('');
-    const codes=visibleCodes;
-    const queries=[
-      supabase.from('summaries').select('*').eq('period',periodLabel).in('employee_code',codes),
-      supabase.from('specialty_classification').select('*').eq('period',periodLabel).in('employee_code',codes),
-      supabase.from('product_calls').select('*').eq('period',periodLabel).in('employee_code',codes),
-    ];
+    const isAdmin = profile?.role === 'Admin';
+    const codes = visibleCodes;
+
+    let sQ = supabase.from('summaries').select('*').eq('period', periodLabel);
+    let spQ = supabase.from('specialty_classification').select('*').eq('period', periodLabel);
+    let prQ = supabase.from('product_calls').select('*').eq('period', periodLabel);
+
+    if (!isAdmin) {
+      sQ = sQ.in('employee_code', codes);
+      spQ = spQ.in('employee_code', codes);
+      prQ = prQ.in('employee_code', codes);
+    }
+
+    const queries = [sQ, spQ, prQ];
     if(isMgr) queries.push(supabase.from('coaching_days').select('*').eq('period',periodLabel));
     const [s,sp,pr,co]=await Promise.all(queries);
     if(s.error) setError(s.error.message);
@@ -447,7 +455,7 @@ export default function Dashboard() {
     setProducts(pr.data||[]);
     setCoaching(isMgr?(co?.data||[]):[]);
     setLoading(false);
-  },[periodLabel,visibleCodes,isMgr]);
+  },[periodLabel,visibleCodes,isMgr,profile]);
 
   useEffect(()=>{load();},[load]);
 
