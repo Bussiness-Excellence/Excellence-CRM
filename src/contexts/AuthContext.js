@@ -81,31 +81,19 @@ export function computeVisibleEmployeeCodes(profile, hierarchyRows, teamsRows) {
 
     const myTeamRows = hierarchyRows.filter(h => myTeamIds.has(h.team_id));
 
-    // Find supervisors that report to me via area_manager_name (if populated)
-    // OR fall back to: supervisors whose MRs' supervisor_name chains include me
-    const hasMappedAMs = myTeamRows.some(h => h.area_manager_name);
+    // Supervisors reporting to me
+    const mySupervisorNames = new Set(
+      myTeamRows
+        .filter(h => (h.area_manager_name === myName || h.supervisor_name === myName) && h.role === 'Supervisor')
+        .map(h => h.employee_name)
+    );
 
-    let mySupervisorNames;
-    if (hasMappedAMs) {
-      // Use the area_manager_name column directly
-      mySupervisorNames = new Set(
-        myTeamRows
-          .filter(h => h.area_manager_name === myName && h.role === 'Supervisor')
-          .map(h => h.employee_name)
-      );
-    } else {
-      // Fallback: all supervisors in the team (old behaviour — shows too much but
-      // better than showing nothing while area_manager_name is being populated)
-      mySupervisorNames = new Set(
-        myTeamRows.filter(h => h.role === 'Supervisor').map(h => h.employee_name)
-      );
-    }
-
-    // Include self, all my supervisors, direct MR reports (via area_manager_name), and all MRs under my supervisors
+    // Include self, direct reports (area_manager_name/supervisor_name === myName), supervisors, and MRs under my supervisors
     const visible = myTeamRows
       .filter(h =>
         h.employee_name === myName ||
         h.area_manager_name === myName ||
+        h.supervisor_name === myName ||
         mySupervisorNames.has(h.employee_name) ||
         mySupervisorNames.has(h.supervisor_name)
       )
@@ -115,9 +103,13 @@ export function computeVisibleEmployeeCodes(profile, hierarchyRows, teamsRows) {
   }
 
   if (role === 'Supervisor') {
-    // My own rows + all MRs whose supervisor_name = my name
+    // Include self + all MRs reporting to this supervisor
     const visible = hierarchyRows
-      .filter(h => h.employee_name === myName || h.supervisor_name === myName)
+      .filter(h =>
+        h.employee_name === myName ||
+        h.supervisor_name === myName ||
+        h.area_manager_name === myName
+      )
       .map(h => h.employee_code);
     return [...new Set([myCode, ...visible])].filter(Boolean);
   }
