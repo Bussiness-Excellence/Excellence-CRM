@@ -467,12 +467,7 @@ export default function Dashboard() {
   const byTeam=useCallback(rows=>{
     if(team==='all') return rows;
     const teamUserNames = new Set(summary.filter(r=>(r.team||'').split('; ').includes(team)).map(r=>r.user_name));
-    return rows.filter(r => {
-      if (r.team && typeof r.team === 'string' && r.team.trim() !== '') {
-        return r.team.split('; ').includes(team);
-      }
-      return teamUserNames.has(r.user_name);
-    });
+    return rows.filter(r => teamUserNames.has(r.user_name));
   },[team, summary]);
 
   const userHierarchyMap = useMemo(() => {
