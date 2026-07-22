@@ -257,6 +257,16 @@ function PivotSummaryBanner({ rows, valueKey, rowKey, shift, t, selectedTeam, on
   const filtered = useMemo(() => shift==='all'?rows:rows.filter(r=>r.shift===shift), [rows,shift]);
   const byTeam = useMemo(() => {
     const m = {};
+    if (userTeamMap) {
+      Object.entries(userTeamMap).forEach(([userName, teamStr]) => {
+        if (!teamStr || teamStr === 'Unknown') return;
+        const tms = (typeof teamStr === 'string') ? teamStr.split('; ') : [teamStr];
+        tms.forEach(team => {
+          if(!m[team]) m[team] = { total:0, users:new Set() };
+          m[team].users.add(userName);
+        });
+      });
+    }
     filtered.forEach(r => {
       const teamStr = (r.team && r.team !== 'Unknown') ? r.team : (userTeamMap && userTeamMap[r.user_name]) || 'Other';
       const tms = (typeof teamStr === 'string') ? teamStr.split('; ') : [teamStr];
@@ -269,9 +279,12 @@ function PivotSummaryBanner({ rows, valueKey, rowKey, shift, t, selectedTeam, on
     return m;
   }, [filtered, valueKey, userTeamMap]);
   const grandTotal = useMemo(() => filtered.reduce((s,r)=>s+(r[valueKey]||0),0), [filtered,valueKey]);
-  const allUsers   = useMemo(() => new Set(filtered.map(r=>r.user_name)).size, [filtered]);
+  const allUsers   = useMemo(() => {
+    if (userTeamMap) return Object.keys(userTeamMap).length;
+    return new Set(filtered.map(r=>r.user_name)).size;
+  }, [filtered, userTeamMap]);
   const teamList   = Object.entries(byTeam).sort((a,b)=>a[0].localeCompare(b[0]));
-  if(!filtered.length) return null;
+  if(!teamList.length) return null;
   return (
     <div className="pivot-banner">
       <div 
@@ -414,6 +427,12 @@ export default function Dashboard() {
   const [managerTerritoryFilter, setManagerTerritoryFilter] = useState('all');
   const [sidebarOpen, setSidebarOpen]         = useState(false);
   const [theme, setTheme]                     = useState(() => localStorage.getItem('theme') || 'light');
+  
+  // AI Chat States
+  const [isAiOpen, setIsAiOpen] = useState(false);
+  const [aiInput, setAiInput] = useState('');
+  const [aiHistory, setAiHistory] = useState([]);
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
@@ -880,6 +899,42 @@ export default function Dashboard() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   const countdown = daysUntil15th();
+
+  const handleAiSubmit = async (e) => {
+    e.preventDefault();
+    if (!aiInput.trim() || isAiLoading) return;
+    const msg = aiInput.trim();
+    setAiInput('');
+    setAiHistory(prev => [...prev, { role: 'user', content: msg }]);
+    setIsAiLoading(true);
+
+    try {
+      const contextData = {
+        tab,
+        summary: fSummary,
+        specialty: tab === 'specialty' ? fSpecialty : undefined,
+        products: tab === 'products' ? fProducts : undefined,
+      };
+      
+      const res = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [...aiHistory, { role: 'user', content: msg }],
+          contextData
+        })
+      });
+      const data = await res.json();
+      if (data.reply) {
+        setAiHistory(prev => [...prev, { role: 'assistant', content: data.reply }]);
+      } else {
+        setAiHistory(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error.' }]);
+      }
+    } catch (err) {
+      setAiHistory(prev => [...prev, { role: 'assistant', content: 'Failed to connect to AI.' }]);
+    }
+    setIsAiLoading(false);
+  };
 
   return (
     <div className={`dash${rtl?' rtl':''}`} dir={rtl?'rtl':'ltr'}>
@@ -1432,6 +1487,50 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* AI Chat UI */}
+      <div className={`ai-chat-widget ${isAiOpen ? 'open' : ''}`}>
+        {!isAiOpen && (
+          <button className="ai-fab" onClick={() => setIsAiOpen(true)}>
+            <span className="ai-fab-icon">✨</span> Ask AI
+          </button>
+        )}
+        {isAiOpen && (
+          <div className="ai-chat-window">
+            <div className="ai-chat-header">
+              <span className="ai-chat-title">✨ Excellence AI</span>
+              <button className="ai-chat-close" onClick={() => setIsAiOpen(false)}>✕</button>
+            </div>
+            <div className="ai-chat-body">
+              {aiHistory.length === 0 ? (
+                <div className="ai-welcome">
+                  Ask me anything about the current dashboard data!
+                  <br/><br/>
+                  <small>Example: "Who are the top performers in EAGLES 1?"</small>
+                </div>
+              ) : (
+                aiHistory.map((msg, idx) => (
+                  <div key={idx} className={`ai-msg ${msg.role}`}>
+                    {msg.content}
+                  </div>
+                ))
+              )}
+              {isAiLoading && <div className="ai-msg assistant loading">Thinking...</div>}
+            </div>
+            <form className="ai-chat-input-area" onSubmit={handleAiSubmit}>
+              <input 
+                type="text" 
+                placeholder="Ask about this data..." 
+                value={aiInput} 
+                onChange={e => setAiInput(e.target.value)} 
+                disabled={isAiLoading}
+              />
+              <button type="submit" disabled={isAiLoading || !aiInput.trim()}>Send</button>
+            </form>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }
