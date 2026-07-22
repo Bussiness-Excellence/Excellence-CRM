@@ -101,10 +101,11 @@ export function computeVisibleEmployeeCodes(profile, hierarchyRows, teamsRows) {
       );
     }
 
-    // Include self, all my supervisors, and all MRs under my supervisors
+    // Include self, all my supervisors, direct MR reports (via area_manager_name), and all MRs under my supervisors
     const visible = myTeamRows
       .filter(h =>
         h.employee_name === myName ||
+        h.area_manager_name === myName ||
         mySupervisorNames.has(h.employee_name) ||
         mySupervisorNames.has(h.supervisor_name)
       )

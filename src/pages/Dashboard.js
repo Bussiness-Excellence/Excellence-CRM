@@ -386,7 +386,7 @@ function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFil
 
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const { profile, visibleCodes, signOut } = useAuth();
+  const { profile, hierarchy, visibleCodes, signOut } = useAuth();
   const [lang, setLang]       = useState(profile?.preferred_lang||'en');
   const [period, setPeriod]   = useState('recent');
   const [team, setTeam]       = useState('all');
@@ -489,11 +489,29 @@ export default function Dashboard() {
 
   const fSpecialty = useMemo(()=>byTeam(specialty),[specialty,byTeam]);
   const fProducts  = useMemo(()=>byTeam(products),[products,byTeam]);
+
+  const visibleNames = useMemo(() => {
+    if (!hierarchy?.length || !visibleCodes?.length) return null;
+    const vCodesSet = new Set(visibleCodes);
+    const names = new Set();
+    if (profile?.employee_name) names.add(profile.employee_name);
+    hierarchy.forEach(h => {
+      if (vCodesSet.has(h.employee_code) && h.employee_name) {
+        names.add(h.employee_name);
+      }
+    });
+    return names;
+  }, [hierarchy, visibleCodes, profile]);
+
   const fCoaching  = useMemo(()=>{
     let r=byTeam(coaching);
+    if (visibleNames && profile?.role !== 'Admin') {
+      r = r.filter(x => visibleNames.has(x.manager_name));
+    }
     if(search) r=r.filter(x=>x.manager_name?.toLowerCase().includes(search.toLowerCase())||x.rep_name?.toLowerCase().includes(search.toLowerCase()));
+    if(userFilter!=='all') r=r.filter(x=>x.manager_name===userFilter||x.rep_name===userFilter);
     return r;
-  },[coaching,byTeam,search]);
+  },[coaching,byTeam,search,userFilter,visibleNames,profile]);
 
   const companyAverages = useMemo(() => {
     const reps = summary.filter(r => !r.is_manager);
