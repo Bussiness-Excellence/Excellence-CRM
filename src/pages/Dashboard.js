@@ -506,7 +506,7 @@ export default function Dashboard() {
   const fCoaching  = useMemo(()=>{
     let r=byTeam(coaching);
     if (visibleNames && profile?.role !== 'Admin') {
-      r = r.filter(x => visibleNames.has(x.manager_name));
+      r = r.filter(x => visibleNames.has(x.manager_name) || visibleNames.has(x.rep_name));
     }
     if(search) r=r.filter(x=>x.manager_name?.toLowerCase().includes(search.toLowerCase())||x.rep_name?.toLowerCase().includes(search.toLowerCase()));
     if(userFilter!=='all') r=r.filter(x=>x.manager_name===userFilter||x.rep_name===userFilter);
@@ -658,8 +658,8 @@ export default function Dashboard() {
 
   const filteredCoaching = useMemo(() => {
     if (!selectedManager) return fCoaching;
-    return fCoaching.filter(r => r.manager_name === selectedManager);
-  }, [fCoaching, selectedManager]);
+    return fCoaching.filter(r => r.manager_name === selectedManager || r.rep_name === selectedManager || (visibleNames?.has(r.manager_name) && profile?.employee_name === selectedManager));
+  }, [fCoaching, selectedManager, visibleNames, profile]);
 
   // ── Actions ────────────────────────────────────────────────────────────────
   function toggleSpecialty(s) {
