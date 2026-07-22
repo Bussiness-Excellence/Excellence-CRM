@@ -137,7 +137,7 @@ export function AuthProvider({ children }) {
     const [{ data: profileRow, error: profileErr }, { data: hierarchyRows }, { data: teamsRows }] =
       await Promise.all([
         supabase.from('app_users').select('*').eq('id', userId).single(),
-        supabase.from('hierarchy').select('*'),
+        supabase.from('hierarchy').select('*').range(0, 5000),
         supabase.from('teams').select('*'),
       ]);
 
