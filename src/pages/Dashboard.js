@@ -475,32 +475,21 @@ export default function Dashboard() {
     const isAdmin = profile?.role === 'Admin';
     const codes = visibleCodes;
 
-    const buildSummary = () => {
-      let q = supabase.from('summaries').select('*').eq('period', periodLabel);
-      if (!isAdmin) q = q.in('employee_code', codes);
-      return q;
-    };
-    const buildSpecialty = () => {
-      let q = supabase.from('specialty_classification').select('*').eq('period', periodLabel);
-      if (!isAdmin) q = q.in('employee_code', codes);
-      return q;
-    };
-    const buildProducts = () => {
-      let q = supabase.from('product_calls').select('*').eq('period', periodLabel);
-      if (!isAdmin) q = q.in('employee_code', codes);
-      return q;
-    };
-    const buildCoaching = () => supabase.from('coaching_days').select('*').eq('period', periodLabel);
+    const { data, error: rpcError } = await supabase.rpc('get_dashboard_data', {
+      p_period: periodLabel,
+      p_codes: codes,
+      p_is_admin: isAdmin,
+      p_is_manager: isMgr
+    });
 
-    const queries = [fetchAll(buildSummary), fetchAll(buildSpecialty), fetchAll(buildProducts)];
-    if (isMgr) queries.push(fetchAll(buildCoaching));
-
-    const [s, sp, pr, co] = await Promise.all(queries);
-    if (s.error) setError(s.error.message);
-    setSummary(s.data || []);
-    setSpecialty(sp.data || []);
-    setProducts(pr.data || []);
-    setCoaching(isMgr ? (co?.data || []) : []);
+    if (rpcError) {
+      setError(rpcError.message);
+    }
+    
+    setSummary(data?.summaries || []);
+    setSpecialty(data?.specialty || []);
+    setProducts(data?.products || []);
+    setCoaching(data?.coaching || []);
     setLoading(false);
   },[periodLabel,visibleCodes,isMgr,profile]);
 
@@ -652,8 +641,37 @@ export default function Dashboard() {
         existing.avg_pm_shift_hm=existing._pm_days_sum>0?(existing._pm_dur_sum/existing._pm_days_sum):0;
       }
     });
-    return sortSummary(Array.from(m.values()));
-  },[summary,byTeam,byLineManager,byManagerTerritory,search,userFilter,hierarchy]);
+
+    const finalArr = Array.from(m.values());
+
+    // Recalculate coaching days from actual coaching data to fix missing rep bugs
+    if (isMgr) {
+      const mgrCoachingMap = {};
+      const repCoachingMap = {};
+      (coaching || []).forEach(c => {
+         const mgr = c.manager_name;
+         const rep = c.rep_name;
+         if (mgr) {
+           if (!mgrCoachingMap[mgr]) mgrCoachingMap[mgr] = new Set();
+           mgrCoachingMap[mgr].add(c.coaching_date);
+         }
+         if (rep) {
+           if (!repCoachingMap[rep]) repCoachingMap[rep] = new Set();
+           repCoachingMap[rep].add(c.coaching_date);
+         }
+      });
+
+      finalArr.forEach(x => {
+         if (x.is_manager) {
+             x.coaching_days = mgrCoachingMap[x.user_name] ? mgrCoachingMap[x.user_name].size : 0;
+         } else {
+             x.coaching_days = repCoachingMap[x.user_name] ? repCoachingMap[x.user_name].size : 0;
+         }
+      });
+    }
+
+    return sortSummary(finalArr);
+  },[summary,byTeam,byLineManager,byManagerTerritory,search,userFilter,hierarchy,coaching,isMgr]);
 
   const fSpecialty = useMemo(()=>{
     let r=byManagerTerritory(byLineManager(byTeam(specialty)));
