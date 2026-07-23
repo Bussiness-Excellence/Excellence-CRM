@@ -9,24 +9,28 @@
   --navy2:  #1e293b;
   --navy3:  #334155;
   --navy4:  #475569;
-  --gold:   #0055ff; /* Extremely vibrant startup blue */
-  --gold2:  #2563eb;
-  --gold-glow: rgba(0, 85, 255, 0.2);
+  --gold:   #3358e8; /* Deeper, less neon than the original startup blue */
+  --gold2:  #1d4ed8;
+  --gold-glow: rgba(51, 88, 232, 0.16);
   --bg:     transparent; /* Let index.css linear gradient show */
   --surf:   #ffffff;
-  --bdr:    rgba(226, 232, 240, 0.5); /* Very soft borders */
-  --bdr2:   rgba(226, 232, 240, 0.8);
+  --bdr:    rgba(226, 232, 240, 0.6); /* Very soft borders */
+  --bdr2:   rgba(226, 232, 240, 0.9);
   --txt:    #0f172a;
   --mute:   #64748b;
-  --am:     #0055ff;
-  --am-bg:  rgba(0, 85, 255, 0.1);
+  --am:     #3358e8;
+  --am-bg:  rgba(51, 88, 232, 0.08);
   --pm:     #0ea5e9;
-  --pm-bg:  rgba(14, 165, 233, 0.1);
-  --r: 20px; /* Heavily rounded modern cards */
-  --sh: 0 10px 30px rgba(0, 0, 0, 0.04); /* Soft floating shadow */
-  --sh2: 0 16px 40px rgba(0, 0, 0, 0.06);
-  --sh3: 0 24px 48px rgba(0, 0, 0, 0.08);
-  --transition: .25s cubic-bezier(0.4, 0, 0.2, 1);
+  --pm-bg:  rgba(14, 165, 233, 0.08);
+  --r: 14px;    /* Tighter radius — refined SaaS feel instead of bubbly 20px */
+  --r-sm: 10px;
+  --sh:  0 1px 2px rgba(15,23,42,.04), 0 2px 8px rgba(15,23,42,.04);   /* Layered, tight shadows */
+  --sh2: 0 2px 4px rgba(15,23,42,.05), 0 8px 24px rgba(15,23,42,.08);
+  --sh3: 0 4px 8px rgba(15,23,42,.06), 0 16px 40px rgba(15,23,42,.10);
+  --grad-surf:    linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+  --grad-primary: linear-gradient(135deg, var(--gold) 0%, var(--gold2) 100%);
+  --grad-navy:    linear-gradient(180deg, var(--navy2) 0%, var(--navy) 100%);
+  --transition: .2s cubic-bezier(0.4, 0, 0.2, 1);
   --glass-blur: none;
 }
 
@@ -290,7 +294,12 @@ html.dark .kpi-card-progress {
 
 /* ── Base ───────────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg)}
+body{
+  font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 .dash{min-height:100vh;background:var(--bg);color:var(--txt);overflow-x:hidden}
 .dash.rtl{direction:rtl}
 
@@ -298,19 +307,19 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 .dash-hdr{
   display:flex;justify-content:space-between;align-items:center;
   height:58px;padding:0 28px;
-  background: var(--surf);
+  background: var(--grad-surf);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--bdr);
   position:sticky;top:0;z-index:200;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 0 rgba(15,23,42,.04), 0 8px 24px rgba(15,23,42,.03);
 }
-/* Gold accent line at bottom of header */
+/* Accent line at bottom of header */
 .dash-hdr::after{
   content:'';position:absolute;bottom:0;left:0;right:0;
-  height:2px;
+  height:1px;
   background:linear-gradient(90deg, transparent 5%, var(--gold) 25%, var(--gold2) 50%, var(--gold) 75%, transparent 95%);
-  opacity:.7;
+  opacity:.5;
 }
 .dash-hdr-l{display:flex;align-items:center;gap:14px}
 .dash-brand-wrap {
@@ -350,21 +359,19 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 }
 .hbtn-outline{background:transparent;color:var(--txt);border:1px solid var(--bdr)}
 .hbtn-outline:hover{background:var(--bg);color:var(--gold);border-color:var(--gold)}
-.hbtn-lang{background:var(--gold);color:#ffffff;letter-spacing:.03em}
-.hbtn-lang:hover{background:var(--gold2);box-shadow:0 2px 12px var(--gold-glow)}
-.hbtn-primary{background:var(--gold);color:#ffffff;font-size:13px;padding:7px 18px;font-weight:800}
-.hbtn-primary:hover{background:var(--gold2);box-shadow:0 2px 12px var(--gold-glow)}
+.hbtn-lang{background:var(--grad-primary);color:#ffffff;letter-spacing:.03em}
+.hbtn-lang:hover{filter:brightness(1.08);box-shadow:0 2px 12px var(--gold-glow)}
+.hbtn-primary{background:var(--grad-primary);color:#ffffff;font-size:13px;padding:7px 18px;font-weight:800}
+.hbtn-primary:hover{filter:brightness(1.08);box-shadow:0 4px 16px var(--gold-glow)}
 
 /* ── Control bar ─────────────────────────────────────── */
 .ctrl-bar{
-  background: var(--surf);
+  background: var(--grad-surf);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  backdrop-filter:blur(12px);
-  -webkit-backdrop-filter:blur(12px);
   border-bottom:1px solid var(--bdr);
   padding:12px 28px;
-  box-shadow:0 4px 20px rgba(15,31,61,.05);
+  box-shadow:0 1px 0 rgba(15,23,42,.03), 0 6px 16px rgba(15,23,42,.03);
 }
 .ctrl-row{
   display:flex;align-items:center;flex-wrap:wrap;gap:14px;
@@ -414,9 +421,9 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 
 /* Selects */
 .ctrl-sel{
-  padding:6px 12px;border:1.5px solid var(--bdr2);border-radius:8px;
+  padding:6px 12px;border:1.5px solid var(--bdr2);border-radius:var(--r-sm);
   font-size:13px;color:var(--txt);background:var(--surf);cursor:pointer;
-  min-width:110px;transition:border-color var(--transition);
+  min-width:110px;transition:border-color var(--transition),box-shadow var(--transition);
 }
 .ctrl-sel:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-glow)}
 
@@ -430,7 +437,7 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 .rtl .search-box svg{left:auto;right:11px}
 .search-inp{
   width:100%;padding:7px 32px 7px 34px;
-  border:1.5px solid var(--bdr2);border-radius:8px;
+  border:1.5px solid var(--bdr2);border-radius:var(--r-sm);
   font-size:13px;color:var(--txt);background:var(--surf);
   transition:border-color var(--transition),box-shadow var(--transition);
 }
@@ -446,26 +453,25 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 
 /* ── Tabs ───────────────────────────────────────────── */
 .dash-tabs{
-  display:flex;background: var(--surf);
+  display:flex;background: var(--grad-surf);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  
   padding:0 28px;
-  border-bottom:2px solid var(--bdr);
+  border-bottom:1px solid var(--bdr);
   gap:2px;
 }
 .dtab{
   padding:12px 22px;background:none;border:none;
-  border-bottom:3px solid transparent;margin-bottom:-2px;
+  border-bottom:2px solid transparent;margin-bottom:-1px;
   font-size:13px;font-weight:700;color:var(--mute);cursor:pointer;
   transition:all var(--transition);letter-spacing:.02em;
   position:relative;
 }
-.dtab:hover{color:var(--txt);background:rgba(15,31,61,.02)}
+.dtab:hover{color:var(--txt);background:rgba(15,23,42,.02)}
 .dtab.on{
   color:var(--navy);
   border-bottom-color:var(--gold);
-  background:linear-gradient(to top, rgba(200,168,75,0.08), transparent);
+  background:linear-gradient(to top, rgba(51,88,232,.06), transparent);
 }
 /* Active tab glow dot */
 .dtab.on::before{
@@ -494,14 +500,14 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
   -webkit-backdrop-filter: blur(16px);
   border-radius:var(--r);
   border:1px solid var(--bdr);box-shadow:var(--sh);
-  overflow:hidden;transition:box-shadow var(--transition),transform var(--transition);
+  overflow:hidden;transition:box-shadow .2s ease,transform .2s ease,border-color .2s ease;
   display:flex;flex-direction:column;
 }
-.ucard:hover{box-shadow:var(--sh3);transform:translateY(-3px)}
+.ucard:hover{box-shadow:var(--sh2);transform:translateY(-2px);border-color:rgba(51,88,232,.18)}
 .ucard.mgr{
   border-left:3px solid var(--gold);
   border-top:none;
-  box-shadow:var(--sh), 0 0 0 1px rgba(200,168,75,.15);
+  box-shadow:var(--sh), 0 0 0 1px rgba(51,88,232,.12);
 }
 
 /* Card header */
@@ -524,21 +530,21 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
   display:flex;align-items:center;gap:6px;
   margin-top:6px;padding:4px 0;
 }
-.ucard-dur svg{color:rgba(200,168,75,.6);flex-shrink:0}
+.ucard-dur svg{color:rgba(51,88,232,.6);flex-shrink:0}
 .dur-am,.dur-pm{
   font-size:12px;font-weight:700;letter-spacing:.03em;
   padding:2px 7px;border-radius:4px;
   font-variant-numeric:tabular-nums;
 }
-.dur-am{background:rgba(26,111,196,.2);color:#7cb8f0}
-.dur-pm{background:rgba(13,158,110,.2);color:#5cd4a8}
+.dur-am{background:var(--am-bg);color:var(--am)}
+.dur-pm{background:rgba(14,165,233,.12);color:#0284c7}
 
 .mgr-pip{
-  background:linear-gradient(135deg, var(--gold), var(--gold2));
-  color:var(--navy);
+  background:var(--grad-primary);
+  color:#fff;
   font-size:9px;font-weight:800;letter-spacing:.1em;
   padding:3px 8px;border-radius:4px;flex-shrink:0;align-self:flex-start;
-  box-shadow:0 2px 8px rgba(200,168,75,.2);
+  box-shadow:0 2px 8px var(--gold-glow);
 }
 
 /* KPI sections within card — hierarchy enhancement */
@@ -573,13 +579,13 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 
 /* Timing section — highlighted treatment */
 .kpi-timing{
-  background:linear-gradient(135deg, rgba(200,168,75,.04) 0%, rgba(26,111,196,.03) 100%);
-  border-bottom:1px solid rgba(200,168,75,.15);
+  background:linear-gradient(135deg, var(--gold-glow) 0%, rgba(14,165,233,.05) 100%);
+  border-bottom:1px solid rgba(51,88,232,.14);
 }
 .kpi-timing .kpi-sec-hd{color:var(--gold)}
 .kpi-timing .kpi-sec-hd::before{background:var(--gold)}
 .kpi-timing .kpi-v{
-  background:rgba(15,31,61,.06);padding:2px 8px;border-radius:10px;font-size:14px;
+  background:rgba(15,23,42,.05);padding:2px 8px;border-radius:10px;font-size:14px;
 }
 
 /* ── Pivot tables ────────────────────────────────────── */
@@ -587,7 +593,6 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
   overflow-x:auto;background: var(--surf);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  
   border-radius:var(--r);box-shadow:var(--sh);
   border:1px solid var(--bdr);
 }
@@ -599,7 +604,7 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 }
 .pivot-tbl th {
   padding: 12px 14px;
-  background: var(--navy);
+  background: var(--grad-navy);
   color: #fff;
   font-weight: 700;
   text-align: center;
@@ -652,13 +657,13 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
   font-weight: 600;
   color: var(--navy);
 }
-.pivot-tbl .has-v{background:#eff6ff;color:var(--navy);font-weight:700}
-.pivot-tbl .nil{color:#d0dae8}
-.pivot-tbl td.t-col{background:#f5f8ff;font-weight:700;color:var(--navy)}
-.pivot-tbl tbody tr:hover td{background:#e8f0ff}
-.pivot-tbl tbody tr:hover td.s-col{background:#dce8ff}
+.pivot-tbl .has-v{background:#eef2ff;color:var(--navy);font-weight:700}
+.pivot-tbl .nil{color:#d0d6e8}
+.pivot-tbl td.t-col{background:#f5f6ff;font-weight:700;color:var(--navy)}
+.pivot-tbl tbody tr:hover td{background:#e7ebff}
+.pivot-tbl tbody tr:hover td.s-col{background:#dde3ff}
 .pivot-tbl .tot-row td{
-  background:var(--navy);color:#fff;font-weight:700;
+  background:var(--grad-navy);color:#fff;font-weight:700;
   border-top:2px solid var(--gold)
 }
 .pivot-tbl .tot-row td.s-col{background:var(--navy);color:#fff}
@@ -681,11 +686,11 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 
 .agg-hdr {
   display:flex; justify-content:space-between; align-items:center;
-  padding:12px 16px; border-bottom:1px solid rgba(200,168,75,.2);
-  background:rgba(200,168,75,.08);
+  padding:12px 16px; border-bottom:1px solid var(--gold-glow);
+  background:var(--gold-glow);
 }
 .agg-title { font-size:14px; font-weight:800; color:var(--gold); letter-spacing:.06em; text-transform:uppercase; }
-.agg-meta  { font-size:11px; color:rgba(200,168,75,.6); }
+.agg-meta  { font-size:11px; color:rgba(51,88,232,.6); }
 
 .agg-cols { padding:12px 16px; display:flex; flex-direction:column; gap:0; }
 
@@ -707,8 +712,8 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
   font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px;
   font-variant-numeric:tabular-nums;
 }
-.agg-sum { background:rgba(37,99,235,.25); color:#93c5fd; }
-.agg-avg { background:rgba(200,168,75,.2); color:var(--gold); }
+.agg-sum { background:rgba(37,99,235,.2); color:#93c5fd; }
+.agg-avg { background:var(--gold-glow); color:var(--gold); }
 
 /* ── Pivot Summary Banner ────────────────────────────────────── */
 .pivot-banner {
@@ -735,13 +740,13 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
   box-shadow:var(--sh);
   transition:transform var(--transition),box-shadow var(--transition);
 }
-.pivot-banner-team:hover{transform:translateY(-2px);box-shadow:var(--sh2)}
+.pivot-banner-team:hover{transform:translateY(-1px);box-shadow:var(--sh2)}
 .pivot-banner-total.active {
-  box-shadow: 0 0 0 2px var(--gold), 0 4px 20px rgba(200, 168, 75, 0.4);
+  box-shadow: 0 0 0 2px var(--gold), var(--sh2);
 }
 .pivot-banner-team.active {
   border-color: var(--gold);
-  background: rgba(200, 168, 75, 0.08);
+  background: var(--gold-glow);
   box-shadow: 0 0 0 2px var(--gold), var(--sh2);
 }
 
@@ -755,25 +760,25 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 /* ── Pivot avg row in header ─────────────────────────────────── */
 .avg-row th {
   background:var(--navy4); font-size:11px; font-weight:600;
-  color:rgba(200,168,75,.7); padding:6px 12px;
-  border-top:1px solid rgba(200,168,75,.15);
+  color:rgba(191,207,255,.85); padding:6px 12px;
+  border-top:1px solid rgba(51,88,232,.2);
 }
-.avg-row .avg-lbl { text-align:left; color:rgba(200,168,75,.7); font-style:italic; }
+.avg-row .avg-lbl { text-align:left; color:rgba(191,207,255,.85); font-style:italic; }
 .avg-row .avg-cell { font-variant-numeric:tabular-nums; }
 
 /* ── Team KPI Hover Button ─────────────────────────────────── */
 .team-kpi-btn {
   position: relative; display: inline-flex; align-items: center; gap: 10px;
   padding: 10px 18px; background: linear-gradient(135deg, var(--navy) 0%, var(--navy3) 100%);
-  border-radius: 10px;
-  color: #fff; cursor: pointer; border: 1px solid rgba(200,168,75,.3);
+  border-radius: var(--r-sm);
+  color: #fff; cursor: pointer; border: 1px solid rgba(51,88,232,.3);
   box-shadow: var(--sh);
-  transition: all var(--transition);
+  transition: all .2s ease;
 }
 .team-kpi-btn:hover{
   box-shadow:var(--sh2);
-  transform:translateY(-2px);
-  border-color:rgba(200,168,75,.5);
+  transform:translateY(-1px);
+  border-color:rgba(51,88,232,.55);
 }
 .tk-name { font-weight: 800; font-size: 13px; color: var(--gold); letter-spacing:.03em; }
 .tk-count { font-size: 11px; color: rgba(255,255,255,.4); font-weight:600; }
@@ -1007,8 +1012,8 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
   background: var(--bg);
 }
 .sb-rep-row.active {
-  background: rgba(200,168,75,.08);
-  box-shadow: inset 0 0 0 1px rgba(200,168,75,.2);
+  background: var(--gold-glow);
+  box-shadow: inset 0 0 0 1px rgba(51,88,232,.25);
 }
 .sb-rep-name {
   font-size: 13px;
@@ -1057,7 +1062,7 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
   letter-spacing: .04em;
 }
 .pie-svg {
-  filter: drop-shadow(0 4px 10px rgba(15,31,61,.08));
+  filter: drop-shadow(0 2px 6px rgba(15,23,42,.08));
 }
 .pie-segment {
   transition: stroke-dasharray 0.5s ease-out, stroke-dashoffset 0.5s ease-out;
@@ -1165,25 +1170,25 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
   border-radius: 20px;
   color: var(--mute);
   cursor: pointer;
-  transition: all var(--transition);
+  transition: all .2s ease;
 }
 .slicer-pill:hover {
   background: var(--surf);
-  border-color: var(--navy3);
+  border-color: var(--gold);
   color: var(--navy);
 }
 .slicer-pill.on {
-  background: var(--navy);
-  border-color: var(--navy);
+  background: var(--grad-primary);
+  border-color: var(--gold);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(15,31,61,.15);
+  box-shadow: 0 2px 8px var(--gold-glow);
 }
 
 /* Countdown Card Component */
 .sb-countdown {
   background: linear-gradient(135deg, var(--navy) 0%, var(--navy3) 100%);
   border-radius: var(--r);
-  border: 1px solid rgba(200,168,75,.2);
+  border: 1px solid rgba(51,88,232,.25);
   padding: 18px;
   display: flex;
   flex-direction: column;
@@ -1287,11 +1292,11 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 .sb-mgr-card:hover {
   transform: translateY(-1px);
   box-shadow: var(--sh2);
-  border-color: var(--bdr2);
+  border-color: rgba(51,88,232,.2);
 }
 .sb-mgr-card.active {
   border-color: var(--gold);
-  background: rgba(200,168,75,.04);
+  background: var(--gold-glow);
   box-shadow: 0 4px 12px var(--gold-glow);
 }
 .sb-mgr-avatar {
@@ -1369,7 +1374,7 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 /* Selected highlighting for user cards in main grid */
 .ucard-selected {
   border-color: var(--gold) !important;
-  box-shadow: 0 6px 20px rgba(200,168,75,.15) !important;
+  box-shadow: 0 6px 20px var(--gold-glow) !important;
 }
 
 /* ── Header Responsive Adapters ────────────────────────────── */
@@ -1632,8 +1637,8 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 }
 
 @keyframes pulseHighlight {
-  from { box-shadow: 0 0 4px rgba(200, 168, 75, 0.15); }
-  to { box-shadow: 0 0 12px rgba(200, 168, 75, 0.35); }
+  from { box-shadow: 0 0 4px rgba(51, 88, 232, 0.15); }
+  to { box-shadow: 0 0 12px rgba(51, 88, 232, 0.35); }
 }
 
 /* -- AI Chat Widget ------------------------------------------- */
@@ -1648,14 +1653,14 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 }
 
 .ai-fab {
-  background: var(--gold);
+  background: var(--grad-primary);
   color: #fff;
   border: none;
   border-radius: 30px;
   padding: 12px 24px;
   font-size: 15px;
   font-weight: 600;
-  box-shadow: 0 4px 16px rgba(200, 168, 75, 0.4);
+  box-shadow: 0 4px 16px var(--gold-glow);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1664,7 +1669,7 @@ body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 }
 .ai-fab:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(200, 168, 75, 0.5);
+  box-shadow: 0 6px 20px var(--gold-glow);
 }
 
 .ai-chat-window {
