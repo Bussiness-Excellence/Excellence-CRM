@@ -4,6 +4,23 @@ import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import './Dashboard.css';
 
+// ── Fetch ALL rows matching a query, paging past Supabase/PostgREST's row cap ──
+// A single .range(0, 5000) silently truncates once total matches exceed it —
+// this loops until a page comes back short, guaranteeing everything is fetched.
+async function fetchAll(baseQueryFn, pageSize = 1000) {
+  let allRows = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await baseQueryFn().range(from, from + pageSize - 1);
+    if (error) return { data: allRows, error };
+    if (!data || data.length === 0) break;
+    allRows = allRows.concat(data);
+    if (data.length < pageSize) break; // last page
+    from += pageSize;
+  }
+  return { data: allRows, error: null };
+}
+
 // ── i18n ──────────────────────────────────────────────────────────────────────
 const T = {
   en: {
@@ -458,24 +475,32 @@ export default function Dashboard() {
     const isAdmin = profile?.role === 'Admin';
     const codes = visibleCodes;
 
-    let sQ = supabase.from('summaries').select('*').eq('period', periodLabel).range(0, 5000);
-    let spQ = supabase.from('specialty_classification').select('*').eq('period', periodLabel).range(0, 5000);
-    let prQ = supabase.from('product_calls').select('*').eq('period', periodLabel).range(0, 5000);
+    const buildSummary = () => {
+      let q = supabase.from('summaries').select('*').eq('period', periodLabel);
+      if (!isAdmin) q = q.in('employee_code', codes);
+      return q;
+    };
+    const buildSpecialty = () => {
+      let q = supabase.from('specialty_classification').select('*').eq('period', periodLabel);
+      if (!isAdmin) q = q.in('employee_code', codes);
+      return q;
+    };
+    const buildProducts = () => {
+      let q = supabase.from('product_calls').select('*').eq('period', periodLabel);
+      if (!isAdmin) q = q.in('employee_code', codes);
+      return q;
+    };
+    const buildCoaching = () => supabase.from('coaching_days').select('*').eq('period', periodLabel);
 
-    if (!isAdmin) {
-      sQ = sQ.in('employee_code', codes);
-      spQ = spQ.in('employee_code', codes);
-      prQ = prQ.in('employee_code', codes);
-    }
+    const queries = [fetchAll(buildSummary), fetchAll(buildSpecialty), fetchAll(buildProducts)];
+    if (isMgr) queries.push(fetchAll(buildCoaching));
 
-    const queries = [sQ, spQ, prQ];
-    if(isMgr) queries.push(supabase.from('coaching_days').select('*').eq('period',periodLabel).range(0, 5000));
-    const [s,sp,pr,co]=await Promise.all(queries);
-    if(s.error) setError(s.error.message);
-    setSummary(s.data||[]);
-    setSpecialty(sp.data||[]);
-    setProducts(pr.data||[]);
-    setCoaching(isMgr?(co?.data||[]):[]);
+    const [s, sp, pr, co] = await Promise.all(queries);
+    if (s.error) setError(s.error.message);
+    setSummary(s.data || []);
+    setSpecialty(sp.data || []);
+    setProducts(pr.data || []);
+    setCoaching(isMgr ? (co?.data || []) : []);
     setLoading(false);
   },[periodLabel,visibleCodes,isMgr,profile]);
 

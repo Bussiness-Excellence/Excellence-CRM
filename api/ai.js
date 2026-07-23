@@ -20,12 +20,7 @@ export default async function handler(req) {
       });
     }
 
-    // Ensure the user has provided a Gemini API Key in Vercel
-    if (!process.env.GEMINI_API_KEY) {
-      return new Response(JSON.stringify({ 
-        reply: 'To use the AI Chat, please generate a free Gemini API Key from Google AI Studio and add it to your Vercel Environment Variables as GEMINI_API_KEY.' 
-      }), { status: 200 });
-    }
+
 
     // Build context string safely
     const contextStr = JSON.stringify(contextData).substring(0, 8000);
