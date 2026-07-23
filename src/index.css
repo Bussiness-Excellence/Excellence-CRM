@@ -1,5 +1,6 @@
 /* ═══════════════════════════════════════════════════════
    EXCELLENCE CRM — Global Foundation
+   Corporate Crystal Blue — Professional Grade
    ═══════════════════════════════════════════════════════ */
 
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
@@ -17,66 +18,87 @@ body {
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #eef4ff 0%, #dfeaff 45%, #eef6ff 100%); /* Crystal Blue — light mode */
-  color: #0f172a;
+  /* Rich corporate deep-blue gradient — professional & authoritative */
+  background:
+    linear-gradient(160deg,
+      #0a1628 0%,
+      #0d1f3c 30%,
+      #0f2548 60%,
+      #081a38 100%
+    );
+  background-attachment: fixed;
+  color: #e2eaff;
   min-height: 100vh;
   overflow-x: hidden;
   transition: background-color 0.3s, color 0.3s;
 }
 
+/* Light-mode override — kept as an intentional corporate navy dark-ish base */
+html.light body {
+  background:
+    linear-gradient(160deg,
+      #0a1628 0%,
+      #0d1f3c 30%,
+      #0f2548 60%,
+      #081a38 100%
+    );
+  background-attachment: fixed;
+  color: #e2eaff;
+}
+
 html.dark body {
-  background: radial-gradient(ellipse at 20% 0%, #0d1f45 0%, #050b18 55%, #030612 100%); /* Crystal Blue — dark mode */
+  background: radial-gradient(ellipse at 20% 0%, #0d1f45 0%, #050b18 55%, #030612 100%);
   background-attachment: fixed;
   color: #f4f8ff;
 }
 
-/* ── Animated deep-space background ────────────────────── */
+/* ── Crystal ambient glows — premium multi-layer depth ─── */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   z-index: -2;
   background:
-    radial-gradient(circle at 8% 8%, rgba(59, 130, 246, 0.16), transparent 42%),
-    radial-gradient(circle at 92% 15%, rgba(37, 99, 235, 0.14), transparent 45%),
-    radial-gradient(circle at 50% 95%, rgba(56, 189, 248, 0.12), transparent 50%);
+    /* Top-left cobalt bloom */
+    radial-gradient(ellipse 700px 500px at -10% -5%,  rgba(37, 99, 235, 0.28), transparent 65%),
+    /* Top-right crystal accent */
+    radial-gradient(ellipse 500px 400px at 110% 0%,   rgba(56, 189, 248, 0.18), transparent 60%),
+    /* Center bottom sapphire depth */
+    radial-gradient(ellipse 800px 400px at 50% 110%,  rgba(29, 78, 216, 0.22), transparent 70%),
+    /* Mid-left indigo veil */
+    radial-gradient(ellipse 400px 600px at -5% 55%,   rgba(67, 56, 202, 0.14), transparent 70%),
+    /* Mid-right cyan shimmer */
+    radial-gradient(ellipse 350px 500px at 105% 60%,  rgba(14, 165, 233, 0.12), transparent 70%);
   pointer-events: none;
   transition: opacity 0.3s;
 }
 
 html.dark body::before {
-  background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 420px),
-              radial-gradient(circle at bottom left, rgba(37, 99, 235, 0.10), transparent 420px),
-              radial-gradient(circle at 50% 45%, rgba(96, 165, 250, 0.06), transparent 480px);
+  background:
+    radial-gradient(circle at top right,   rgba(56, 189, 248, 0.12), transparent 420px),
+    radial-gradient(circle at bottom left, rgba(37, 99, 235, 0.10),  transparent 420px),
+    radial-gradient(circle at 50% 45%,     rgba(96, 165, 250, 0.06), transparent 480px);
 }
 
-/* Subtle animated star-like particles */
+/* ── Subtle grid overlay — corporate blueprint texture ─── */
 body::after {
   content: '';
   position: fixed;
   inset: 0;
   z-index: -1;
   background-image:
-    radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.15) 0%, transparent 100%),
-    radial-gradient(1px 1px at 50% 15%, rgba(255,255,255,0.1) 0%, transparent 100%),
-    radial-gradient(1px 1px at 75% 60%, rgba(255,255,255,0.12) 0%, transparent 100%),
-    radial-gradient(1px 1px at 10% 80%, rgba(255,255,255,0.08) 0%, transparent 100%),
-    radial-gradient(1px 1px at 90% 20%, rgba(255,255,255,0.1) 0%, transparent 100%),
-    radial-gradient(1px 1px at 35% 70%, rgba(255,255,255,0.07) 0%, transparent 100%),
-    radial-gradient(1px 1px at 65% 85%, rgba(255,255,255,0.09) 0%, transparent 100%);
+    linear-gradient(rgba(99, 179, 237, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 179, 237, 0.025) 1px, transparent 1px);
+  background-size: 48px 48px;
   pointer-events: none;
-  animation: twinkle 8s ease-in-out infinite alternate;
   transition: opacity 0.3s;
 }
-html.light body::after {
-  opacity: 0;
-  animation: none;
-}
 
-@keyframes twinkle {
-  0%   { opacity: 0.6; }
-  50%  { opacity: 1; }
-  100% { opacity: 0.7; }
+html.dark body::after {
+  background-image:
+    linear-gradient(rgba(99, 179, 237, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 179, 237, 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
 }
 
 /* ── Scrollbar ──────────────────────────────────────────── */
@@ -85,33 +107,26 @@ html.light body::after {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.4);
+  background: rgba(8, 26, 56, 0.6);
 }
 html.light ::-webkit-scrollbar-track {
-  background: rgba(203, 213, 225, 0.4);
+  background: rgba(8, 26, 56, 0.6);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(96, 165, 250, 0.3);
+  background: rgba(96, 165, 250, 0.35);
   border-radius: 3px;
 }
 html.light ::-webkit-scrollbar-thumb {
-  background: rgba(96, 165, 250, 0.6);
+  background: rgba(96, 165, 250, 0.45);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(96, 165, 250, 0.5);
-}
-html.light ::-webkit-scrollbar-thumb:hover {
-  background: rgba(96, 165, 250, 0.8);
+  background: rgba(96, 165, 250, 0.6);
 }
 
 /* ── Global selection color ─────────────────────────────── */
 ::selection {
-  background: rgba(96, 165, 250, 0.3);
-  color: #fff;
-}
-html.light ::selection {
   background: rgba(96, 165, 250, 0.4);
-  color: #0f172a;
+  color: #fff;
 }
 
 /* ── App loading spinner (used in App.js) ───────────────── */
@@ -165,18 +180,18 @@ html.light ::selection {
   animation: toastOut 0.25s ease forwards;
 }
 .toast-success {
-  background: rgba(16, 185, 129, 0.15);
-  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.18);
+  border-color: rgba(16, 185, 129, 0.35);
   color: #6ee7b7;
 }
 .toast-error {
-  background: rgba(239, 68, 68, 0.15);
-  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.35);
   color: #fca5a5;
 }
 .toast-info {
-  background: rgba(96, 165, 250, 0.15);
-  border-color: rgba(96, 165, 250, 0.3);
+  background: rgba(96, 165, 250, 0.18);
+  border-color: rgba(96, 165, 250, 0.35);
   color: #93c5fd;
 }
 .toast-icon {
@@ -212,9 +227,11 @@ html.light ::selection {
   100% { background-position: 600px 0; }
 }
 .skeleton {
-  background: linear-gradient(160deg, transparent 0%, rgba(255,255,255,0.01) 100%) 25%,
-    rgba(255,255,255,0.09) 50%,
-    rgba(255,255,255,0.04) 75%
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.04) 0%,
+    rgba(255,255,255,0.09) 40%,
+    rgba(255,255,255,0.04) 100%
   );
   background-size: 600px 100%;
   animation: shimmer 1.6s ease-in-out infinite;
