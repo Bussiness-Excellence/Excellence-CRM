@@ -119,17 +119,50 @@ function sortSummary(rows) {
   });
 }
 
+function parseTimeToMinutes(timeStr) {
+  if (!timeStr || typeof timeStr !== 'string') return null;
+  const match = timeStr.match(/(\d{1,2}):(\d{2})(?:\s*(AM|PM))?/i);
+  if (!match) return null;
+  let hrs = parseInt(match[1], 10);
+  const mins = parseInt(match[2], 10);
+  const ampm = match[3] ? match[3].toUpperCase() : null;
+  if (ampm === 'PM' && hrs < 12) hrs += 12;
+  if (ampm === 'AM' && hrs === 12) hrs = 0;
+  return hrs * 60 + mins;
+}
+
+function formatMinutesToTime(totalMins) {
+  if (totalMins === null || isNaN(totalMins)) return '—';
+  let hrs = Math.floor(totalMins / 60) % 24;
+  const mins = Math.round(totalMins % 60);
+  const ampm = hrs >= 12 ? 'PM' : 'AM';
+  hrs = hrs % 12;
+  if (hrs === 0) hrs = 12;
+  const paddedMins = mins < 10 ? `0${mins}` : mins;
+  return `${hrs}:${paddedMins} ${ampm}`;
+}
+
+function calcAvgStartTime(rows) {
+  const minList = rows
+    .map(r => parseTimeToMinutes(r.avg_am_start_time))
+    .filter(m => m !== null);
+  if (!minList.length) return '—';
+  const avgMins = minList.reduce((a, b) => a + b, 0) / minList.length;
+  return formatMinutesToTime(avgMins);
+}
+
 function computeAggregates(rows) {
   const reps = rows.filter(r => !r.is_manager);
+  const targetRows = reps.length ? reps : rows;
   const agg = {};
   NUMERIC_KPI_KEYS.forEach(key => {
-    const vals = reps.map(r => Number(r[key])||0).filter(v => v > 0);
+    const vals = targetRows.map(r => Number(r[key])||0).filter(v => v > 0);
     agg[key] = {
-      sum: vals.reduce((s,v)=>s+v, 0),
+      sum: targetRows.map(r => Number(r[key])||0).reduce((s,v)=>s+v, 0),
       avg: vals.length ? (vals.reduce((s,v)=>s+v,0)/vals.length) : 0,
     };
   });
-  return { agg, repCount: reps.length };
+  return { agg, repCount: reps.length || rows.length };
 }
 
 function daysUntil15th() {
@@ -227,28 +260,78 @@ function PieChart({ data, title, size = 140, thickness = 22, onSelect, activeFil
   );
 }
 
-// ── TeamKpiHover ─────────────────────────────────────────────────────────────
-function TeamKpiHover({ rows, teamLabel }) {
-  const { agg, repCount } = useMemo(() => computeAggregates(rows), [rows]);
-  if (!rows.length) return null;
-  const d_am_days = agg['am_shift_days']?.avg || 0;
-  const d_pm_days = agg['pm_shift_days']?.avg || 0;
-  const d_am_doc = agg['total_am_covered']?.avg || 0;
-  const d_pm_doc = agg['total_pm_covered']?.avg || 0;
-  const d_am_dur = agg['avg_am_shift_hm']?.avg || 0;
-  const d_pm_dur = agg['avg_pm_shift_hm']?.avg || 0;
+// ── TeamBriefCard ─────────────────────────────────────────────────────────────
+function TeamBriefCard({ rows, teamLabel, rtl, t, shift, isMgr, onSelectTeam }) {
+  const reps = rows.filter(r => !r.is_manager);
+  const repCount = reps.length || rows.length;
+
+  const { agg, avgStartTime, totalActivities, avgActivities, totalEvents, avgEvents } = useMemo(() => {
+    const { agg } = computeAggregates(rows);
+    const avgStartTime = calcAvgStartTime(rows);
+    const totalActivities = rows.reduce((s, r) => s + (Number(r.no_activities) || 0), 0);
+    const avgActivities = repCount ? (totalActivities / repCount).toFixed(1) : '0';
+    const totalEvents = rows.reduce((s, r) => s + (Number(r.no_events) || 0), 0);
+    const avgEvents = repCount ? (totalEvents / repCount).toFixed(1) : '0';
+    return { agg, avgStartTime, totalActivities, avgActivities, totalEvents, avgEvents };
+  }, [rows, repCount]);
+
+  const amShiftDur = agg['avg_am_shift_hm']?.avg || 0;
+  const pmShiftDur = agg['avg_pm_shift_hm']?.avg || 0;
+
   return (
-    <div className="team-kpi-btn">
-      <span className="tk-name">{teamLabel}</span>
-      <span className="tk-count">{repCount} reps</span>
-      <div className="tk-dropdown">
-        <div className="tk-dd-title">{teamLabel} Averages</div>
-        <div className="tk-dd-grid">
-          <div>Working Days</div><div>AM: {fmtVal(d_am_days)} | PM: {fmtVal(d_pm_days)}</div>
-          <div>Covered Doctors</div><div>AM: {fmtVal(d_am_doc)} | PM: {fmtVal(d_pm_doc)}</div>
-          <div>Shift Duration</div><div>AM: {fmtDuration(d_am_dur)} | PM: {fmtDuration(d_pm_dur)}</div>
+    <div className="ucard team-brief-card" onClick={() => onSelectTeam && onSelectTeam(teamLabel)} style={{cursor: 'pointer'}}>
+      <div className="ucard-hdr" style={{borderBottom: '1px solid var(--bdr)'}}>
+        <div className="ucard-info">
+          <div className="ucard-name" style={{color: 'var(--gold)', fontSize: '17px'}}>{teamLabel}</div>
+          <div className="ucard-meta">{repCount} {rtl ? 'مندوب' : 'reps'}</div>
+          {(amShiftDur > 0 || pmShiftDur > 0) && (
+            <div className="ucard-dur">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              {amShiftDur > 0 ? <span className="dur-am">AM {fmtDuration(amShiftDur)}</span> : null}
+              {pmShiftDur > 0 ? <span className="dur-pm">PM {fmtDuration(pmShiftDur)}</span> : null}
+            </div>
+          )}
         </div>
+        <span className="mgr-pip" style={{background: 'var(--navy)', color: '#fff'}}>{rtl ? 'فريق' : 'TEAM'}</span>
       </div>
+
+      {t.kpiGroups.map(g => {
+        const keys = g.keys.filter(k => {
+          if(shift==='AM') return !['pm_calls','pm_call_rate','pm_shift_days','total_pm_covered','clinic_covered','polyclinic_covered','avg_pm_shift_hm'].includes(k);
+          if(shift==='PM') return !['am_calls','am_call_rate','am_shift_days','total_am_covered','amcenter_covered','hospital_covered','avg_am_shift_hm','avg_am_start_time'].includes(k);
+          return true;
+        });
+        if(g.keys.includes('coaching_days') && !isMgr) return null;
+
+        return (
+          <div key={g.label} className={`kpi-sec${g.keys.includes('avg_am_start_time') ? ' kpi-timing' : ''}`}>
+            <div className="kpi-sec-hd">{g.label}</div>
+            {keys.map(k => {
+              let displayVal = '—';
+              if (k === 'avg_am_start_time') {
+                displayVal = avgStartTime;
+              } else if (k === 'no_activities') {
+                displayVal = `${totalActivities} (${avgActivities}/rep)`;
+              } else if (k === 'no_events') {
+                displayVal = `${totalEvents} (${avgEvents}/rep)`;
+              } else {
+                const item = agg[k];
+                if (item) {
+                  displayVal = fmtVal(item.avg, k);
+                }
+              }
+              return (
+                <div key={k} className="kpi-row-wrapper">
+                  <div className="kpi-row">
+                    <span className="kpi-lbl">{t.kpi[k] || k}</span>
+                    <span className={`kpi-v ${k.includes('rate') ? 'rate' : ''}`}>{displayVal}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -452,16 +535,21 @@ export default function Dashboard() {
   const rtl = lang==='ar';
   const isMgr = profile?.role && profile.role!=='MR';
   const periodLabel = period==='last_month'?'Last Month':'Recent';
-  const [dataLoaded, setDataLoaded] = React.useState(false);
+  // Stable ref tracking what data has been fetched — survives re-renders without causing them
+  const fetchedKeyRef = React.useRef(null);
+  const codesKey = visibleCodes ? [...visibleCodes].sort().join(',') : '';
+  const currentKey = `${periodLabel}|${codesKey}|${isMgr}`;
 
   const load = useCallback(async(force=false)=>{
     if(!visibleCodes?.length){setLoading(false);return;}
     const isAdmin = profile?.role === 'Admin';
     const codes = visibleCodes;
-    const cacheKey = `dash_${periodLabel}_${codes.slice(0,5).join(',')}_${isMgr}`;
+    const cacheKey = `dash_${periodLabel}_${isMgr}`;
 
-    // Serve from cache if already loaded this session (and not forcing refresh)
-    if(!force && dataLoaded) return;
+    // Skip if already fetched this key (tab switch won't retrigger)
+    if(!force && fetchedKeyRef.current === currentKey) return;
+
+    // Try sessionStorage cache first
     const cached = !force && sessionStorage.getItem(cacheKey);
     if(cached) {
       try {
@@ -470,7 +558,7 @@ export default function Dashboard() {
         setSpecialty(parsed.specialty || []);
         setProducts(parsed.products || []);
         setCoaching(parsed.coaching || []);
-        setDataLoaded(true);
+        fetchedKeyRef.current = currentKey;
         setLoading(false);
         return;
       } catch(e) { /* ignore corrupted cache */ }
@@ -494,29 +582,49 @@ export default function Dashboard() {
     setSpecialty(data?.specialty || []);
     setProducts(data?.products || []);
     setCoaching(data?.coaching || []);
-    setDataLoaded(true);
+    fetchedKeyRef.current = currentKey;
     setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[periodLabel,visibleCodes,isMgr,profile,dataLoaded]);
+  },[periodLabel, currentKey, isMgr, profile]);
 
-  // Only re-run load when period/codes/role change — NOT on every render
-  useEffect(()=>{
-    setDataLoaded(false); // reset so next load() call actually fetches
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[periodLabel, JSON.stringify(visibleCodes), isMgr]);
-
-  useEffect(()=>{ if(!dataLoaded) load(); },[dataLoaded, load]);
+  useEffect(()=>{ load(); },[load]);
 
   // ── Filtering ──────────────────────────────────────────────────────────────
-  const teams=useMemo(()=>[...new Set(summary.flatMap(r=>(r.team||'').split('; ')).filter(Boolean))].sort(),[summary]);
-  const byTeam=useCallback(rows=>{
-    if(team==='all') return rows;
-    // Filter directly on each row's own `team` field. Every table (summary,
-    // specialty, product_calls, coaching_days) carries its own correct `team`
-    // column now — cross-referencing through summary.user_name broke Coaching,
-    // since coaching rows use manager_name/rep_name instead of user_name.
+  const [viewMode, setViewMode] = useState('teams'); // 'teams' | 'employees'
+
+  const teams = useMemo(() => {
+    const isAdmin = profile?.role === 'Admin';
+    const set = new Set();
+    summary.forEach(r => {
+      const rawTms = (r.team || '').split('; ').filter(Boolean);
+      if (!rawTms.length) {
+        if (isAdmin) set.add(rtl ? 'مدراء آخرين' : 'Other Managers');
+      } else {
+        rawTms.forEach(t => {
+          if (t === 'Unknown' || t === 'Other Managers') {
+            if (isAdmin) set.add(rtl ? 'مدراء آخرين' : 'Other Managers');
+          } else {
+            set.add(t);
+          }
+        });
+      }
+    });
+    return [...set].sort();
+  }, [summary, profile, rtl]);
+
+  const byTeam = useCallback(rows => {
+    const isAdmin = profile?.role === 'Admin';
+    if (team === 'all') {
+      if (!isAdmin) {
+        return rows.filter(r => r.team && r.team !== 'Unknown' && r.team !== 'Other Managers');
+      }
+      return rows;
+    }
+    if (team === 'Other Managers' || team === 'Unknown' || team === 'مدراء آخرين') {
+      return rows.filter(r => !r.team || r.team === 'Unknown' || r.team === 'Other Managers' || r.team === 'مدراء آخرين');
+    }
     return rows.filter(r => (r.team || '').split('; ').includes(team));
-  },[team]);
+  }, [team, profile]);
 
   const userHierarchyMap = useMemo(() => {
     const map = {};
@@ -790,18 +898,28 @@ export default function Dashboard() {
   const allUsers=useMemo(()=>[...new Set(byTeam(summary).map(r=>r.user_name))].sort(),[summary,byTeam]);
   const teamCount=new Set(fSummary.map(r=>r.team)).size;
 
-  const teamGroups = useMemo(()=>{
-    if(team!=='all') return [{ label: team||'Team', rows: fSummary }];
+  const teamGroups = useMemo(() => {
+    const isAdmin = profile?.role === 'Admin';
+    const otherLabel = rtl ? 'مدراء آخرين' : 'Other Managers';
+    if (team !== 'all') {
+      const displayLabel = (team === 'Unknown' || team === 'Other Managers' || team === 'مدراء آخرين') ? otherLabel : (team || 'Team');
+      return [{ label: displayLabel, rows: fSummary }];
+    }
     const groups = {};
-    fSummary.forEach(r=>{
-      const tms = r.team ? r.team.split('; ') : ['Unknown'];
-      tms.forEach(tm => {
-        if(!groups[tm]) groups[tm]=[];
-        groups[tm].push(r);
+    fSummary.forEach(r => {
+      const rawTms = (r.team && r.team !== 'Unknown') ? r.team.split('; ') : ['Unknown'];
+      rawTms.forEach(tm => {
+        let label = tm;
+        if (tm === 'Unknown' || tm === 'Other Managers' || tm === 'مدراء آخرين') {
+          if (!isAdmin) return; // Hide from non-admins
+          label = otherLabel;
+        }
+        if (!groups[label]) groups[label] = [];
+        groups[label].push(r);
       });
     });
-    return Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0])).map(([label,rows])=>({label,rows}));
-  },[fSummary,team]);
+    return Object.entries(groups).sort((a,b) => a[0].localeCompare(b[0])).map(([label, rows]) => ({ label, rows }));
+  }, [fSummary, team, profile, rtl]);
 
   const visibleTabs=useMemo(()=>{
     const all=Object.entries(t.tabs);
@@ -1028,7 +1146,7 @@ export default function Dashboard() {
             className="hbtn hbtn-outline"
             title={rtl ? 'تحديث البيانات' : 'Refresh Data'}
             style={{padding: '6px 10px', fontSize: '13px', lineHeight: 1}}
-            onClick={()=>{ sessionStorage.clear(); setDataLoaded(false); }}
+            onClick={()=>{ sessionStorage.clear(); fetchedKeyRef.current = null; load(true); }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{display:'inline-block',verticalAlign:'middle'}}>
               <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
@@ -1372,6 +1490,18 @@ export default function Dashboard() {
                   </select>
                 </div>
               )}
+              {tab==='summary' && (
+                <div className="ctrl-group">
+                  <div className="shift-toggle">
+                    <button className={`stoggle${viewMode==='teams'?' on':''}`} onClick={()=>setViewMode('teams')}>
+                      👥 {rtl ? 'ملخص الفرق' : 'Team Brief'}
+                    </button>
+                    <button className={`stoggle${viewMode==='employees'?' on':''}`} onClick={()=>setViewMode('employees')}>
+                      👤 {rtl ? 'المندوبون' : 'Employee Brief'}
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="ctrl-group ctrl-search">
                 <div className="search-box">
                   <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1414,84 +1544,97 @@ export default function Dashboard() {
               {tab==='summary'&&(
                 fSummary.length===0?<div className="dash-empty">{t.noData}</div>:(
                   <>
-                    {isMgr&&userFilter==='all'&&(
-                      <div className="agg-cards-row">
-                        {teamGroups.map(({label,rows})=>(
-                          <TeamKpiHover key={label} rows={rows} teamLabel={label}/>
+                    {viewMode === 'teams' ? (
+                      <div className="cards-grid">
+                        {teamGroups.map(({label, rows}) => (
+                          <TeamBriefCard
+                            key={label}
+                            rows={rows}
+                            teamLabel={label}
+                            rtl={rtl}
+                            t={t}
+                            shift={shift}
+                            isMgr={isMgr}
+                            onSelectTeam={(tName) => {
+                              setTeam(tName);
+                              setViewMode('employees');
+                            }}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="cards-grid">
+                        {fSummary.map((r,i)=>(
+                          <div key={r.id||i} className={`ucard${r.is_manager?' mgr':''}${selectedRep===r.user_name?' ucard-selected':''}`}
+                            onClick={()=>handleSelectRep(r.user_name)}>
+                            <div className="ucard-hdr">
+                              <div className="ucard-info">
+                                <div className="ucard-name">{r.user_name}</div>
+                                <div className="ucard-meta">{r.team||''}{r.is_manager?' · Manager':''}</div>
+                                {r.territory&&<div className="ucard-terr" title={r.territory}>{r.territory}</div>}
+                                {(r.avg_am_shift_hm||r.avg_pm_shift_hm)&&(
+                                  <div className="ucard-dur">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                                    {r.avg_am_shift_hm?<span className="dur-am">AM {fmtDuration(r.avg_am_shift_hm)}</span>:null}
+                                    {r.avg_pm_shift_hm?<span className="dur-pm">PM {fmtDuration(r.avg_pm_shift_hm)}</span>:null}
+                                  </div>
+                                )}
+                              </div>
+                              {r.is_manager&&<span className="mgr-pip">MGR</span>}
+                            </div>
+                            {t.kpiGroups.map(g=>{
+                              const keys=g.keys.filter(k=>{
+                                if(shift==='AM') return !['pm_calls','pm_call_rate','pm_shift_days','total_pm_covered','clinic_covered','polyclinic_covered','avg_pm_shift_hm'].includes(k);
+                                if(shift==='PM') return !['am_calls','am_call_rate','am_shift_days','total_am_covered','amcenter_covered','hospital_covered','avg_am_shift_hm','avg_am_start_time'].includes(k);
+                                return true;
+                              });
+                              if(g.keys.includes('coaching_days')&&!isMgr) return null;
+                              const kpiRows=keys.map(k=>({k,v:r[k]})).filter(x=>x.v!==null&&x.v!==undefined&&x.v!=='');
+                              if(!kpiRows.length) return null;
+                              return (
+                                <div key={g.label} className={`kpi-sec${g.keys.includes('avg_am_start_time')?' kpi-timing':''}`}>
+                                  <div className="kpi-sec-hd">{g.label}</div>
+                                  {kpiRows.map(({k,v})=>{
+                                    const target = KPI_TARGETS[k];
+                                    const avgVal = companyAverages[k] || 0;
+                                    const numVal = Number(v) || 0;
+                                    let benchmarkClass = '';
+                                    if (avgVal > 0 && typeof numVal === 'number' && !k.includes('time') && !k.includes('hm')) {
+                                      if (numVal > avgVal * 1.05) benchmarkClass = 'above-avg';
+                                      else if (numVal < avgVal * 0.95) benchmarkClass = 'below-avg';
+                                    }
+                                    const pct = target ? Math.min(100, Math.round((numVal / target) * 100)) : null;
+                                    return (
+                                      <div key={k} className="kpi-row-wrapper">
+                                        <div className="kpi-row">
+                                          <span className="kpi-lbl">
+                                            {t.kpi[k]||k}
+                                            {benchmarkClass === 'above-avg' && <span className="bench-arrow up" title="Above company average">▲</span>}
+                                            {benchmarkClass === 'below-avg' && <span className="bench-arrow down" title="Below company average">▼</span>}
+                                          </span>
+                                          <span className={`kpi-v ${k.includes('rate')?'rate':''} ${benchmarkClass}`}>{fmtVal(v,k)}</span>
+                                        </div>
+                                        {pct !== null && (
+                                          <div className="kpi-card-progress" title={`${pct}% of target (${target})`}>
+                                            <div className="kpi-card-progress-bar" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#10b981' : pct >= 70 ? '#3b82f6' : '#ef4444' }} />
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })}
+                            {r.product_calls_detail&&shift!=='AM'&&(
+                              <div className="kpi-sec">
+                                <div className="kpi-sec-hd">{rtl?'تفاصيل المنتج':'Product Detail'}</div>
+                                <div className="prod-det">{r.product_calls_detail}</div>
+                              </div>
+                            )}
+                          </div>
                         ))}
                       </div>
                     )}
-                    <div className="cards-grid">
-                      {fSummary.map((r,i)=>(
-                        <div key={r.id||i} className={`ucard${r.is_manager?' mgr':''}${selectedRep===r.user_name?' ucard-selected':''}`}
-                          onClick={()=>handleSelectRep(r.user_name)}>
-                          <div className="ucard-hdr">
-                            <div className="ucard-info">
-                              <div className="ucard-name">{r.user_name}</div>
-                              <div className="ucard-meta">{r.team||''}{r.is_manager?' · Manager':''}</div>
-                              {r.territory&&<div className="ucard-terr" title={r.territory}>{r.territory}</div>}
-                              {(r.avg_am_shift_hm||r.avg_pm_shift_hm)&&(
-                                <div className="ucard-dur">
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                                  {r.avg_am_shift_hm?<span className="dur-am">AM {fmtDuration(r.avg_am_shift_hm)}</span>:null}
-                                  {r.avg_pm_shift_hm?<span className="dur-pm">PM {fmtDuration(r.avg_pm_shift_hm)}</span>:null}
-                                </div>
-                              )}
-                            </div>
-                            {r.is_manager&&<span className="mgr-pip">MGR</span>}
-                          </div>
-                          {t.kpiGroups.map(g=>{
-                            const keys=g.keys.filter(k=>{
-                              if(shift==='AM') return !['pm_calls','pm_call_rate','pm_shift_days','total_pm_covered','clinic_covered','polyclinic_covered','avg_pm_shift_hm'].includes(k);
-                              if(shift==='PM') return !['am_calls','am_call_rate','am_shift_days','total_am_covered','amcenter_covered','hospital_covered','avg_am_shift_hm','avg_am_start_time'].includes(k);
-                              return true;
-                            });
-                            if(g.keys.includes('coaching_days')&&!isMgr) return null;
-                            const kpiRows=keys.map(k=>({k,v:r[k]})).filter(x=>x.v!==null&&x.v!==undefined&&x.v!=='');
-                            if(!kpiRows.length) return null;
-                            return (
-                              <div key={g.label} className={`kpi-sec${g.keys.includes('avg_am_shift_hm')?' kpi-timing':''}`}>
-                                <div className="kpi-sec-hd">{g.label}</div>
-                                {kpiRows.map(({k,v})=>{
-                                  const target = KPI_TARGETS[k];
-                                  const avgVal = companyAverages[k] || 0;
-                                  const numVal = Number(v) || 0;
-                                  let benchmarkClass = '';
-                                  if (avgVal > 0 && typeof numVal === 'number' && !k.includes('time') && !k.includes('hm')) {
-                                    if (numVal > avgVal * 1.05) benchmarkClass = 'above-avg';
-                                    else if (numVal < avgVal * 0.95) benchmarkClass = 'below-avg';
-                                  }
-                                  const pct = target ? Math.min(100, Math.round((numVal / target) * 100)) : null;
-                                  return (
-                                    <div key={k} className="kpi-row-wrapper">
-                                      <div className="kpi-row">
-                                        <span className="kpi-lbl">
-                                          {t.kpi[k]||k}
-                                          {benchmarkClass === 'above-avg' && <span className="bench-arrow up" title="Above company average">▲</span>}
-                                          {benchmarkClass === 'below-avg' && <span className="bench-arrow down" title="Below company average">▼</span>}
-                                        </span>
-                                        <span className={`kpi-v ${k.includes('rate')?'rate':''} ${benchmarkClass}`}>{fmtVal(v,k)}</span>
-                                      </div>
-                                      {pct !== null && (
-                                        <div className="kpi-card-progress" title={`${pct}% of target (${target})`}>
-                                          <div className="kpi-card-progress-bar" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#10b981' : pct >= 70 ? '#3b82f6' : '#ef4444' }} />
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            );
-                          })}
-                          {r.product_calls_detail&&shift!=='AM'&&(
-                            <div className="kpi-sec">
-                              <div className="kpi-sec-hd">{rtl?'تفاصيل المنتج':'Product Detail'}</div>
-                              <div className="prod-det">{r.product_calls_detail}</div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
                   </>
                 )
               )}

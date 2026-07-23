@@ -1795,3 +1795,14 @@ html.dark .ai-chat-input-area input {
   background: #121e36;
   border-color: #233554;
 }
+
+/* ── Team Brief Cards ────────────────────────────────────────── */
+.team-brief-card {
+  border-top: 3px solid var(--gold);
+  transition: all var(--transition);
+}
+.team-brief-card:hover {
+  border-color: var(--gold2);
+  transform: translateY(-4px);
+  box-shadow: var(--sh3);
+}

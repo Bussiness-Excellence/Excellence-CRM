@@ -20,7 +20,8 @@ function RootRoute() {
   const { profile, loading } = useAuth();
   if (loading) return <div className="app-loading"><div className="app-spinner"/></div>;
   if (!profile) return <Navigate to="/login" replace />;
-  return <Navigate to={profile.role === 'Admin' ? '/admin' : '/dashboard'} replace />;
+  // All roles (including Admin) land on the dashboard by default
+  return <Navigate to="/dashboard" replace />;
 }
 
 /**
