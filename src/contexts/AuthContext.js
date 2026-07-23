@@ -124,6 +124,10 @@ export function AuthProvider({ children }) {
   const [hierarchy, setHierarchy]     = useState([]);
   const [visibleCodes, setVisibleCodes] = useState([]);
   const [loading, setLoading]         = useState(true);
+  // Tracks which user's profile/hierarchy is currently loaded, so a
+  // redundant SIGNED_IN event (e.g. fired when the browser tab regains
+  // focus) doesn't re-trigger a full loading state for a user we already have.
+  const loadedUserId = React.useRef(null);
 
   const loadProfileAndHierarchy = useCallback(async (userId) => {
     const [{ data: profileRow, error: profileErr }, { data: hierarchyRows }, { data: teamsRows }] =
@@ -163,6 +167,7 @@ export function AuthProvider({ children }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) {
+        loadedUserId.current = session.user.id;
         loadProfileAndHierarchy(session.user.id).finally(() => setLoading(false));
       } else {
         setLoading(false);
@@ -172,9 +177,16 @@ export function AuthProvider({ children }) {
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       if (event === 'SIGNED_IN') {
+        // supabase-js re-emits SIGNED_IN when the tab regains focus/visibility,
+        // even though the user never actually signed out. If we already have
+        // this user's data loaded, treat it as a no-op instead of re-showing
+        // the full-screen loading spinner and re-fetching everything.
+        if (loadedUserId.current === session.user.id) return;
+        loadedUserId.current = session.user.id;
         setLoading(true);
         loadProfileAndHierarchy(session.user.id).finally(() => setLoading(false));
       } else if (event === 'SIGNED_OUT') {
+        loadedUserId.current = null;
         setProfile(null); setHierarchy([]); setVisibleCodes([]);
         setLoading(false);
       }
