@@ -27,11 +27,9 @@ export default function Login() {
 
       <div className="login-card">
         {/* Logo pill */}
-        <div className="login-logos">
-          <div className="login-logos-pill">
-            <img src="/eipico-logo.png" alt="EIPICO" className="login-logo-company" />
-            <div className="login-logos-divider" />
-            <img src="/dept-logo.png" alt="Excellence Department" className="login-logo-dept" />
+        <div className="login-logos" style={{ justifyContent: 'center' }}>
+          <div className="login-logos-pill" style={{ background: 'transparent', border: 'none', boxShadow: 'none' }}>
+            <img src="/eipico_logo.png" alt="EIPICO Excellence" className="login-logo-company" style={{ height: '70px', width: 'auto', filter: 'drop-shadow(0 0 15px rgba(255,255,255,0.6))' }} />
           </div>
         </div>
 
