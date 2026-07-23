@@ -34,7 +34,7 @@ const T = {
     roleView:{ MR:'My Results', Supervisor:'My Team', 'Area Manager':'My Area', BLM:'Full Team', Admin:'All Teams' },
     avg:'Avg', sum:'Sum', teamSummary:'Team Summary',
     kpiGroups:[
-      { label:'Field Activity', keys:['working_days','complete_field_days','am_shift_days','pm_shift_days','double_visit_days','office_work_days'] },
+      { label:'Field Activity', keys:['working_days','complete_field_days','am_shift_days','pm_shift_days','double_visit_days','office_work_days','no_activities','no_events'] },
       { label:'Doctor Calls',   keys:['am_calls','am_call_rate','pm_calls','pm_call_rate'] },
       { label:'Coverage',       keys:['total_am_covered','total_pm_covered','amcenter_covered','hospital_covered','clinic_covered','polyclinic_covered'] },
       { label:'Pharmacy',       keys:['pharmacies_visited','pharmacies_covered'] },
@@ -51,7 +51,7 @@ const T = {
       amcenter_covered:'AM Center', hospital_covered:'Hospital',
       clinic_covered:'Clinic', polyclinic_covered:'Poly Clinic',
       double_visit_days:'Double Visits', coaching_days:'Coaching Days',
-      office_work_days:'Office Work',
+      office_work_days:'Office Work', no_activities:'Activities', no_events:'Events',
       pharmacies_visited:'Pharm. Visits', pharmacies_covered:'Pharm. Covered',
       total_product_calls:'Product Calls', distinct_products:'Products',
       avg_am_start_time:'AM Start Time', avg_am_shift_hm:'AM Duration', avg_pm_shift_hm:'PM Duration',
@@ -68,7 +68,7 @@ const T = {
     roleView:{ MR:'نتائجي', Supervisor:'فريقي', 'Area Manager':'منطقتي', BLM:'الفريق', Admin:'الكل' },
     avg:'متوسط', sum:'مجموع', teamSummary:'ملخص الفريق',
     kpiGroups:[
-      { label:'النشاط الميداني', keys:['working_days','complete_field_days','am_shift_days','pm_shift_days','double_visit_days','office_work_days'] },
+      { label:'النشاط الميداني', keys:['working_days','complete_field_days','am_shift_days','pm_shift_days','double_visit_days','office_work_days','no_activities','no_events'] },
       { label:'الزيارات',        keys:['am_calls','am_call_rate','pm_calls','pm_call_rate'] },
       { label:'التغطية',         keys:['total_am_covered','total_pm_covered','amcenter_covered','hospital_covered','clinic_covered','polyclinic_covered'] },
       { label:'الصيدليات',       keys:['pharmacies_visited','pharmacies_covered'] },
@@ -85,7 +85,7 @@ const T = {
       amcenter_covered:'مراكز AM', hospital_covered:'مستشفيات',
       clinic_covered:'عيادات', polyclinic_covered:'مراكز صحية',
       double_visit_days:'زيارات مزدوجة', coaching_days:'أيام التوجيه',
-      office_work_days:'مكتب',
+      office_work_days:'مكتب', no_activities:'الأنشطة', no_events:'الفعاليات',
       pharmacies_visited:'زيارات صيدليات', pharmacies_covered:'تغطية صيدليات',
       total_product_calls:'مكالمات منتج', distinct_products:'منتجات',
       avg_am_start_time:'بدء AM', avg_am_shift_hm:'مدة AM', avg_pm_shift_hm:'مدة PM',
@@ -95,6 +95,7 @@ const T = {
 
 const NUMERIC_KPI_KEYS = [
   'working_days','complete_field_days','am_shift_days','pm_shift_days','double_visit_days','office_work_days',
+  'no_activities','no_events',
   'am_calls','am_call_rate','pm_calls','pm_call_rate',
   'total_am_covered','total_pm_covered','amcenter_covered','hospital_covered','clinic_covered','polyclinic_covered',
   'pharmacies_visited','pharmacies_covered',
@@ -637,7 +638,7 @@ export default function Dashboard() {
         m.set(k,{...x,_am_days_sum:x.am_shift_days||0,_pm_days_sum:x.pm_shift_days||0,_am_dur_sum:(x.avg_am_shift_hm||0)*(x.am_shift_days||0),_pm_dur_sum:(x.avg_pm_shift_hm||0)*(x.pm_shift_days||0)});
       }else{
         const existing=m.get(k);
-        const sumKeys=['working_days','complete_field_days','am_shift_days','pm_shift_days','double_visit_days','office_work_days','am_calls','pm_calls','total_am_covered','total_pm_covered','amcenter_covered','hospital_covered','clinic_covered','polyclinic_covered','pharmacies_visited','pharmacies_covered','total_product_calls','distinct_products','coaching_days'];
+        const sumKeys=['working_days','complete_field_days','am_shift_days','pm_shift_days','double_visit_days','office_work_days','no_activities','no_events','am_calls','pm_calls','total_am_covered','total_pm_covered','amcenter_covered','hospital_covered','clinic_covered','polyclinic_covered','pharmacies_visited','pharmacies_covered','total_product_calls','distinct_products','coaching_days'];
         sumKeys.forEach(sk=>existing[sk]=(existing[sk]||0)+(x[sk]||0));
         if(x.territory && !existing.territory?.includes(x.territory)){
           existing.territory=existing.territory?`${existing.territory}; ${x.territory}`:x.territory;
