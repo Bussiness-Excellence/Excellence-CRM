@@ -4,23 +4,6 @@ import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import './Dashboard.css';
 
-// ── Fetch ALL rows matching a query, paging past Supabase/PostgREST's row cap ──
-// A single .range(0, 5000) silently truncates once total matches exceed it —
-// this loops until a page comes back short, guaranteeing everything is fetched.
-async function fetchAll(baseQueryFn, pageSize = 1000) {
-  let allRows = [];
-  let from = 0;
-  while (true) {
-    const { data, error } = await baseQueryFn().range(from, from + pageSize - 1);
-    if (error) return { data: allRows, error };
-    if (!data || data.length === 0) break;
-    allRows = allRows.concat(data);
-    if (data.length < pageSize) break; // last page
-    from += pageSize;
-  }
-  return { data: allRows, error: null };
-}
-
 // ── i18n ──────────────────────────────────────────────────────────────────────
 const T = {
   en: {
@@ -476,32 +459,21 @@ export default function Dashboard() {
     const isAdmin = profile?.role === 'Admin';
     const codes = visibleCodes;
 
-    const buildSummary = () => {
-      let q = supabase.from('summaries').select('*').eq('period', periodLabel);
-      if (!isAdmin) q = q.in('employee_code', codes);
-      return q;
-    };
-    const buildSpecialty = () => {
-      let q = supabase.from('specialty_classification').select('*').eq('period', periodLabel);
-      if (!isAdmin) q = q.in('employee_code', codes);
-      return q;
-    };
-    const buildProducts = () => {
-      let q = supabase.from('product_calls').select('*').eq('period', periodLabel);
-      if (!isAdmin) q = q.in('employee_code', codes);
-      return q;
-    };
-    const buildCoaching = () => supabase.from('coaching_days').select('*').eq('period', periodLabel);
+    const { data, error: rpcError } = await supabase.rpc('get_dashboard_data', {
+      p_period: periodLabel,
+      p_codes: codes,
+      p_is_admin: isAdmin,
+      p_is_manager: isMgr
+    });
 
-    const queries = [fetchAll(buildSummary), fetchAll(buildSpecialty), fetchAll(buildProducts)];
-    if (isMgr) queries.push(fetchAll(buildCoaching));
-
-    const [s, sp, pr, co] = await Promise.all(queries);
-    if (s.error) setError(s.error.message);
-    setSummary(s.data || []);
-    setSpecialty(sp.data || []);
-    setProducts(pr.data || []);
-    setCoaching(isMgr ? (co?.data || []) : []);
+    if (rpcError) {
+      setError(rpcError.message);
+    }
+    
+    setSummary(data?.summaries || []);
+    setSpecialty(data?.specialty || []);
+    setProducts(data?.products || []);
+    setCoaching(data?.coaching || []);
     setLoading(false);
   },[periodLabel,visibleCodes,isMgr,profile]);
 
