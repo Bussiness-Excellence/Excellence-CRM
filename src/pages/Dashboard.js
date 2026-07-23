@@ -549,15 +549,31 @@ export default function Dashboard() {
     // Skip if already fetched this key (tab switch won't retrigger)
     if(!force && fetchedKeyRef.current === currentKey) return;
 
+    const SPECIAL_MANAGERS = [
+      'ahmad morsy', 'ahmed elasyed', 'ahmed tarek mohamed', 'akram ahmed elhossary',
+      'asmaa abdel fattah', 'dm', 'evette zakaria hefni', 'gihad sayed', 'hosney mohamed',
+      'islam abd elrahman', 'kamel ragab', 'mahmoud essam', 'mahmoud rabee', 'mahmoud younis',
+      'mohamed elmostafa', 'mohamed shenawey', 'reda hasan abdelmaksod', 'samr nabil',
+      'ahmad behiery', 'tamer lamee', 'wael zaki'
+    ];
+
+    const overrideSpecialManagers = (rows) => (rows || []).map(r => {
+      const name = (r.user_name || r.employee_name || r.manager_name || r.rep_name || '').toLowerCase();
+      if (SPECIAL_MANAGERS.includes(name)) {
+        return { ...r, team: 'Other Managers' };
+      }
+      return r;
+    });
+
     // Try sessionStorage cache first
     const cached = !force && sessionStorage.getItem(cacheKey);
     if(cached) {
       try {
         const parsed = JSON.parse(cached);
-        setSummary(parsed.summaries || []);
-        setSpecialty(parsed.specialty || []);
-        setProducts(parsed.products || []);
-        setCoaching(parsed.coaching || []);
+        setSummary(overrideSpecialManagers(parsed.summaries));
+        setSpecialty(overrideSpecialManagers(parsed.specialty));
+        setProducts(overrideSpecialManagers(parsed.products));
+        setCoaching(overrideSpecialManagers(parsed.coaching));
         fetchedKeyRef.current = currentKey;
         setLoading(false);
         return;
