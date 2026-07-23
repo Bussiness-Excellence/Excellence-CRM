@@ -452,13 +452,31 @@ export default function Dashboard() {
   const rtl = lang==='ar';
   const isMgr = profile?.role && profile.role!=='MR';
   const periodLabel = period==='last_month'?'Last Month':'Recent';
+  const [dataLoaded, setDataLoaded] = React.useState(false);
 
-  const load = useCallback(async()=>{
+  const load = useCallback(async(force=false)=>{
     if(!visibleCodes?.length){setLoading(false);return;}
-    setLoading(true); setError('');
     const isAdmin = profile?.role === 'Admin';
     const codes = visibleCodes;
+    const cacheKey = `dash_${periodLabel}_${codes.slice(0,5).join(',')}_${isMgr}`;
 
+    // Serve from cache if already loaded this session (and not forcing refresh)
+    if(!force && dataLoaded) return;
+    const cached = !force && sessionStorage.getItem(cacheKey);
+    if(cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        setSummary(parsed.summaries || []);
+        setSpecialty(parsed.specialty || []);
+        setProducts(parsed.products || []);
+        setCoaching(parsed.coaching || []);
+        setDataLoaded(true);
+        setLoading(false);
+        return;
+      } catch(e) { /* ignore corrupted cache */ }
+    }
+
+    setLoading(true); setError('');
     const { data, error: rpcError } = await supabase.rpc('get_dashboard_data', {
       p_period: periodLabel,
       p_codes: codes,
@@ -468,16 +486,26 @@ export default function Dashboard() {
 
     if (rpcError) {
       setError(rpcError.message);
+    } else {
+      try { sessionStorage.setItem(cacheKey, JSON.stringify(data)); } catch(e) {}
     }
     
     setSummary(data?.summaries || []);
     setSpecialty(data?.specialty || []);
     setProducts(data?.products || []);
     setCoaching(data?.coaching || []);
+    setDataLoaded(true);
     setLoading(false);
-  },[periodLabel,visibleCodes,isMgr,profile]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[periodLabel,visibleCodes,isMgr,profile,dataLoaded]);
 
-  useEffect(()=>{load();},[load]);
+  // Only re-run load when period/codes/role change — NOT on every render
+  useEffect(()=>{
+    setDataLoaded(false); // reset so next load() call actually fetches
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[periodLabel, JSON.stringify(visibleCodes), isMgr]);
+
+  useEffect(()=>{ if(!dataLoaded) load(); },[dataLoaded, load]);
 
   // ── Filtering ──────────────────────────────────────────────────────────────
   const teams=useMemo(()=>[...new Set(summary.flatMap(r=>(r.team||'').split('; ')).filter(Boolean))].sort(),[summary]);
@@ -996,6 +1024,17 @@ export default function Dashboard() {
             <div className="du-name">{profile?.employee_name}</div>
             <div className="du-role">{profile?.role} · {profile?.employee_code}</div>
           </div>
+          <button
+            className="hbtn hbtn-outline"
+            title={rtl ? 'تحديث البيانات' : 'Refresh Data'}
+            style={{padding: '6px 10px', fontSize: '13px', lineHeight: 1}}
+            onClick={()=>{ sessionStorage.clear(); setDataLoaded(false); }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{display:'inline-block',verticalAlign:'middle'}}>
+              <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+          </button>
           <button className="hbtn hbtn-outline" onClick={signOut}>{t.signOut}</button>
         </div>
       </header>
