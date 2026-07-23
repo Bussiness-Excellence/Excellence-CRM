@@ -625,8 +625,34 @@ export default function Dashboard() {
         existing.avg_pm_shift_hm=existing._pm_days_sum>0?(existing._pm_dur_sum/existing._pm_days_sum):0;
       }
     });
-    return sortSummary(Array.from(m.values()));
-  },[summary,byTeam,byLineManager,byManagerTerritory,search,userFilter,hierarchy]);
+    const finalArr = Array.from(m.values());
+    
+    // Recalculate coaching days from actual coaching data for both managers and reps
+    const mgrCoachingMap = {};
+    const repCoachingMap = {};
+    (coaching || []).forEach(c => {
+       const mgr = c.manager_name;
+       const rep = c.rep_name;
+       if (mgr) {
+         if (!mgrCoachingMap[mgr]) mgrCoachingMap[mgr] = new Set();
+         mgrCoachingMap[mgr].add(c.coaching_date);
+       }
+       if (rep) {
+         if (!repCoachingMap[rep]) repCoachingMap[rep] = new Set();
+         repCoachingMap[rep].add(c.coaching_date);
+       }
+    });
+
+    finalArr.forEach(x => {
+       if (x.is_manager) {
+           x.coaching_days = mgrCoachingMap[x.user_name] ? mgrCoachingMap[x.user_name].size : 0;
+       } else {
+           x.coaching_days = repCoachingMap[x.user_name] ? repCoachingMap[x.user_name].size : 0;
+       }
+    });
+
+    return sortSummary(finalArr);
+  },[summary,coaching,byTeam,byLineManager,byManagerTerritory,search,userFilter,hierarchy]);
 
   const fSpecialty = useMemo(()=>{
     let r=byManagerTerritory(byLineManager(byTeam(specialty)));
@@ -1004,7 +1030,8 @@ export default function Dashboard() {
                       if(shift==='PM') return !['am_calls','am_call_rate','am_shift_days','total_am_covered','amcenter_covered','hospital_covered','avg_am_shift_hm','avg_am_start_time'].includes(k);
                       return true;
                     });
-                    if(g.keys.includes('coaching_days')&&!isMgr) return null;
+                    // Hide entire group if no valid keys OR if it's the coaching tab and the user has no coaching records
+                    if(g.keys.includes('coaching_days') && (selectedRepData.coaching_days === 0 || !selectedRepData.coaching_days)) return null;
                     const kpiRows = keys.map(k=>({k,v:selectedRepData[k]})).filter(x=>x.v!==null&&x.v!==undefined&&x.v!=='');
                     if(!kpiRows.length) return null;
                     return (
@@ -1012,7 +1039,7 @@ export default function Dashboard() {
                         <div className="sb-kpi-hd">{g.label}</div>
                         {kpiRows.map(({k,v})=>(
                           <div key={k} className="sb-kpi-row">
-                            <span>{t.kpi[k]||k}</span>
+                            <span>{k === 'coaching_days' ? (selectedRepData.is_manager ? t.kpi[k] : (rtl ? 'تم التوجيه' : 'Coached')) : (t.kpi[k]||k)}</span>
                             <span className="sb-kpi-val">{fmtVal(v,k)}</span>
                           </div>
                         ))}
