@@ -29,7 +29,7 @@ export default function Login() {
         {/* Logo pill */}
         <div className="login-logos" style={{ justifyContent: 'center' }}>
           <div className="login-logos-pill" style={{ background: 'transparent', border: 'none', boxShadow: 'none' }}>
-            <img src="/eipico_logo.png" alt="EIPICO Excellence" className="login-logo-company" style={{ height: '70px', width: 'auto', filter: 'drop-shadow(0 0 15px rgba(255,255,255,0.6))' }} />
+            <img src="/eipico_logo.png" alt="EIPICO Excellence" className="login-logo-company" style={{ height: '70px', width: 'auto' }} />
           </div>
         </div>
 
