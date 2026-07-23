@@ -161,12 +161,12 @@ export function AuthProvider({ children }) {
       }
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
-      if (session) {
+      if (event === 'SIGNED_IN') {
         setLoading(true);
         loadProfileAndHierarchy(session.user.id).finally(() => setLoading(false));
-      } else {
+      } else if (event === 'SIGNED_OUT') {
         setProfile(null); setHierarchy([]); setVisibleCodes([]);
         setLoading(false);
       }

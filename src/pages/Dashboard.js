@@ -712,7 +712,7 @@ export default function Dashboard() {
           }
         }
       });
-      r = r.filter(x => managerNames.has(x.manager_name));
+      r = r.filter(x => managerNames.has(x.manager_name) || managerNames.has(x.rep_name));
     }
     return r;
   },[coaching,byTeam,byLineManager,byManagerTerritory,search,userFilter,visibleNames,profile,hierarchy]);
@@ -1235,7 +1235,7 @@ export default function Dashboard() {
           )}
 
           {/* ─── COACHING SIDEBAR ────────────────────────────── */}
-          {tab==='coaching' && isMgr && (
+          {tab==='coaching' && (
             <div className="sb-panel">
               <div className="sb-section-hd">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
@@ -1247,7 +1247,7 @@ export default function Dashboard() {
                   {rtl?'عرض الكل':'Show all'}
                 </button>
               )}
-              {managerGroups.map(mgr => (
+              {managerGroups.length > 0 ? managerGroups.map(mgr => (
                 <div key={mgr.name}
                   className={`sb-mgr-card${selectedManager===mgr.name?' active':''}`}
                   onClick={()=>setSelectedManager(selectedManager===mgr.name?null:mgr.name)}>
@@ -1263,7 +1263,11 @@ export default function Dashboard() {
                     <div className="sb-mgr-stat">{mgr.repCount}<small> reps</small></div>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div style={{padding: '16px', color: 'var(--text-light)', fontSize: '13px', textAlign: 'center'}}>
+                  {rtl ? 'لا يوجد مديرون لهذه الفترة.' : 'No managers for this period.'}
+                </div>
+              )}
             </div>
             )}
           </aside>
