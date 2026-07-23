@@ -4,23 +4,6 @@ import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import './Dashboard.css';
 
-// ── Fetch ALL rows matching a query, paging past Supabase/PostgREST's row cap ──
-// A single .range(0, 5000) silently truncates once total matches exceed it —
-// this loops until a page comes back short, guaranteeing everything is fetched.
-async function fetchAll(baseQueryFn, pageSize = 1000) {
-  let allRows = [];
-  let from = 0;
-  while (true) {
-    const { data, error } = await baseQueryFn().range(from, from + pageSize - 1);
-    if (error) return { data: allRows, error };
-    if (!data || data.length === 0) break;
-    allRows = allRows.concat(data);
-    if (data.length < pageSize) break; // last page
-    from += pageSize;
-  }
-  return { data: allRows, error: null };
-}
-
 // ── i18n ──────────────────────────────────────────────────────────────────────
 const T = {
   en: {
