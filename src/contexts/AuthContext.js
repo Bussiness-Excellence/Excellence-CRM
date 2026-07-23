@@ -139,7 +139,18 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    if (['4321', '5607'].includes(String(profileRow.employee_code))) {
+    const SPECIAL_MANAGERS = [
+      'ahmad morsy', 'ahmed elasyed', 'ahmed tarek mohamed', 'akram ahmed elhossary',
+      'asmaa abdel fattah', 'dm', 'evette zakaria hefni', 'gihad sayed', 'hosney mohamed',
+      'islam abd elrahman', 'kamel ragab', 'mahmoud essam', 'mahmoud rabee', 'mahmoud younis',
+      'mohamed elmostafa', 'mohamed shenawey', 'reda hasan abdelmaksod', 'samr nabil',
+      'ahmad behiery', 'tamer lamee', 'wael zaki',
+      'ahmed e', 'gehad sy', 'reda ha', 'samar na', 'mahmoud'
+    ];
+
+    const SPECIAL_MANAGER_CODES = ['16595', '10129', '6010', '13248', '4187', '15200', '4321', '5607'];
+
+    if (SPECIAL_MANAGER_CODES.includes(String(profileRow.employee_code)) || SPECIAL_MANAGERS.includes(profileRow.employee_name?.toLowerCase())) {
       profileRow.role = 'Stakeholder';
       if (!profileRow.visible_teams || profileRow.visible_teams.length === 0) {
         profileRow.visible_teams = [...new Set((teamsRows || []).map(t => t.name))];

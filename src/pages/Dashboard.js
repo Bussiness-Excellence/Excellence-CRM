@@ -577,11 +577,11 @@ export default function Dashboard() {
     } else {
       try { sessionStorage.setItem(cacheKey, JSON.stringify(data)); } catch(e) {}
     }
-    
-    setSummary(data?.summaries || []);
-    setSpecialty(data?.specialty || []);
-    setProducts(data?.products || []);
-    setCoaching(data?.coaching || []);
+
+    setSummary(overrideSpecialManagers(data?.summaries));
+    setSpecialty(overrideSpecialManagers(data?.specialty));
+    setProducts(overrideSpecialManagers(data?.products));
+    setCoaching(overrideSpecialManagers(data?.coaching));
     fetchedKeyRef.current = currentKey;
     setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1512,9 +1512,10 @@ export default function Dashboard() {
                   {search&&<button className="search-clear" onClick={()=>setSearch('')}>✕</button>}
                 </div>
               </div>
-              <div className="ctrl-end">
+              <div className="ctrl-end" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <span className="ctrl-stat">{t.people(fSummary.length)}{teamCount>1&&` · ${teamCount} teams`}</span>
-                <button className="hbtn hbtn-primary" onClick={doExport}>↓ {t.export}</button>
+                <button className="hbtn hbtn-primary" onClick={doExport}>↓ Export</button>
+                <span style={{ fontSize: '10px', marginTop: '2px', color: 'var(--text-muted)' }}>be the analyst</span>
               </div>
             </div>
           </div>
