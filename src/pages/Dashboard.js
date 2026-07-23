@@ -510,9 +510,12 @@ export default function Dashboard() {
   const teams=useMemo(()=>[...new Set(summary.flatMap(r=>(r.team||'').split('; ')).filter(Boolean))].sort(),[summary]);
   const byTeam=useCallback(rows=>{
     if(team==='all') return rows;
-    const teamUserNames = new Set(summary.filter(r=>(r.team||'').split('; ').includes(team)).map(r=>r.user_name));
-    return rows.filter(r => teamUserNames.has(r.user_name));
-  },[team, summary]);
+    // Filter directly on each row's own `team` field. Every table (summary,
+    // specialty, product_calls, coaching_days) carries its own correct `team`
+    // column now — cross-referencing through summary.user_name broke Coaching,
+    // since coaching rows use manager_name/rep_name instead of user_name.
+    return rows.filter(r => (r.team || '').split('; ').includes(team));
+  },[team]);
 
   const userHierarchyMap = useMemo(() => {
     const map = {};
