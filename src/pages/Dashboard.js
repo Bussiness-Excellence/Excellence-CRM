@@ -751,6 +751,14 @@ export default function Dashboard() {
     ];
   }, [fSummary, selectedRep, rtl]);
 
+  const activityEventData = useMemo(() => {
+    let rows = fSummary.filter(r => !r.is_manager);
+    if (selectedRep) rows = rows.filter(r => r.user_name === selectedRep);
+    const totalActivities = rows.reduce((s, r) => s + (Number(r.no_activities) || 0), 0);
+    const totalEvents = rows.reduce((s, r) => s + (Number(r.no_events) || 0), 0);
+    return { totalActivities, totalEvents };
+  }, [fSummary, selectedRep]);
+
   const allUsers=useMemo(()=>[...new Set(byTeam(summary).map(r=>r.user_name))].sort(),[summary,byTeam]);
   const teamCount=new Set(fSummary.map(r=>r.team)).size;
 
@@ -1010,6 +1018,31 @@ export default function Dashboard() {
                     {rtl ? 'توزيع تغطية PM (عيادات vs مراكز)' : 'PM Coverage (Clinic vs Poly Clinic)'}
                   </div>
                   <PieChart data={pmCoveragePieData} title={rtl ? 'نسبة المساهمة %' : 'Contribution %'} />
+                  <div className="sb-divider"/>
+                </>
+              )}
+              {(activityEventData.totalActivities > 0 || activityEventData.totalEvents > 0) && (
+                <>
+                  <div className="sb-section-hd">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+                    {rtl ? 'الأنشطة والفعاليات' : 'Activities & Events'}
+                  </div>
+                  <div className="sb-team-group" style={{marginTop: '8px', marginBottom: '16px'}}>
+                    <div className="sb-rep-row" style={{cursor:'default', background:'transparent'}}>
+                      <span className="sb-rep-name">{t.kpi.no_activities || 'Activities'}</span>
+                      <div className="sb-rep-bar-wrap">
+                        <div className="sb-rep-bar" style={{backgroundColor: '#8b5cf6', width:`${Math.min(100, activityEventData.totalActivities / Math.max(1, activityEventData.totalActivities, activityEventData.totalEvents) * 100)}%`}}/>
+                      </div>
+                      <span className="sb-rep-val">{activityEventData.totalActivities}</span>
+                    </div>
+                    <div className="sb-rep-row" style={{cursor:'default', background:'transparent'}}>
+                      <span className="sb-rep-name">{t.kpi.no_events || 'Events'}</span>
+                      <div className="sb-rep-bar-wrap">
+                        <div className="sb-rep-bar" style={{backgroundColor: '#ec4899', width:`${Math.min(100, activityEventData.totalEvents / Math.max(1, activityEventData.totalActivities, activityEventData.totalEvents) * 100)}%`}}/>
+                      </div>
+                      <span className="sb-rep-val">{activityEventData.totalEvents}</span>
+                    </div>
+                  </div>
                   <div className="sb-divider"/>
                 </>
               )}
