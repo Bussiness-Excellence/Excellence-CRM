@@ -165,13 +165,6 @@ function computeAggregates(rows) {
   return { agg, repCount: reps.length || rows.length };
 }
 
-function daysUntil15th() {
-  const now = new Date();
-  let target = new Date(now.getFullYear(), now.getMonth(), 15, 23, 59, 59);
-  if (now > target) target = new Date(now.getFullYear(), now.getMonth() + 1, 15, 23, 59, 59);
-  return Math.max(0, Math.ceil((target - now) / (1000 * 60 * 60 * 24)));
-}
-
 // ── PieChart (SVG donut) ─────────────────────────────────────────────────────
 // ── KPI targets for progress indicators ─────────────────────────────────────
 const KPI_TARGETS = {
@@ -1048,26 +1041,10 @@ export default function Dashboard() {
   }, [fCoaching, selectedManager, visibleNames, profile]);
 
   // ── Actions ────────────────────────────────────────────────────────────────
-  function toggleSpecialty(s) {
-    setSpecialtyFilter(prev => {
-      const next = new Set(prev);
-      if (next.has(s)) next.delete(s); else next.add(s);
-      return next;
-    });
-  }
-
   function toggleProduct(p) {
     setProductFilter(prev => {
       const next = new Set(prev);
       if (next.has(p)) next.delete(p); else next.add(p);
-      return next;
-    });
-  }
-
-  function toggleClassification(c) {
-    setClassificationFilter(prev => {
-      const next = new Set(prev);
-      if (next.has(c)) next.delete(c); else next.add(c);
       return next;
     });
   }
@@ -1105,8 +1082,6 @@ export default function Dashboard() {
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
-  const countdown = daysUntil15th();
-
   const handleAiSubmit = async (e) => {
     e.preventDefault();
     if (!aiInput.trim() || isAiLoading) return;
