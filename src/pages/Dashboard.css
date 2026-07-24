@@ -5,48 +5,48 @@
 
 /* ── Design Tokens ──────────────────────────────────── */
 :root {
-  --navy:   #1e293b;
-  --navy2:  #334155;
-  --navy3:  #475569;
-  --navy4:  #64748b;
-  --gold:   #2563eb;
-  --gold2:  #3b82f6;
-  --gold-glow: rgba(37, 99, 235, 0.15);
-  
-  --bg:    #f1f5f9;
-  --surf:  #ffffff;
-  --surf2: #f8fafc;
-  --bdr:   #e2e8f0;
-  --bdr2:  #cbd5e1;
-  
+  --navy:   #0f172a;
+  --navy2:  #1e3a6e;
+  --navy3:  #3355a0;
+  --navy4:  #51658a;
+  --gold:   #1d4ed8;   /* Cobalt — primary crystal body */
+  --gold2:  #0ea5e9;   /* Azure — crystal facet glow */
+  --gold-glow: rgba(29, 78, 216, 0.22);
+  --amber:  #d97a06;   /* Glint — the one warm note, used sparingly */
+  --amber-glow: rgba(217, 122, 6, 0.24);
+
+  --bg:    transparent;  /* index.css paints the crystal gradient behind this */
+  --surf:  rgba(255, 255, 255, 0.66);
+  --surf2: rgba(240, 246, 255, 0.55);
+  --bdr:   rgba(29, 78, 216, 0.14);
+  --bdr2:  rgba(14, 165, 233, 0.30);
+
   --txt:   #0f172a;
-  --mute:  #64748b;
-  
-  --am:    #2563eb;
-  --am-bg: rgba(37, 99, 235, 0.1);
+  --mute:  #4c5f82;
+
+  --am:    #1d4ed8;
+  --am-bg: rgba(29, 78, 216, 0.09);
   --pm:    #0891b2;
-  --pm-bg: rgba(8, 145, 178, 0.1);
-  
+  --pm-bg: rgba(8, 145, 178, 0.09);
+
   --r:    14px;
   --r-sm: 10px;
-  
-  --sh:  0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
-  --sh2: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-  --sh3: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
-  
-  --grad-surf:    #ffffff;
-  --grad-primary: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%);
-  --grad-navy:    #f8fafc;
-  --crystal-edge: transparent;
-  
+
+  --sh:  0 1px 2px rgba(15,42,110,.07), 0 2px 10px rgba(15,42,110,.07);
+  --sh2: 0 2px 8px rgba(15,42,110,.09), 0 10px 28px rgba(15,42,110,.11);
+  --sh3: 0 6px 16px rgba(15,42,110,.11), 0 22px 52px rgba(15,42,110,.16);
+
+  --grad-surf:    linear-gradient(180deg, rgba(255,255,255,.82) 0%, rgba(236,244,255,.58) 100%);
+  --grad-primary: linear-gradient(135deg, #1d4ed8 0%, #2563eb 55%, #0ea5e9 100%);
+  --grad-navy:    linear-gradient(180deg, #eef4ff 0%, #dfeaff 100%);
+  --crystal-edge: linear-gradient(120deg, rgba(255,255,255,.95) 0%, rgba(191,219,254,.2) 45%, rgba(217,122,6,.35) 78%, rgba(255,255,255,.6) 100%);
+
   --transition:   .2s cubic-bezier(0.4, 0, 0.2, 1);
-  --glass-blur:   0px;
-  
-  --panel-bg: #ffffff;
-  --panel-border: #e2e8f0;
-  
-  /* Sidebar specifically requested to be a bit darker than pale white */
-  --sidebar-bg: #e2e8f0;
+  --glass-blur:   18px;
+
+  --panel-bg: rgba(255, 255, 255, 0.62);
+  --panel-border: rgba(29, 78, 216, 0.13);
+  --sidebar-bg: rgba(238, 244, 255, 0.6);
 }
 
 /* Dark mode — even deeper */
@@ -58,6 +58,8 @@ html.dark {
   --gold:   #60b8ff;
   --gold2:  #93d4ff;
   --gold-glow: rgba(96, 184, 255, 0.35);
+  --amber:  #f0a83c;
+  --amber-glow: rgba(240, 168, 60, 0.3);
   --surf:   rgba(8, 18, 48, 0.65);
   --surf2:  rgba(12, 25, 60, 0.75);
   --bdr:    rgba(60, 130, 246, 0.25);
@@ -193,7 +195,7 @@ html.dark .kpi-card-progress { background: rgba(255,255,255,.10); }
 /* ── Base ───────────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{
-  font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-family:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   background:var(--bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -226,20 +228,20 @@ body{
   gap: 6px;
 }
 .dash-brand {
-  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-size: 15px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #7ec8ff 0%, #4d9fff 60%, #93d4ff 100%);
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  background: linear-gradient(100deg, #1d4ed8 0%, #0ea5e9 55%, var(--amber) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  letter-spacing: 0.04em;
-  filter: drop-shadow(0 0 12px rgba(77,159,255,.5));
+  letter-spacing: 0.02em;
+  filter: drop-shadow(0 0 10px var(--gold-glow));
 }
 .dash-brand-sub {
   font-size: 10px;
   font-weight: 500;
-  color: rgba(177,210,255,.5);
+  color: var(--mute);
   text-transform: lowercase;
   letter-spacing: 0.04em;
 }
@@ -259,15 +261,15 @@ body{
   text-decoration:none;transition:all var(--transition);white-space:nowrap
 }
 .hbtn-outline{
-  background:rgba(77,159,255,.08);
-  color:rgba(200,225,255,.8);
-  border:1px solid rgba(77,159,255,.28);
+  background: rgba(29,78,216,.06);
+  color: var(--navy2);
+  border: 1px solid var(--bdr2);
 }
 .hbtn-outline:hover{
-  background:rgba(77,159,255,.16);
-  color:#fff;
-  border-color:rgba(77,159,255,.55);
-  box-shadow:0 0 12px rgba(77,159,255,.20);
+  background: rgba(29,78,216,.13);
+  color: var(--gold);
+  border-color: var(--gold);
+  box-shadow: 0 0 12px var(--gold-glow);
 }
 .hbtn-lang{background:var(--grad-primary);color:var(--txt);letter-spacing:.03em}
 .hbtn-lang:hover{filter:brightness(1.1);box-shadow:0 2px 14px var(--gold-glow)}
@@ -385,12 +387,12 @@ body{
   border-bottom-color:var(--gold);
   background:linear-gradient(to top, rgba(77,159,255,.10), transparent);
 }
-/* Active tab glow dot */
+/* Active tab glow dot — the crystal glint signature */
 .dtab.on::before{
   content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);
   width:6px;height:6px;border-radius:50%;
-  background:var(--gold);
-  box-shadow:0 0 10px var(--gold-glow);
+  background:linear-gradient(135deg, var(--gold), var(--amber));
+  box-shadow:0 0 10px var(--amber-glow);
 }
 
 /* ── System messages ─────────────────────────────────── */
@@ -448,7 +450,7 @@ body{
   border-bottom: 1px solid rgba(77,159,255,.14);
 }
 .ucard-info{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
-.ucard-name{font-size:16px;font-weight:700;color:var(--txt);line-height:1.3}
+.ucard-name{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;color:var(--txt);line-height:1.3;letter-spacing:.01em}
 .ucard-meta{font-size:13px;color:var(--mute);margin-top:2px}
 .ucard-terr{
   font-size:12px;color:var(--mute);margin-top:3px;
@@ -498,7 +500,8 @@ body{
 .kpi-row{display:flex;justify-content:space-between;align-items:center;padding:3.5px 0}
 .kpi-lbl{font-size:14px;color:var(--mute);font-weight:500}
 .kpi-v{
-  font-size:15px;font-weight:700;color:var(--txt);
+  font-family:'IBM Plex Mono',ui-monospace,monospace;
+  font-size:14px;font-weight:600;color:var(--txt);
   font-variant-numeric:tabular-nums;
 }
 .kpi-v.rate{
@@ -519,6 +522,14 @@ body{
 }
 
 /* ── Pivot tables ────────────────────────────────────── */
+.pivot-top-scroll{
+  overflow-x:auto;
+  overflow-y:hidden;
+  height:14px;
+  margin-bottom:4px;
+  border-radius:var(--r-sm);
+}
+.pivot-top-scroll::-webkit-scrollbar{height:10px}
 .pivot-wrap{
   overflow-x:auto;
   background: var(--panel-bg);
@@ -1010,8 +1021,9 @@ body{
   transition: stroke-dasharray 0.5s ease-out, stroke-dashoffset 0.5s ease-out;
 }
 .pie-center-val {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
   fill: var(--navy);
   font-variant-numeric: tabular-nums;
 }
