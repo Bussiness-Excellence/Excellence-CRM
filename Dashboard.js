@@ -883,14 +883,27 @@ export default function Dashboard() {
       r = r.filter(x => managerNames.has(x.manager_name) || managerNames.has(x.rep_name));
     }
 
-    // Deduplicate coaching sessions
-    const seen = new Set();
-    r = r.filter(x => {
-      const key = `${x.manager_name}|${x.rep_name}|${x.coaching_date}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
+    // Deduplicate coaching sessions (case-insensitive, trim spaces), keeping the one with max visits
+    const map = new Map();
+    r.forEach(x => {
+      const mgr = (x.manager_name || '').trim().toLowerCase();
+      const rep = (x.rep_name || '').trim().toLowerCase();
+      const d = (x.coaching_date || '').trim().toLowerCase();
+      const key = `${mgr}|${rep}|${d}`;
+      
+      const existing = map.get(key);
+      const currentTotal = (Number(x.am_visits) || 0) + (Number(x.pm_visits) || 0);
+      
+      if (!existing) {
+        map.set(key, x);
+      } else {
+        const existingTotal = (Number(existing.am_visits) || 0) + (Number(existing.pm_visits) || 0);
+        if (currentTotal > existingTotal) {
+          map.set(key, x);
+        }
+      }
     });
+    r = Array.from(map.values());
 
     return r;
   },[coaching,byTeam,byLineManager,byManagerTerritory,search,userFilter,visibleNames,profile,hierarchy]);
