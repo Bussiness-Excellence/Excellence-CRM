@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import * as XLSX from 'xlsx';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import './Dashboard.css';
@@ -164,19 +163,6 @@ function computeAggregates(rows) {
   });
   return { agg, repCount: reps.length || rows.length };
 }
-
-// ── PieChart (SVG donut) ─────────────────────────────────────────────────────
-// ── KPI targets for progress indicators ─────────────────────────────────────
-const KPI_TARGETS = {
-  working_days: 22,
-  complete_field_days: 20,
-  am_calls: 120,
-  pm_calls: 120,
-  total_am_covered: 80,
-  total_pm_covered: 80,
-  pharmacies_visited: 40,
-  coaching_days: 4,
-};
 
 // ── PieChart (SVG donut) ─────────────────────────────────────────────────────
 function PieChart({ data, title, size = 140, thickness = 22, onSelect, activeFilters = new Set() }) {
@@ -519,7 +505,7 @@ function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFil
 
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const { profile, hierarchy, visibleCodes, signOut } = useAuth();
+  const { profile, hierarchy, visibleCodes } = useAuth();
   const [lang, setLang]       = useState(profile?.preferred_lang||'en');
   const [period, setPeriod]   = useState('recent');
   const [team, setTeam]       = useState('all');
@@ -536,20 +522,17 @@ export default function Dashboard() {
 
   // Sidebar states
   const [selectedRep, setSelectedRep]         = useState(null);
-  const [specialtyFilter, setSpecialtyFilter] = useState(new Set());
-  const [productFilter, setProductFilter]     = useState(new Set());
-  const [classificationFilter, setClassificationFilter] = useState(new Set());
-  const [selectedManager, setSelectedManager] = useState(null);
   const [lineManagerFilter, setLineManagerFilter] = useState('all');
   const [managerTerritoryFilter, setManagerTerritoryFilter] = useState('all');
   const [sidebarOpen, setSidebarOpen]         = useState(false);
-  const [theme, setTheme]                     = useState(() => localStorage.getItem('theme') || 'light');
-  
-  // AI Chat States
-  const [isAiOpen, setIsAiOpen] = useState(false);
-  const [aiInput, setAiInput] = useState('');
-  const [aiHistory, setAiHistory] = useState([]);
-  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [theme, setTheme]                     = useState(() => {
+    const saved = localStorage.getItem('theme');
+    if (!saved || saved === 'light') {
+      localStorage.setItem('theme', 'dark');
+      return 'dark';
+    }
+    return saved;
+  });
 
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
@@ -899,18 +882,32 @@ export default function Dashboard() {
       });
       r = r.filter(x => managerNames.has(x.manager_name) || managerNames.has(x.rep_name));
     }
+
+    // Deduplicate coaching sessions (ultra-aggressive: remove all non-alphanumeric chars for key matching)
+    const map = new Map();
+    r.forEach(x => {
+      const normalize = (str) => (str || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      const mgr = normalize(x.manager_name);
+      const rep = normalize(x.rep_name);
+      const d = normalize(x.coaching_date);
+      const key = `${mgr}|${rep}|${d}`;
+      
+      const existing = map.get(key);
+      const currentTotal = (Number(x.am_visits) || 0) + (Number(x.pm_visits) || 0);
+      
+      if (!existing) {
+        map.set(key, x);
+      } else {
+        const existingTotal = (Number(existing.am_visits) || 0) + (Number(existing.pm_visits) || 0);
+        if (currentTotal > existingTotal) {
+          map.set(key, x);
+        }
+      }
+    });
+    r = Array.from(map.values());
+
     return r;
   },[coaching,byTeam,byLineManager,byManagerTerritory,search,userFilter,visibleNames,profile,hierarchy]);
-
-  const companyAverages = useMemo(() => {
-    const reps = summary.filter(r => !r.is_manager);
-    const avgs = {};
-    NUMERIC_KPI_KEYS.forEach(key => {
-      const vals = reps.map(r => Number(r[key])||0).filter(v => v > 0);
-      avgs[key] = vals.length ? (vals.reduce((s,v)=>s+v, 0) / vals.length) : 0;
-    });
-    return avgs;
-  }, [summary]);
 
   const userTeamMap = useMemo(() => {
     const map = {};
@@ -943,9 +940,6 @@ export default function Dashboard() {
     const totalEvents = rows.reduce((s, r) => s + (Number(r.no_events) || 0), 0);
     return { totalActivities, totalEvents };
   }, [fSummary, selectedRep]);
-
-  const allUsers=useMemo(()=>[...new Set(byTeam(summary).map(r=>r.user_name))].sort(),[summary,byTeam]);
-  const teamCount=new Set(fSummary.map(r=>r.team)).size;
 
   const teamGroups = useMemo(() => {
     const isAdmin = profile?.role === 'Admin';
@@ -1104,19 +1098,39 @@ export default function Dashboard() {
 
   function doExport(){
     const wb=XLSX.utils.book_new();
-    const allKpiKeys=t.kpiGroups.flatMap(g=>g.keys);
-    const sh=[['Team','User','Territory','Manager',...allKpiKeys.map(k=>t.kpi[k]||k)]];
-    fSummary.forEach(r=>sh.push([r.team,r.user_name,r.territory,r.is_manager?'✓':'',...allKpiKeys.map(k=>r[k]??'')]));
-    const aggRows=[['Team','KPI','Sum','Avg']];
-    teamGroups.forEach(({label,rows})=>{
-      const {agg}=computeAggregates(rows);
-      NUMERIC_KPI_KEYS.forEach(k=>{
-        if(agg[k]) aggRows.push([label,t.kpi[k]||k,agg[k].sum,+agg[k].avg.toFixed(2)]);
+    
+    if (tab === 'summary') {
+      const allKpiKeys=t.kpiGroups.flatMap(g=>g.keys);
+      const sh=[['Team','User','Territory','Manager',...allKpiKeys.map(k=>t.kpi[k]||k)]];
+      fSummary.forEach(r=>sh.push([r.team,r.user_name,r.territory,r.is_manager?'✓':'',...allKpiKeys.map(k=>r[k]??'')]));
+      const aggRows=[['Team','KPI','Sum','Avg']];
+      teamGroups.forEach(({label,rows})=>{
+        const {agg}=computeAggregates(rows);
+        NUMERIC_KPI_KEYS.forEach(k=>{
+          if(agg[k]) aggRows.push([label,t.kpi[k]||k,agg[k].sum,+agg[k].avg.toFixed(2)]);
+        });
       });
-    });
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sh),'Summary');
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aggRows),'Team Averages');
-    XLSX.writeFile(wb,`excellence_${periodLabel.replace(' ','_')}_${Date.now()}.xlsx`);
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sh),'Summary');
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aggRows),'Team Averages');
+    } else if (tab === 'specialty') {
+      const sh=[['Team','User','Territory','Specialty','Classification','Call Count']];
+      filteredSpecialty.forEach(r=>sh.push([r.team||'—',r.user_name||'—',r.territory||'—',r.specialty||'—',r.classification||'—',r.call_count||0]));
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sh),'Specialty');
+    } else if (tab === 'products') {
+      const sh=[['Team','User','Territory','Product','Call Count']];
+      filteredProducts.forEach(r=>sh.push([r.team||'—',r.user_name||'—',r.territory||'—',r.product||'—',r.call_count||0]));
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sh),'Products');
+    } else if (tab === 'coaching') {
+      const sh=[['Manager','Rep','Date','Team','AM Visits','AM Acc.','AM %','PM Visits','PM Acc.','PM %']];
+      [...filteredCoaching].sort((a,b)=>(a.manager_name||'').localeCompare(b.manager_name||'')||(a.coaching_date||'').localeCompare(b.coaching_date||'')).forEach(r=>{
+        const amPct = r.am_visits ? Math.round((r.am_accompanied/r.am_visits)*100)+'%' : '-';
+        const pmPct = r.pm_visits ? Math.round((r.pm_accompanied/r.pm_visits)*100)+'%' : '-';
+        sh.push([r.manager_name||'—',r.rep_name||'—',r.coaching_date||'—',r.team||'—',r.am_visits||0,r.am_accompanied||0,amPct,r.pm_visits||0,r.pm_accompanied||0,pmPct]);
+      });
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sh),'Coaching');
+    }
+
+    XLSX.writeFile(wb,`excellence_${tab}_${periodLabel.replace(' ','_')}_${Date.now()}.xlsx`);
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
