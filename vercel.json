@@ -1,5 +1,5 @@
 {
-  "buildCommand": "react-scripts build",
+  "buildCommand": "CI=false react-scripts build",
   "outputDirectory": "build",
   "framework": "create-react-app",
   "rewrites": [
