@@ -883,12 +883,13 @@ export default function Dashboard() {
       r = r.filter(x => managerNames.has(x.manager_name) || managerNames.has(x.rep_name));
     }
 
-    // Deduplicate coaching sessions (case-insensitive, trim spaces), keeping the one with max visits
+    // Deduplicate coaching sessions (ultra-aggressive: remove all non-alphanumeric chars for key matching)
     const map = new Map();
     r.forEach(x => {
-      const mgr = (x.manager_name || '').trim().toLowerCase();
-      const rep = (x.rep_name || '').trim().toLowerCase();
-      const d = (x.coaching_date || '').trim().toLowerCase();
+      const normalize = (str) => (str || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      const mgr = normalize(x.manager_name);
+      const rep = normalize(x.rep_name);
+      const d = normalize(x.coaching_date);
       const key = `${mgr}|${rep}|${d}`;
       
       const existing = map.get(key);
