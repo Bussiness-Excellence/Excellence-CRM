@@ -27,6 +27,16 @@ def upload_folder(folder, period, batch):
         print("   No .xlsx files found — skipping")
         return
 
+    # Only process the SINGLE most recently modified file. Processing every
+    # .xlsx in the folder used to combine old, already-uploaded exports with
+    # the current one, producing duplicate coaching/visit rows any time an
+    # old file was left in place instead of being removed.
+    if len(files) > 1:
+        print(f"   Found {len(files)} .xlsx files — using only the most recent one to avoid duplicating stale data:")
+        for f in sorted(files, key=lambda p: p.stat().st_mtime, reverse=True):
+            print(f"     {'-> ' if f == max(files, key=lambda p: p.stat().st_mtime) else '   '}{f.name}")
+    latest = max(files, key=lambda p: p.stat().st_mtime)
+
     url, key = _supabase_config()
 
     print(f"   Clearing existing data for batch '{batch}'...")
@@ -36,12 +46,11 @@ def upload_folder(folder, period, batch):
         except Exception as e:
             print(f"   Could not clear {table}: {e}")
 
-    for f in files:
-        print(f"\n   Uploading {f.name}...")
-        try:
-            upload_workbook(url, key, str(f), period=period, batch=batch, append=True)
-        except Exception as e:
-            print(f"   Failed to upload {f.name}: {e}")
+    print(f"\n   Uploading {latest.name}...")
+    try:
+        upload_workbook(url, key, str(latest), period=period, batch=batch, append=True)
+    except Exception as e:
+        print(f"   Failed to upload {latest.name}: {e}")
 
     print(f"\n   Done processing {folder}!")
 

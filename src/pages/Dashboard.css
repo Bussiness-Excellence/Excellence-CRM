@@ -9,46 +9,52 @@
   --navy2: #334155;
   --navy3: #475569;
   --navy4: #64748b;
-  --gold: #1d4ed8;
-  --gold2: #2563eb;
-  --gold-glow: rgba(29, 78, 216, 0.18);
+  --gold: #2456db;
+  --gold2: #2fa8d9;
+  --gold-glow: rgba(36, 86, 219, 0.18);
 
-  --bg: #e9eef5;
-  --surf: #ffffff;
-  --surf2: #f4f7fb;
-  --bdr: #d6dfea;
-  --bdr2: #b9c6d6;
+  /* Corporate Crystal Blue — pale mist backdrop with a cobalt/cyan facet duo */
+  --ink: #0b1f3a;
+  --slate: #46567a;
+  --mist: #eef3fb;
 
-  --txt: #0f172a;
-  --mute: #45536b;
+  --bg: linear-gradient(165deg, #e7eefb 0%, #f3f7fd 45%, #fbfdff 100%);
+  --surf: rgba(255, 255, 255, 0.86);
+  --surf2: rgba(238, 243, 251, 0.80);
+  --bdr: rgba(36, 86, 219, 0.14);
+  --bdr2: rgba(47, 168, 217, 0.30);
 
-  --am: #1d4ed8;
-  --am-bg: rgba(29, 78, 216, 0.12);
-  --pm: #0e7490;
-  --pm-bg: rgba(14, 116, 144, 0.12);
-  --accent2: #7c3aed;
-  --accent2-bg: rgba(124, 58, 237, 0.12);
+  --txt: var(--ink);
+  --mute: var(--slate);
+
+  --am: #2456db;
+  --am-bg: rgba(36, 86, 219, 0.10);
+  --pm: #0e88a8;
+  --pm-bg: rgba(14, 136, 168, 0.10);
+  --accent2: #6d5ce8;
+  --accent2-bg: rgba(109, 92, 232, 0.10);
 
   --r: 14px;
   --r-sm: 10px;
 
-  --sh: 0 1px 3px rgba(15, 23, 42, 0.12), 0 1px 2px rgba(15, 23, 42, 0.08);
-  --sh2: 0 4px 8px -1px rgba(15, 23, 42, 0.14), 0 2px 4px -1px rgba(15, 23, 42, 0.08);
-  --sh3: 0 12px 20px -3px rgba(15, 23, 42, 0.16), 0 4px 6px -2px rgba(15, 23, 42, 0.08);
+  --sh: 0 1px 3px rgba(11, 31, 58, 0.10), 0 1px 2px rgba(11, 31, 58, 0.06);
+  --sh2: 0 6px 16px -2px rgba(11, 31, 58, 0.14), 0 2px 6px -2px rgba(36, 86, 219, 0.08);
+  --sh3: 0 16px 32px -6px rgba(11, 31, 58, 0.18), 0 6px 12px -4px rgba(36, 86, 219, 0.10);
 
-  --grad-surf: #ffffff;
-  --grad-primary: linear-gradient(135deg, #1e40af 0%, #1d4ed8 50%, #2563eb 100%);
-  --grad-navy: #f4f7fb;
-  --crystal-edge: rgba(29, 78, 216, 0.08);
+  --grad-surf: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(238, 246, 255, 0.78) 100%);
+  --grad-primary: linear-gradient(135deg, #1d3fb0 0%, #2456db 55%, #2fa8d9 100%);
+  --grad-navy: linear-gradient(180deg, #eef4ff 0%, #dfeaff 100%);
+  /* Signature crystal-facet hairline — a beam of light catching a blue facet edge */
+  --crystal-edge: linear-gradient(90deg, transparent 0%, rgba(47, 168, 217, 0) 8%, var(--gold2) 30%, var(--gold) 50%, var(--gold2) 70%, rgba(47, 168, 217, 0) 92%, transparent 100%);
 
   --transition: .2s cubic-bezier(0.4, 0, 0.2, 1);
-  --glass-blur: 0px;
+  --glass-blur: 18px;
 
-  --panel-bg: #ffffff;
-  --panel-border: #d6dfea;
+  --panel-bg: rgba(255, 255, 255, 0.72);
+  --panel-border: rgba(36, 86, 219, 0.14);
 
   /* Sidebar specifically requested to be a bit darker than pale white */
-  --sidebar-bg: #dbe3ee;
+  --sidebar-bg: rgba(233, 240, 251, 0.82);
 }
 
 /* Dark mode — even deeper */
@@ -369,9 +375,9 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent 0%, rgba(77, 159, 255, .0) 5%, var(--gold) 30%, var(--gold2) 50%, var(--gold) 70%, rgba(77, 159, 255, .0) 95%, transparent 100%);
-  opacity: .7;
+  height: 2px;
+  background: var(--crystal-edge);
+  opacity: .85;
 }
 
 .dash-hdr-l {
@@ -852,8 +858,9 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent 0%, rgba(126, 200, 255, .7) 30%, rgba(77, 159, 255, .9) 50%, rgba(126, 200, 255, .7) 70%, transparent 100%);
+  height: 2px;
+  background: var(--crystal-edge);
+  opacity: .9;
   pointer-events: none;
 }
 
