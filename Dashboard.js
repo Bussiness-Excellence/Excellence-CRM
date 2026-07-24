@@ -882,6 +882,16 @@ export default function Dashboard() {
       });
       r = r.filter(x => managerNames.has(x.manager_name) || managerNames.has(x.rep_name));
     }
+
+    // Deduplicate coaching sessions
+    const seen = new Set();
+    r = r.filter(x => {
+      const key = `${x.manager_name}|${x.rep_name}|${x.coaching_date}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
     return r;
   },[coaching,byTeam,byLineManager,byManagerTerritory,search,userFilter,visibleNames,profile,hierarchy]);
 
@@ -1074,19 +1084,39 @@ export default function Dashboard() {
 
   function doExport(){
     const wb=XLSX.utils.book_new();
-    const allKpiKeys=t.kpiGroups.flatMap(g=>g.keys);
-    const sh=[['Team','User','Territory','Manager',...allKpiKeys.map(k=>t.kpi[k]||k)]];
-    fSummary.forEach(r=>sh.push([r.team,r.user_name,r.territory,r.is_manager?'✓':'',...allKpiKeys.map(k=>r[k]??'')]));
-    const aggRows=[['Team','KPI','Sum','Avg']];
-    teamGroups.forEach(({label,rows})=>{
-      const {agg}=computeAggregates(rows);
-      NUMERIC_KPI_KEYS.forEach(k=>{
-        if(agg[k]) aggRows.push([label,t.kpi[k]||k,agg[k].sum,+agg[k].avg.toFixed(2)]);
+    
+    if (tab === 'summary') {
+      const allKpiKeys=t.kpiGroups.flatMap(g=>g.keys);
+      const sh=[['Team','User','Territory','Manager',...allKpiKeys.map(k=>t.kpi[k]||k)]];
+      fSummary.forEach(r=>sh.push([r.team,r.user_name,r.territory,r.is_manager?'✓':'',...allKpiKeys.map(k=>r[k]??'')]));
+      const aggRows=[['Team','KPI','Sum','Avg']];
+      teamGroups.forEach(({label,rows})=>{
+        const {agg}=computeAggregates(rows);
+        NUMERIC_KPI_KEYS.forEach(k=>{
+          if(agg[k]) aggRows.push([label,t.kpi[k]||k,agg[k].sum,+agg[k].avg.toFixed(2)]);
+        });
       });
-    });
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sh),'Summary');
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aggRows),'Team Averages');
-    XLSX.writeFile(wb,`excellence_${periodLabel.replace(' ','_')}_${Date.now()}.xlsx`);
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sh),'Summary');
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aggRows),'Team Averages');
+    } else if (tab === 'specialty') {
+      const sh=[['Team','User','Territory','Specialty','Classification','Call Count']];
+      filteredSpecialty.forEach(r=>sh.push([r.team||'—',r.user_name||'—',r.territory||'—',r.specialty||'—',r.classification||'—',r.call_count||0]));
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sh),'Specialty');
+    } else if (tab === 'products') {
+      const sh=[['Team','User','Territory','Product','Call Count']];
+      filteredProducts.forEach(r=>sh.push([r.team||'—',r.user_name||'—',r.territory||'—',r.product||'—',r.call_count||0]));
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sh),'Products');
+    } else if (tab === 'coaching') {
+      const sh=[['Manager','Rep','Date','Team','AM Visits','AM Acc.','AM %','PM Visits','PM Acc.','PM %']];
+      [...filteredCoaching].sort((a,b)=>(a.manager_name||'').localeCompare(b.manager_name||'')||(a.coaching_date||'').localeCompare(b.coaching_date||'')).forEach(r=>{
+        const amPct = r.am_visits ? Math.round((r.am_accompanied/r.am_visits)*100)+'%' : '-';
+        const pmPct = r.pm_visits ? Math.round((r.pm_accompanied/r.pm_visits)*100)+'%' : '-';
+        sh.push([r.manager_name||'—',r.rep_name||'—',r.coaching_date||'—',r.team||'—',r.am_visits||0,r.am_accompanied||0,amPct,r.pm_visits||0,r.pm_accompanied||0,pmPct]);
+      });
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sh),'Coaching');
+    }
+
+    XLSX.writeFile(wb,`excellence_${tab}_${periodLabel.replace(' ','_')}_${Date.now()}.xlsx`);
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
