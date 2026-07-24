@@ -8,7 +8,7 @@ import './Dashboard.css';
 const T = {
   en: {
     brand:'EXCELLENCE', signOut:'Sign out', adminPanel:'Admin Panel',
-    lastMonth:'Last Month', recent:'Recent  1–15',
+    lastMonth:'Prev. Month Data', recent:'Recent Month Data',
     allTeams:'All teams', allUsers:'All reps', search:'Search name or territory…',
     export:'Export', loading:'Loading…', noData:'No data for this period.',
     shiftAll:'Both', shiftAM:'AM', shiftPM:'PM',
@@ -411,7 +411,7 @@ function ShiftToggle({ value, onChange, t }) {
 }
 
 // ── PivotTable ───────────────────────────────────────────────────────────────
-function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFilter, lang }) {
+function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFilter, lang, hideAvg }) {
   const filtered = useMemo(()=>rows.filter(r=>{
     if(shiftFilter!=='all' && r.shift!==shiftFilter) return false;
     if(userFilter && userFilter!=='all' && r.user_name!==userFilter) return false;
@@ -444,20 +444,22 @@ function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFil
             {users.map(u=><th key={u} title={u}>{u.split(' ').slice(0,2).join(' ')}</th>)}
             <th className="t-col">Σ Total</th>
           </tr>
-          <tr className="avg-row">
-            <th className="s-col avg-lbl">⌀ Avg / rep</th>
-            {users.map(u=>{
-              const uTotal = colTotals[u]||0;
-              const uRows  = rowKeys.filter(k=>cells[k]?.[u]).length;
-              return <th key={u} className="avg-cell">{uRows>0?Math.round(uTotal/uRows):0}</th>;
-            })}
-            <th className="t-col avg-cell">
-              {(() => {
-                const gt = filtered.reduce((s,r)=>s+(r[valueKey]||0),0);
-                return users.length>0?Math.round(gt/users.length):0;
-              })()}
-            </th>
-          </tr>
+          {!hideAvg && (
+            <tr className="avg-row">
+              <th className="s-col avg-lbl">⌀ Avg / rep</th>
+              {users.map(u=>{
+                const uTotal = colTotals[u]||0;
+                const uRows  = rowKeys.filter(k=>cells[k]?.[u]).length;
+                return <th key={u} className="avg-cell">{uRows>0?Math.round(uTotal/uRows):0}</th>;
+              })}
+              <th className="t-col avg-cell">
+                {(() => {
+                  const gt = filtered.reduce((s,r)=>s+(r[valueKey]||0),0);
+                  return users.length>0?Math.round(gt/users.length):0;
+                })()}
+              </th>
+            </tr>
+          )}
         </thead>
         <tbody>
           {rowKeys.map(k=>{
@@ -958,18 +960,26 @@ export default function Dashboard() {
   }, [fSpecialty, shift, selectedRep]);
 
   const specialtyPieData = useMemo(() => {
+    let list = shiftFilteredSpecialty;
+    if (classificationFilter.size > 0) {
+      list = list.filter(r => classificationFilter.has(r.classification));
+    }
     const m = {};
-    shiftFilteredSpecialty.forEach(r => { const s=r.specialty||'Other'; m[s]=(m[s]||0)+(r.call_count||0); });
+    list.forEach(r => { const s=r.specialty||'Other'; m[s]=(m[s]||0)+(r.call_count||0); });
     return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,10)
       .map(([label,value],i) => ({ label, value, color: PIE_COLORS[i%PIE_COLORS.length] }));
-  }, [shiftFilteredSpecialty]);
+  }, [shiftFilteredSpecialty, classificationFilter]);
 
   const classificationPieData = useMemo(() => {
+    let list = shiftFilteredSpecialty;
+    if (specialtyFilter.size > 0) {
+      list = list.filter(r => specialtyFilter.has(r.specialty));
+    }
     const m = {};
-    shiftFilteredSpecialty.forEach(r => { const c=r.classification||'Unclassified'; m[c]=(m[c]||0)+(r.call_count||0); });
+    list.forEach(r => { const c=r.classification||'Unclassified'; m[c]=(m[c]||0)+(r.call_count||0); });
     return Object.entries(m).sort((a,b)=>b[1]-a[1])
       .map(([label,value],i) => ({ label, value, color: PIE_COLORS[i%PIE_COLORS.length] }));
-  }, [shiftFilteredSpecialty]);
+  }, [shiftFilteredSpecialty, specialtyFilter]);
 
   const allSpecialties = useMemo(() =>
     [...new Set(fSpecialty.map(r => r.specialty).filter(Boolean))].sort()
@@ -1287,30 +1297,8 @@ export default function Dashboard() {
           {/* ─── SPECIALTY SIDEBAR ───────────────────────────── */}
           {tab==='specialty' && (
             <div className="sb-panel">
-              <div className="sb-section-hd">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
-                {rtl?'تغطية التخصصات':'Specialty Coverage'}
-              </div>
-              <PieChart 
-                data={specialtyPieData} 
-                title={rtl?'حسب التخصص':'By Specialty'}
-                onSelect={toggleSpecialty}
-                activeFilters={specialtyFilter}
-              />
-
-              <div className="sb-divider"/>
-
-              <PieChart 
-                data={classificationPieData} 
-                title={rtl?'حسب التصنيف':'By Classification'}
-                onSelect={toggleClassification}
-                activeFilters={classificationFilter}
-              />
-
-              <div className="sb-divider"/>
-
-              {/* Specialty Slicer */}
-              <div className="sb-slicer">
+              {/* Specialty Dropdown Slicer */}
+              <div className="sb-slicer" style={{ marginBottom: '24px' }}>
                 <div className="sb-slicer-hd">
                   <span>{rtl?'فلتر التخصص':'Filter Specialty'}</span>
                   {(specialtyFilter.size > 0 || classificationFilter.size > 0) && (
@@ -1319,34 +1307,53 @@ export default function Dashboard() {
                     </button>
                   )}
                 </div>
-                <div className="sb-slicer-pills">
+                <select 
+                  className="ctrl-sel" 
+                  style={{ width: '100%' }}
+                  value={specialtyFilter.size === 1 ? Array.from(specialtyFilter)[0] : (specialtyFilter.size === 0 ? '' : 'mixed')}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '') setSpecialtyFilter(new Set());
+                    else if (val !== 'mixed') setSpecialtyFilter(new Set([val]));
+                  }}
+                >
+                  <option value="">{rtl ? 'كل التخصصات' : 'All Specialties'}</option>
+                  {specialtyFilter.size > 1 && <option value="mixed" disabled>{rtl ? 'تخصصات متعددة' : 'Multiple selected'}</option>}
                   {allSpecialties.map(s => (
-                    <button key={s}
-                      className={`slicer-pill${specialtyFilter.has(s)?' on':''}`}
-                      onClick={()=>toggleSpecialty(s)}>
-                      {s}
-                    </button>
+                    <option key={s} value={s}>{s}</option>
                   ))}
-                </div>
+                </select>
               </div>
+
+              <div className="sb-section-hd">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+                {rtl?'تغطية التخصصات':'Specialty Coverage'}
+              </div>
+              <PieChart 
+                data={specialtyPieData} 
+                title={rtl?'حسب التخصص':'By Specialty'}
+                onSelect={(s) => {
+                  setSpecialtyFilter(prev => {
+                    if (prev.has(s) && prev.size === 1) return new Set();
+                    return new Set([s]);
+                  });
+                }}
+                activeFilters={specialtyFilter}
+              />
 
               <div className="sb-divider"/>
 
-              {/* Countdown Card */}
-              <div className="sb-countdown">
-                <div className="sb-countdown-ring">
-                  <svg width="80" height="80" viewBox="0 0 80 80">
-                    <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,.08)" strokeWidth="5"/>
-                    <circle cx="40" cy="40" r="34" fill="none" stroke="var(--gold)"
-                      strokeWidth="5" strokeLinecap="round"
-                      strokeDasharray={`${(1 - countdown/30) * 213.6} 213.6`}
-                      transform="rotate(-90 40 40)"/>
-                  </svg>
-                  <div className="sb-countdown-num">{countdown}</div>
-                </div>
-                <div className="sb-countdown-label">{rtl?'أيام متبقية':'Days Remaining'}</div>
-                <div className="sb-countdown-sub">{rtl?'حتى نهاية الفترة':'Until period closes'}</div>
-              </div>
+              <PieChart 
+                data={classificationPieData} 
+                title={rtl?'حسب التصنيف':'By Classification'}
+                onSelect={(c) => {
+                  setClassificationFilter(prev => {
+                    if (prev.has(c) && prev.size === 1) return new Set();
+                    return new Set([c]);
+                  });
+                }}
+                activeFilters={classificationFilter}
+              />
             </div>
           )}
 
@@ -1670,7 +1677,7 @@ export default function Dashboard() {
                     userTeamMap={userTeamMap}
                   />
                   <PivotTable rows={filteredSpecialty} rowKey="specialty" valueKey="call_count"
-                    shiftFilter={shift} userFilter={userFilter} searchFilter={search} lang={lang}/>
+                    shiftFilter={shift} userFilter={userFilter} searchFilter={search} lang={lang} hideAvg={true}/>
                 </>
               )}
 
@@ -1715,7 +1722,7 @@ export default function Dashboard() {
                         <thead>
                           <tr>
                             <th className="s-col">{rtl?'المدير':'Manager'}</th>
-                            <th>{rtl?'المندوب':'Rep'}</th>
+                            <th className="rep-col">{rtl?'المندوب':'Rep'}</th>
                             <th>{rtl?'التاريخ':'Date'}</th>
                             <th>{rtl?'الفريق':'Team'}</th>
                             <th>{rtl?'زيارات AM':'AM Visits'}</th>
@@ -1730,7 +1737,7 @@ export default function Dashboard() {
                           {[...filteredCoaching].sort((a,b)=>(a.manager_name||'').localeCompare(b.manager_name||'')||(a.coaching_date||'').localeCompare(b.coaching_date||'')).map((r,i)=>(
                             <tr key={r.id||i}>
                               <td className="s-col">{r.manager_name}</td>
-                              <td>{r.rep_name}</td>
+                              <td className="rep-col">{r.rep_name}</td>
                               <td>{r.coaching_date}</td>
                               <td>{r.team||'—'}</td>
                               <td>{r.am_visits||0}</td>
