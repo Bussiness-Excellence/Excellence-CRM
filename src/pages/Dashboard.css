@@ -469,16 +469,16 @@ body {
 }
 
 .hbtn-outline {
-  background: rgba(77, 159, 255, .08);
-  color: rgba(200, 225, 255, .8);
-  border: 1px solid rgba(77, 159, 255, .28);
+  background: rgba(36, 86, 219, .07);
+  color: var(--navy2);
+  border: 1px solid var(--bdr2);
 }
 
 .hbtn-outline:hover {
-  background: rgba(77, 159, 255, .16);
-  color: #fff;
-  border-color: rgba(77, 159, 255, .55);
-  box-shadow: 0 0 12px rgba(77, 159, 255, .20);
+  background: rgba(36, 86, 219, .14);
+  color: var(--gold);
+  border-color: var(--gold);
+  box-shadow: 0 0 12px var(--gold-glow);
 }
 
 .hbtn-lang {
