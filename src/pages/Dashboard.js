@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
@@ -427,9 +427,46 @@ function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFil
     users.forEach(u=>ct[u]=filtered.filter(r=>r.user_name===u).reduce((s,r)=>s+(r[valueKey]||0),0));
     return ct;
   },[users,filtered,valueKey]);
+
+  // Synced top scrollbar — lets people scroll horizontally without hunting
+  // for the scrollbar at the bottom of a long table.
+  const topScrollRef = useRef(null);
+  const wrapRef = useRef(null);
+  const [tableWidth, setTableWidth] = useState(0);
+  const syncingRef = useRef(false);
+
+  useEffect(() => {
+    const wrapEl = wrapRef.current;
+    if (!wrapEl) return;
+    const table = wrapEl.querySelector('table');
+    if (!table) return;
+    const update = () => setTableWidth(table.scrollWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(table);
+    return () => ro.disconnect();
+  }, [filtered, users, rowKeys]);
+
+  const handleTopScroll = () => {
+    if (syncingRef.current) { syncingRef.current = false; return; }
+    if (!wrapRef.current || !topScrollRef.current) return;
+    syncingRef.current = true;
+    wrapRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+  };
+  const handleWrapScroll = () => {
+    if (syncingRef.current) { syncingRef.current = false; return; }
+    if (!wrapRef.current || !topScrollRef.current) return;
+    syncingRef.current = true;
+    topScrollRef.current.scrollLeft = wrapRef.current.scrollLeft;
+  };
+
   if(!filtered.length) return <div className="dash-empty">{lang==='ar'?'لا توجد بيانات':'No data'}</div>;
   return (
-    <div className="pivot-wrap">
+    <>
+      <div className="pivot-top-scroll" ref={topScrollRef} onScroll={handleTopScroll}>
+        <div style={{ width: tableWidth, height: 1 }} />
+      </div>
+      <div className="pivot-wrap" ref={wrapRef} onScroll={handleWrapScroll}>
       <table className="pivot-tbl">
         <thead>
           <tr>
@@ -475,7 +512,8 @@ function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFil
           </tr>
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }
 
@@ -1335,21 +1373,8 @@ export default function Dashboard() {
           {/* ─── PRODUCTS SIDEBAR ────────────────────────────── */}
           {tab==='products' && (
             <div className="sb-panel">
-              <div className="sb-section-hd">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                {rtl?'مساهمة المنتجات':'Product Contribution'}
-              </div>
-              <PieChart 
-                data={productPieData} 
-                title={rtl?'حسب المنتج':'By Product'}
-                onSelect={toggleProduct}
-                activeFilters={productFilter}
-              />
-
-              <div className="sb-divider"/>
-
-              {/* Product Slicer */}
-              <div className="sb-slicer">
+              {/* Product Dropdown Slicer — matches the Specialty slicer pattern */}
+              <div className="sb-slicer" style={{ marginBottom: '24px' }}>
                 <div className="sb-slicer-hd">
                   <span>{rtl?'فلتر المنتج':'Filter Product'}</span>
                   {productFilter.size > 0 && (
@@ -1358,16 +1383,41 @@ export default function Dashboard() {
                     </button>
                   )}
                 </div>
-                <div className="sb-slicer-pills">
+                <select
+                  className="ctrl-sel"
+                  style={{ width: '100%' }}
+                  value={productFilter.size === 1 ? Array.from(productFilter)[0] : (productFilter.size === 0 ? '' : 'mixed')}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '') setProductFilter(new Set());
+                    else if (val !== 'mixed') setProductFilter(new Set([val]));
+                  }}
+                >
+                  <option value="">{rtl ? 'كل المنتجات' : 'All Products'}</option>
+                  {productFilter.size > 1 && <option value="mixed" disabled>{rtl ? 'منتجات متعددة' : 'Multiple selected'}</option>}
                   {allProducts.map(p => (
-                    <button key={p}
-                      className={`slicer-pill${productFilter.has(p)?' on':''}`}
-                      onClick={()=>toggleProduct(p)}>
-                      {p}
-                    </button>
+                    <option key={p} value={p}>{p}</option>
                   ))}
-                </div>
+                </select>
               </div>
+
+              <div className="sb-section-hd">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                {rtl?'مساهمة المنتجات':'Product Contribution'}
+              </div>
+              <PieChart 
+                data={productPieData} 
+                title={rtl?'حسب المنتج':'By Product'}
+                onSelect={(p) => {
+                  setProductFilter(prev => {
+                    if (prev.has(p) && prev.size === 1) return new Set();
+                    return new Set([p]);
+                  });
+                }}
+                activeFilters={productFilter}
+              />
+
+              <div className="sb-divider"/>
 
               <div className="sb-section-hd" style={{marginTop:0}}>
                 {rtl?'أعلى المنتجات':'Top Products'}
