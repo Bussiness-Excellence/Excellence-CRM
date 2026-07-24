@@ -525,7 +525,14 @@ export default function Dashboard() {
   const [lineManagerFilter, setLineManagerFilter] = useState('all');
   const [managerTerritoryFilter, setManagerTerritoryFilter] = useState('all');
   const [sidebarOpen, setSidebarOpen]         = useState(false);
-  const [theme, setTheme]                     = useState(() => localStorage.getItem('theme') || 'dark');
+  const [theme, setTheme]                     = useState(() => {
+    const saved = localStorage.getItem('theme');
+    if (!saved || saved === 'light') {
+      localStorage.setItem('theme', 'dark');
+      return 'dark';
+    }
+    return saved;
+  });
 
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';

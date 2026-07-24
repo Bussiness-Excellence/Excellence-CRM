@@ -44,14 +44,13 @@ function AppContent() {
 
 export default function App() {
   React.useEffect(() => {
-    const theme = localStorage.getItem('theme') || 'dark';
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-      document.documentElement.classList.remove('light');
-    } else {
-      document.documentElement.classList.add('light');
-      document.documentElement.classList.remove('dark');
+    let theme = localStorage.getItem('theme');
+    if (!theme || theme === 'light') {
+      localStorage.setItem('theme', 'dark');
+      theme = 'dark';
     }
+    document.documentElement.classList.add('dark');
+    document.documentElement.classList.remove('light');
   }, []);
 
   return (
