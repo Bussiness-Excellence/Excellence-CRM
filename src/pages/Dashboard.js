@@ -526,13 +526,18 @@ export default function Dashboard() {
   const [managerTerritoryFilter, setManagerTerritoryFilter] = useState('all');
   const [sidebarOpen, setSidebarOpen]         = useState(false);
   const [theme, setTheme]                     = useState(() => {
-    const saved = localStorage.getItem('theme');
-    if (!saved || saved === 'light') {
-      localStorage.setItem('theme', 'dark');
-      return 'dark';
-    }
-    return saved;
+    return localStorage.getItem('theme') || 'light';
   });
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
 
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
@@ -887,10 +892,9 @@ export default function Dashboard() {
     const map = new Map();
     r.forEach(x => {
       const normalize = (str) => (str || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-      const mgr = normalize(x.manager_name);
       const rep = normalize(x.rep_name);
       const d = normalize(x.coaching_date);
-      const key = `${mgr}|${rep}|${d}`;
+      const key = `${rep}|${d}`;
       
       const existing = map.get(key);
       const currentTotal = (Number(x.am_visits) || 0) + (Number(x.pm_visits) || 0);
@@ -1099,38 +1103,40 @@ export default function Dashboard() {
   function doExport(){
     const wb=XLSX.utils.book_new();
     
-    if (tab === 'summary') {
-      const allKpiKeys=t.kpiGroups.flatMap(g=>g.keys);
-      const sh=[['Team','User','Territory','Manager',...allKpiKeys.map(k=>t.kpi[k]||k)]];
-      fSummary.forEach(r=>sh.push([r.team,r.user_name,r.territory,r.is_manager?'✓':'',...allKpiKeys.map(k=>r[k]??'')]));
-      const aggRows=[['Team','KPI','Sum','Avg']];
-      teamGroups.forEach(({label,rows})=>{
-        const {agg}=computeAggregates(rows);
-        NUMERIC_KPI_KEYS.forEach(k=>{
-          if(agg[k]) aggRows.push([label,t.kpi[k]||k,agg[k].sum,+agg[k].avg.toFixed(2)]);
-        });
+    // Summary
+    const allKpiKeys=t.kpiGroups.flatMap(g=>g.keys);
+    const shSummary=[['Team','User','Territory','Manager',...allKpiKeys.map(k=>t.kpi[k]||k)]];
+    fSummary.forEach(r=>shSummary.push([r.team,r.user_name,r.territory,r.is_manager?'✓':'',...allKpiKeys.map(k=>r[k]??'')]));
+    const aggRows=[['Team','KPI','Sum','Avg']];
+    teamGroups.forEach(({label,rows})=>{
+      const {agg}=computeAggregates(rows);
+      NUMERIC_KPI_KEYS.forEach(k=>{
+        if(agg[k]) aggRows.push([label,t.kpi[k]||k,agg[k].sum,+agg[k].avg.toFixed(2)]);
       });
-      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sh),'Summary');
-      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aggRows),'Team Averages');
-    } else if (tab === 'specialty') {
-      const sh=[['Team','User','Territory','Specialty','Classification','Call Count']];
-      filteredSpecialty.forEach(r=>sh.push([r.team||'—',r.user_name||'—',r.territory||'—',r.specialty||'—',r.classification||'—',r.call_count||0]));
-      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sh),'Specialty');
-    } else if (tab === 'products') {
-      const sh=[['Team','User','Territory','Product','Call Count']];
-      filteredProducts.forEach(r=>sh.push([r.team||'—',r.user_name||'—',r.territory||'—',r.product||'—',r.call_count||0]));
-      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sh),'Products');
-    } else if (tab === 'coaching') {
-      const sh=[['Manager','Rep','Date','Team','AM Visits','AM Acc.','AM %','PM Visits','PM Acc.','PM %']];
-      [...filteredCoaching].sort((a,b)=>(a.manager_name||'').localeCompare(b.manager_name||'')||(a.coaching_date||'').localeCompare(b.coaching_date||'')).forEach(r=>{
-        const amPct = r.am_visits ? Math.round((r.am_accompanied/r.am_visits)*100)+'%' : '-';
-        const pmPct = r.pm_visits ? Math.round((r.pm_accompanied/r.pm_visits)*100)+'%' : '-';
-        sh.push([r.manager_name||'—',r.rep_name||'—',r.coaching_date||'—',r.team||'—',r.am_visits||0,r.am_accompanied||0,amPct,r.pm_visits||0,r.pm_accompanied||0,pmPct]);
-      });
-      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sh),'Coaching');
-    }
+    });
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(shSummary),'Summary');
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aggRows),'Team Averages');
 
-    XLSX.writeFile(wb,`excellence_${tab}_${periodLabel.replace(' ','_')}_${Date.now()}.xlsx`);
+    // Specialty
+    const shSpecialty=[['Team','User','Territory','Specialty','Classification','Call Count']];
+    filteredSpecialty.forEach(r=>shSpecialty.push([r.team||'—',r.user_name||'—',r.territory||'—',r.specialty||'—',r.classification||'—',r.call_count||0]));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(shSpecialty),'Specialty');
+
+    // Products
+    const shProducts=[['Team','User','Territory','Product','Call Count']];
+    filteredProducts.forEach(r=>shProducts.push([r.team||'—',r.user_name||'—',r.territory||'—',r.product||'—',r.call_count||0]));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(shProducts),'Products');
+
+    // Coaching
+    const shCoaching=[['Manager','Rep','Date','Team','AM Visits','AM Acc.','AM %','PM Visits','PM Acc.','PM %']];
+    [...filteredCoaching].sort((a,b)=>(a.manager_name||'').localeCompare(b.manager_name||'')||(a.coaching_date||'').localeCompare(b.coaching_date||'')).forEach(r=>{
+      const amPct = r.am_visits ? Math.round((r.am_accompanied/r.am_visits)*100)+'%' : '-';
+      const pmPct = r.pm_visits ? Math.round((r.pm_accompanied/r.pm_visits)*100)+'%' : '-';
+      shCoaching.push([r.manager_name||'—',r.rep_name||'—',r.coaching_date||'—',r.team||'—',r.am_visits||0,r.am_accompanied||0,amPct,r.pm_visits||0,r.pm_accompanied||0,pmPct]);
+    });
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(shCoaching),'Coaching');
+
+    XLSX.writeFile(wb,`excellence_export_${periodLabel.replace(' ','_')}_${Date.now()}.xlsx`);
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
