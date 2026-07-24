@@ -407,7 +407,7 @@ body {
 .dash-brand-sub {
   font-size: 10px;
   font-weight: 500;
-  color: rgba(177, 210, 255, .5);
+  color: var(--mute);
   text-transform: lowercase;
   letter-spacing: 0.04em;
 }
@@ -1088,7 +1088,7 @@ body {
 .pivot-tbl th {
   padding: 12px 14px;
   background: var(--panel-bg);
-  color: #c8deff;
+  color: var(--navy);
   font-weight: 700;
   text-align: center;
   white-space: nowrap;
