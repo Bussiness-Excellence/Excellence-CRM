@@ -45,5 +45,8 @@
   },
   "devDependencies": {
     "gh-pages": "^6.3.0"
+  },
+  "overrides": {
+    "harmony-reflect": "1.6.1"
   }
 }
