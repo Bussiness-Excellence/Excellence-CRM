@@ -45,12 +45,17 @@ function AppContent() {
 export default function App() {
   React.useEffect(() => {
     let theme = localStorage.getItem('theme');
-    if (!theme || theme === 'light') {
-      localStorage.setItem('theme', 'dark');
-      theme = 'dark';
+    if (!theme) {
+      theme = 'light';
+      localStorage.setItem('theme', 'light');
     }
-    document.documentElement.classList.add('dark');
-    document.documentElement.classList.remove('light');
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+    }
   }, []);
 
   return (

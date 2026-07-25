@@ -1,6 +1,7 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ToastProvider } from './contexts/ToastContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './components/Login';
 import Dashboard from './pages/Dashboard';
@@ -8,6 +9,21 @@ import AdminPanel from './pages/AdminPanel';
 import ChangePassword from './components/ChangePassword';
 
 import './App.css';
+
+function LoginRoute() {
+  const { session, loading } = useAuth();
+  if (loading) return <div className="app-loading"><div className="app-spinner"/></div>;
+  if (session) return <Navigate to="/" replace />;
+  return <Login />;
+}
+
+function RootRoute() {
+  const { profile, loading } = useAuth();
+  if (loading) return <div className="app-loading"><div className="app-spinner"/></div>;
+  if (!profile) return <Navigate to="/login" replace />;
+  // All roles (including Admin) land on the dashboard by default
+  return <Navigate to="/dashboard" replace />;
+}
 
 function AppContent() {
   const { session, profile, loading } = useAuth();
@@ -25,18 +41,18 @@ function AppContent() {
   // If logged in but needs to change default password
   if (session && profile?.is_default_password) {
     return (
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           <Route path="*" element={<ChangePassword />} />
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     );
   }
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
-        <Route path="/login" element={session ? <Navigate to="/dashboard" replace /> : <Login />} />
+        <Route path="/login" element={<LoginRoute />} />
         <Route path="/dashboard" element={
           <ProtectedRoute>
             <Dashboard />
@@ -47,17 +63,19 @@ function AppContent() {
             <AdminPanel />
           </ProtectedRoute>
         } />
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<RootRoute />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ToastProvider>
   );
 }
