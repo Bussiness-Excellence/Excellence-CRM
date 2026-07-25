@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import * as XLSX from 'xlsx';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import './Dashboard.css';
@@ -6,89 +7,89 @@ import './Dashboard.css';
 // ── i18n ──────────────────────────────────────────────────────────────────────
 const T = {
   en: {
-    brand:'EXCELLENCE', signOut:'Sign out', adminPanel:'Admin Panel',
-    lastMonth:'Prev. Month Data', recent:'Recent Month Data',
-    allTeams:'All teams', allUsers:'All reps', search:'Search name or territory…',
-    export:'Export', loading:'Loading…', noData:'No data for this period.',
-    shiftAll:'Both', shiftAM:'AM', shiftPM:'PM',
-    people: n=>`${n} rep${n!==1?'s':''}`,
-    tabs:{ summary:'Summary', specialty:'Specialty', products:'Products', coaching:'Coaching' },
-    roleView:{ MR:'My Results', Supervisor:'My Team', 'Area Manager':'My Area', BLM:'Full Team', Admin:'All Teams' },
-    avg:'Avg', sum:'Sum', teamSummary:'Team Summary',
-    kpiGroups:[
-      { label:'Field Activity', keys:['working_days','complete_field_days','am_shift_days','pm_shift_days','double_visit_days','office_work_days','no_activities','no_events'] },
-      { label:'Doctor Calls',   keys:['am_calls','am_call_rate','pm_calls','pm_call_rate'] },
-      { label:'Coverage',       keys:['total_am_covered','total_pm_covered','amcenter_covered','hospital_covered','clinic_covered','polyclinic_covered'] },
-      { label:'Pharmacy',       keys:['pharmacies_visited','pharmacies_covered'] },
-      { label:'Products',       keys:['total_product_calls','distinct_products'] },
-      { label:'Coaching',       keys:['coaching_days'] },
-      { label:'Timing',         keys:['avg_am_start_time','avg_am_shift_hm','avg_pm_shift_hm'] },
+    brand: 'EXCELLENCE', signOut: 'Sign out', adminPanel: 'Admin Panel',
+    lastMonth: 'Prev. Month Data', recent: 'Recent Month Data',
+    allTeams: 'All teams', allUsers: 'All reps', search: 'Search name or territory…',
+    export: 'Export', loading: 'Loading…', noData: 'No data for this period.',
+    shiftAll: 'Both', shiftAM: 'AM', shiftPM: 'PM',
+    people: n => `${n} rep${n !== 1 ? 's' : ''}`,
+    tabs: { summary: 'Summary', specialty: 'Specialty', products: 'Products', coaching: 'Coaching' },
+    roleView: { MR: 'My Results', Supervisor: 'My Team', 'Area Manager': 'My Area', BLM: 'Full Team', Admin: 'All Teams' },
+    avg: 'Avg', sum: 'Sum', teamSummary: 'Team Summary',
+    kpiGroups: [
+      { label: 'Field Activity', keys: ['working_days', 'complete_field_days', 'am_shift_days', 'pm_shift_days', 'double_visit_days', 'office_work_days', 'no_activities', 'no_events'] },
+      { label: 'Doctor Calls', keys: ['am_calls', 'am_call_rate', 'pm_calls', 'pm_call_rate'] },
+      { label: 'Coverage', keys: ['total_am_covered', 'total_pm_covered', 'amcenter_covered', 'hospital_covered', 'clinic_covered', 'polyclinic_covered'] },
+      { label: 'Pharmacy', keys: ['pharmacies_visited', 'pharmacies_covered'] },
+      { label: 'Products', keys: ['total_product_calls', 'distinct_products'] },
+      { label: 'Coaching', keys: ['coaching_days'] },
+      { label: 'Timing', keys: ['avg_am_start_time', 'avg_am_shift_hm', 'avg_pm_shift_hm'] },
     ],
-    kpi:{
-      working_days:'Working Days', complete_field_days:'Field Days',
-      am_shift_days:'AM Days', pm_shift_days:'PM Days',
-      am_calls:'AM Calls', pm_calls:'PM Calls',
-      am_call_rate:'AM Call Rate', pm_call_rate:'PM Call Rate',
-      total_am_covered:'AM Covered', total_pm_covered:'PM Covered',
-      amcenter_covered:'AM Center', hospital_covered:'Hospital',
-      clinic_covered:'Clinic', polyclinic_covered:'Poly Clinic',
-      double_visit_days:'Double Visits', coaching_days:'Coaching Days',
-      office_work_days:'Office Work', no_activities:'Activities', no_events:'Events',
-      pharmacies_visited:'Pharm. Visits', pharmacies_covered:'Pharm. Covered',
-      total_product_calls:'Product Calls', distinct_products:'Products',
-      avg_am_start_time:'AM Start Time', avg_am_shift_hm:'AM Duration', avg_pm_shift_hm:'PM Duration',
+    kpi: {
+      working_days: 'Working Days', complete_field_days: 'Field Days',
+      am_shift_days: 'AM Days', pm_shift_days: 'PM Days',
+      am_calls: 'AM Calls', pm_calls: 'PM Calls',
+      am_call_rate: 'AM Call Rate', pm_call_rate: 'PM Call Rate',
+      total_am_covered: 'AM Covered', total_pm_covered: 'PM Covered',
+      amcenter_covered: 'AM Center', hospital_covered: 'Hospital',
+      clinic_covered: 'Clinic', polyclinic_covered: 'Poly Clinic',
+      double_visit_days: 'Double Visits', coaching_days: 'Coaching Days',
+      office_work_days: 'Office Work', no_activities: 'Activities', no_events: 'Events',
+      pharmacies_visited: 'Pharm. Visits', pharmacies_covered: 'Pharm. Covered',
+      total_product_calls: 'Product Calls', distinct_products: 'Products',
+      avg_am_start_time: 'AM Start Time', avg_am_shift_hm: 'AM Duration', avg_pm_shift_hm: 'PM Duration',
     },
   },
   ar: {
-    brand:'إكسيلنس', signOut:'خروج', adminPanel:'لوحة الإدارة',
-    lastMonth:'الشهر الماضي', recent:'الأحدث  1–15',
-    allTeams:'كل الفرق', allUsers:'كل المندوبين', search:'بحث باسم أو منطقة…',
-    export:'تصدير', loading:'جارٍ التحميل…', noData:'لا توجد بيانات.',
-    shiftAll:'الكل', shiftAM:'AM', shiftPM:'PM',
-    people: n=>`${n} مندوب`,
-    tabs:{ summary:'الملخص', specialty:'التخصص', products:'المنتجات', coaching:'التوجيه' },
-    roleView:{ MR:'نتائجي', Supervisor:'فريقي', 'Area Manager':'منطقتي', BLM:'الفريق', Admin:'الكل' },
-    avg:'متوسط', sum:'مجموع', teamSummary:'ملخص الفريق',
-    kpiGroups:[
-      { label:'النشاط الميداني', keys:['working_days','complete_field_days','am_shift_days','pm_shift_days','double_visit_days','office_work_days','no_activities','no_events'] },
-      { label:'الزيارات',        keys:['am_calls','am_call_rate','pm_calls','pm_call_rate'] },
-      { label:'التغطية',         keys:['total_am_covered','total_pm_covered','amcenter_covered','hospital_covered','clinic_covered','polyclinic_covered'] },
-      { label:'الصيدليات',       keys:['pharmacies_visited','pharmacies_covered'] },
-      { label:'المنتجات',        keys:['total_product_calls','distinct_products'] },
-      { label:'التوجيه',         keys:['coaching_days'] },
-      { label:'التوقيت',         keys:['avg_am_start_time','avg_am_shift_hm','avg_pm_shift_hm'] },
+    brand: 'إكسيلنس', signOut: 'خروج', adminPanel: 'لوحة الإدارة',
+    lastMonth: 'الشهر الماضي', recent: 'الأحدث  1–15',
+    allTeams: 'كل الفرق', allUsers: 'كل المندوبين', search: 'بحث باسم أو منطقة…',
+    export: 'تصدير', loading: 'جارٍ التحميل…', noData: 'لا توجد بيانات.',
+    shiftAll: 'الكل', shiftAM: 'AM', shiftPM: 'PM',
+    people: n => `${n} مندوب`,
+    tabs: { summary: 'الملخص', specialty: 'التخصص', products: 'المنتجات', coaching: 'التوجيه' },
+    roleView: { MR: 'نتائجي', Supervisor: 'فريقي', 'Area Manager': 'منطقتي', BLM: 'الفريق', Admin: 'الكل' },
+    avg: 'متوسط', sum: 'مجموع', teamSummary: 'ملخص الفريق',
+    kpiGroups: [
+      { label: 'النشاط الميداني', keys: ['working_days', 'complete_field_days', 'am_shift_days', 'pm_shift_days', 'double_visit_days', 'office_work_days', 'no_activities', 'no_events'] },
+      { label: 'الزيارات', keys: ['am_calls', 'am_call_rate', 'pm_calls', 'pm_call_rate'] },
+      { label: 'التغطية', keys: ['total_am_covered', 'total_pm_covered', 'amcenter_covered', 'hospital_covered', 'clinic_covered', 'polyclinic_covered'] },
+      { label: 'الصيدليات', keys: ['pharmacies_visited', 'pharmacies_covered'] },
+      { label: 'المنتجات', keys: ['total_product_calls', 'distinct_products'] },
+      { label: 'التوجيه', keys: ['coaching_days'] },
+      { label: 'التوقيت', keys: ['avg_am_start_time', 'avg_am_shift_hm', 'avg_pm_shift_hm'] },
     ],
-    kpi:{
-      working_days:'أيام العمل', complete_field_days:'أيام الميدان',
-      am_shift_days:'أيام AM', pm_shift_days:'أيام PM',
-      am_calls:'زيارات AM', pm_calls:'زيارات PM',
-      am_call_rate:'معدل AM', pm_call_rate:'معدل PM',
-      total_am_covered:'تغطية AM', total_pm_covered:'تغطية PM',
-      amcenter_covered:'مراكز AM', hospital_covered:'مستشفيات',
-      clinic_covered:'عيادات', polyclinic_covered:'مراكز صحية',
-      double_visit_days:'زيارات مزدوجة', coaching_days:'أيام التوجيه',
-      office_work_days:'مكتب', no_activities:'الأنشطة', no_events:'الفعاليات',
-      pharmacies_visited:'زيارات صيدليات', pharmacies_covered:'تغطية صيدليات',
-      total_product_calls:'مكالمات منتج', distinct_products:'منتجات',
-      avg_am_start_time:'بدء AM', avg_am_shift_hm:'مدة AM', avg_pm_shift_hm:'مدة PM',
+    kpi: {
+      working_days: 'أيام العمل', complete_field_days: 'أيام الميدان',
+      am_shift_days: 'أيام AM', pm_shift_days: 'أيام PM',
+      am_calls: 'زيارات AM', pm_calls: 'زيارات PM',
+      am_call_rate: 'معدل AM', pm_call_rate: 'معدل PM',
+      total_am_covered: 'تغطية AM', total_pm_covered: 'تغطية PM',
+      amcenter_covered: 'مراكز AM', hospital_covered: 'مستشفيات',
+      clinic_covered: 'عيادات', polyclinic_covered: 'مراكز صحية',
+      double_visit_days: 'زيارات مزدوجة', coaching_days: 'أيام التوجيه',
+      office_work_days: 'مكتب', no_activities: 'الأنشطة', no_events: 'الفعاليات',
+      pharmacies_visited: 'زيارات صيدليات', pharmacies_covered: 'تغطية صيدليات',
+      total_product_calls: 'مكالمات منتج', distinct_products: 'منتجات',
+      avg_am_start_time: 'بدء AM', avg_am_shift_hm: 'مدة AM', avg_pm_shift_hm: 'مدة PM',
     },
   },
 };
 
 const NUMERIC_KPI_KEYS = [
-  'working_days','complete_field_days','am_shift_days','pm_shift_days','double_visit_days','office_work_days',
-  'no_activities','no_events',
-  'am_calls','am_call_rate','pm_calls','pm_call_rate',
-  'total_am_covered','total_pm_covered','amcenter_covered','hospital_covered','clinic_covered','polyclinic_covered',
-  'pharmacies_visited','pharmacies_covered',
-  'total_product_calls','distinct_products','coaching_days',
+  'working_days', 'complete_field_days', 'am_shift_days', 'pm_shift_days', 'double_visit_days', 'office_work_days',
+  'no_activities', 'no_events',
+  'am_calls', 'am_call_rate', 'pm_calls', 'pm_call_rate',
+  'total_am_covered', 'total_pm_covered', 'amcenter_covered', 'hospital_covered', 'clinic_covered', 'polyclinic_covered',
+  'pharmacies_visited', 'pharmacies_covered',
+  'total_product_calls', 'distinct_products', 'coaching_days',
   'avg_am_shift_hm', 'avg_pm_shift_hm'
 ];
 
 const PIE_COLORS = [
-  '#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444',
-  '#06b6d4','#ec4899','#84cc16','#f97316','#6366f1',
-  '#14b8a6','#e11d48','#a855f7','#0ea5e9','#eab308',
+  '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444',
+  '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1',
+  '#14b8a6', '#e11d48', '#a855f7', '#0ea5e9', '#eab308',
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -102,19 +103,19 @@ function fmtDuration(decimalHours) {
 }
 
 function fmtVal(v, key) {
-  if (v===null||v===undefined||v==='') return '—';
-  if (key==='avg_am_shift_hm'||key==='avg_pm_shift_hm') return fmtDuration(Number(v));
+  if (v === null || v === undefined || v === '') return '—';
+  if (key === 'avg_am_shift_hm' || key === 'avg_pm_shift_hm') return fmtDuration(Number(v));
   if (key?.includes('rate')) return Number(v).toFixed(1);
-  if (typeof v==='number') return Number.isInteger(v)?v:Number(v).toFixed(1);
+  if (typeof v === 'number') return Number.isInteger(v) ? v : Number(v).toFixed(1);
   return v;
 }
 
 function sortSummary(rows) {
-  return [...rows].sort((a,b)=>{
-    const tc=(a.team||'').localeCompare(b.team||'');
-    if(tc) return tc;
-    if(a.is_manager!==b.is_manager) return a.is_manager?1:-1;
-    return (a.user_name||'').localeCompare(b.user_name||'');
+  return [...rows].sort((a, b) => {
+    const tc = (a.team || '').localeCompare(b.team || '');
+    if (tc) return tc;
+    if (a.is_manager !== b.is_manager) return a.is_manager ? 1 : -1;
+    return (a.user_name || '').localeCompare(b.user_name || '');
   });
 }
 
@@ -155,14 +156,27 @@ function computeAggregates(rows) {
   const targetRows = reps.length ? reps : rows;
   const agg = {};
   NUMERIC_KPI_KEYS.forEach(key => {
-    const vals = targetRows.map(r => Number(r[key])||0).filter(v => v > 0);
+    const vals = targetRows.map(r => Number(r[key]) || 0).filter(v => v > 0);
     agg[key] = {
-      sum: targetRows.map(r => Number(r[key])||0).reduce((s,v)=>s+v, 0),
-      avg: vals.length ? (vals.reduce((s,v)=>s+v,0)/vals.length) : 0,
+      sum: targetRows.map(r => Number(r[key]) || 0).reduce((s, v) => s + v, 0),
+      avg: vals.length ? (vals.reduce((s, v) => s + v, 0) / vals.length) : 0,
     };
   });
   return { agg, repCount: reps.length || rows.length };
 }
+
+// ── PieChart (SVG donut) ─────────────────────────────────────────────────────
+// ── KPI targets for progress indicators ─────────────────────────────────────
+const KPI_TARGETS = {
+  working_days: 22,
+  complete_field_days: 20,
+  am_calls: 120,
+  pm_calls: 120,
+  total_am_covered: 80,
+  total_pm_covered: 80,
+  pharmacies_visited: 40,
+  coaching_days: 4,
+};
 
 // ── PieChart (SVG donut) ─────────────────────────────────────────────────────
 function PieChart({ data, title, size = 140, thickness = 22, onSelect, activeFilters = new Set() }) {
@@ -186,7 +200,7 @@ function PieChart({ data, title, size = 140, thickness = 22, onSelect, activeFil
     <div className="pie-chart">
       {title && <div className="pie-title">{title}</div>}
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="pie-svg">
-        <circle cx={center} cy={center} r={radius} fill="none" stroke="rgba(255,255,255,.06)" strokeWidth={thickness}/>
+        <circle cx={center} cy={center} r={radius} fill="none" stroke="rgba(255,255,255,.06)" strokeWidth={thickness} />
         {segments.map((seg, i) => {
           const isSelected = activeFilters?.has(seg.label);
           const fade = hasSelections && !isSelected;
@@ -206,15 +220,15 @@ function PieChart({ data, title, size = 140, thickness = 22, onSelect, activeFil
             />
           );
         })}
-        <text x={center} y={center-6} textAnchor="middle" dominantBaseline="central" className="pie-center-val">{total}</text>
-        <text x={center} y={center+10} textAnchor="middle" dominantBaseline="central" className="pie-center-lbl">calls</text>
+        <text x={center} y={center - 6} textAnchor="middle" dominantBaseline="central" className="pie-center-val">{total}</text>
+        <text x={center} y={center + 10} textAnchor="middle" dominantBaseline="central" className="pie-center-lbl">calls</text>
       </svg>
       <div className="pie-legend">
         {segments.slice(0, 6).map((seg, i) => {
           const isSelected = activeFilters?.has(seg.label);
           const fade = hasSelections && !isSelected;
           return (
-            <div key={i} 
+            <div key={i}
               className={`pie-leg-item ${isSelected ? 'selected' : ''}`}
               style={{
                 cursor: onSelect ? 'pointer' : 'default',
@@ -227,7 +241,7 @@ function PieChart({ data, title, size = 140, thickness = 22, onSelect, activeFil
               }}
               onClick={() => onSelect && onSelect(seg.label)}
             >
-              <span className="pie-dot" style={{ background: seg.color }}/>
+              <span className="pie-dot" style={{ background: seg.color }} />
               <span className="pie-leg-label">{seg.label}</span>
               <span className="pie-leg-val">{Math.round(seg.pct * 100)}%</span>
             </div>
@@ -258,29 +272,29 @@ function TeamBriefCard({ rows, teamLabel, rtl, t, shift, isMgr, onSelectTeam }) 
   const pmShiftDur = agg['avg_pm_shift_hm']?.avg || 0;
 
   return (
-    <div className="ucard team-brief-card" onClick={() => onSelectTeam && onSelectTeam(teamLabel)} style={{cursor: 'pointer'}}>
-      <div className="ucard-hdr" style={{borderBottom: '1px solid var(--bdr)'}}>
+    <div className="ucard team-brief-card" onClick={() => onSelectTeam && onSelectTeam(teamLabel)} style={{ cursor: 'pointer' }}>
+      <div className="ucard-hdr" style={{ borderBottom: '1px solid var(--bdr)' }}>
         <div className="ucard-info">
-          <div className="ucard-name" style={{color: 'var(--gold)', fontSize: '17px'}}>{teamLabel}</div>
+          <div className="ucard-name" style={{ color: 'var(--gold)', fontSize: '17px' }}>{teamLabel}</div>
           <div className="ucard-meta">{repCount} {rtl ? 'مندوب' : 'reps'}</div>
           {(amShiftDur > 0 || pmShiftDur > 0) && (
             <div className="ucard-dur">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
               {amShiftDur > 0 ? <span className="dur-am">AM {fmtDuration(amShiftDur)}</span> : null}
               {pmShiftDur > 0 ? <span className="dur-pm">PM {fmtDuration(pmShiftDur)}</span> : null}
             </div>
           )}
         </div>
-        <span className="mgr-pip" style={{background: 'var(--navy)', color: '#fff'}}>{rtl ? 'فريق' : 'TEAM'}</span>
+        <span className="mgr-pip" style={{ background: 'var(--navy)', color: '#fff' }}>{rtl ? 'فريق' : 'TEAM'}</span>
       </div>
 
       {t.kpiGroups.map(g => {
         const keys = g.keys.filter(k => {
-          if(shift==='AM') return !['pm_calls','pm_call_rate','pm_shift_days','total_pm_covered','clinic_covered','polyclinic_covered','avg_pm_shift_hm'].includes(k);
-          if(shift==='PM') return !['am_calls','am_call_rate','am_shift_days','total_am_covered','amcenter_covered','hospital_covered','avg_am_shift_hm','avg_am_start_time'].includes(k);
+          if (shift === 'AM') return !['pm_calls', 'pm_call_rate', 'pm_shift_days', 'total_pm_covered', 'clinic_covered', 'polyclinic_covered', 'avg_pm_shift_hm'].includes(k);
+          if (shift === 'PM') return !['am_calls', 'am_call_rate', 'am_shift_days', 'total_am_covered', 'amcenter_covered', 'hospital_covered', 'avg_am_shift_hm', 'avg_am_start_time'].includes(k);
           return true;
         });
-        if(g.keys.includes('coaching_days') && !isMgr) return null;
+        if (g.keys.includes('coaching_days') && !isMgr) return null;
 
         return (
           <div key={g.label} className={`kpi-sec${g.keys.includes('avg_am_start_time') ? ' kpi-timing' : ''}`}>
@@ -317,7 +331,7 @@ function TeamBriefCard({ rows, teamLabel, rtl, t, shift, isMgr, onSelectTeam }) 
 
 // ── PivotSummaryBanner ───────────────────────────────────────────────────────
 function PivotSummaryBanner({ rows, valueKey, rowKey, shift, t, selectedTeam, onSelectTeam, userTeamMap }) {
-  const filtered = useMemo(() => shift==='all'?rows:rows.filter(r=>r.shift===shift), [rows,shift]);
+  const filtered = useMemo(() => shift === 'all' ? rows : rows.filter(r => r.shift === shift), [rows, shift]);
   const byTeam = useMemo(() => {
     const m = {};
     if (userTeamMap) {
@@ -325,7 +339,7 @@ function PivotSummaryBanner({ rows, valueKey, rowKey, shift, t, selectedTeam, on
         if (!teamStr || teamStr === 'Unknown') return;
         const tms = (typeof teamStr === 'string') ? teamStr.split('; ') : [teamStr];
         tms.forEach(team => {
-          if(!m[team]) m[team] = { total:0, users:new Set() };
+          if (!m[team]) m[team] = { total: 0, users: new Set() };
           m[team].users.add(userName);
         });
       });
@@ -334,23 +348,23 @@ function PivotSummaryBanner({ rows, valueKey, rowKey, shift, t, selectedTeam, on
       const teamStr = (r.team && r.team !== 'Unknown') ? r.team : (userTeamMap && userTeamMap[r.user_name]) || 'Other';
       const tms = (typeof teamStr === 'string') ? teamStr.split('; ') : [teamStr];
       tms.forEach(team => {
-        if(!m[team]) m[team] = { total:0, users:new Set() };
-        m[team].total += (r[valueKey]||0);
+        if (!m[team]) m[team] = { total: 0, users: new Set() };
+        m[team].total += (r[valueKey] || 0);
         m[team].users.add(r.user_name);
       });
     });
     return m;
   }, [filtered, valueKey, userTeamMap]);
-  const grandTotal = useMemo(() => filtered.reduce((s,r)=>s+(r[valueKey]||0),0), [filtered,valueKey]);
-  const allUsers   = useMemo(() => {
+  const grandTotal = useMemo(() => filtered.reduce((s, r) => s + (r[valueKey] || 0), 0), [filtered, valueKey]);
+  const allUsers = useMemo(() => {
     if (userTeamMap) return Object.keys(userTeamMap).length;
-    return new Set(filtered.map(r=>r.user_name)).size;
+    return new Set(filtered.map(r => r.user_name)).size;
   }, [filtered, userTeamMap]);
-  const teamList   = Object.entries(byTeam).sort((a,b)=>a[0].localeCompare(b[0]));
-  if(!teamList.length) return null;
+  const teamList = Object.entries(byTeam).sort((a, b) => a[0].localeCompare(b[0]));
+  if (!teamList.length) return null;
   return (
     <div className="pivot-banner">
-      <div 
+      <div
         className={`pivot-banner-total ${selectedTeam === 'all' ? 'active' : ''}`}
         onClick={() => onSelectTeam && onSelectTeam('all')}
         style={{ cursor: onSelectTeam ? 'pointer' : 'default' }}
@@ -359,15 +373,15 @@ function PivotSummaryBanner({ rows, valueKey, rowKey, shift, t, selectedTeam, on
         <span className="pb-val">{grandTotal.toLocaleString()}</span>
         <span className="pb-sub">{allUsers} reps</span>
       </div>
-      {teamList.map(([team,d]) => (
-        <div key={team} 
+      {teamList.map(([team, d]) => (
+        <div key={team}
           className={`pivot-banner-team ${selectedTeam === team ? 'active' : ''}`}
           onClick={() => onSelectTeam && onSelectTeam(selectedTeam === team ? 'all' : team)}
           style={{ cursor: onSelectTeam ? 'pointer' : 'default' }}
         >
           <span className="pb-team">{team}</span>
           <span className="pb-val">{d.total.toLocaleString()}</span>
-          <span className="pb-sub">{d.users.size} reps · avg {d.users.size?Math.round(d.total/d.users.size):0}</span>
+          <span className="pb-sub">{d.users.size} reps · avg {d.users.size ? Math.round(d.total / d.users.size) : 0}</span>
         </div>
       ))}
     </div>
@@ -378,11 +392,11 @@ function PivotSummaryBanner({ rows, valueKey, rowKey, shift, t, selectedTeam, on
 function ShiftToggle({ value, onChange, t }) {
   return (
     <div className="shift-toggle">
-      {['all','AM','PM'].map(s=>(
+      {['all', 'AM', 'PM'].map(s => (
         <button key={s}
-          className={`stoggle${value===s?' on':''} ${s==='AM'?'am':s==='PM'?'pm':''}`}
-          onClick={()=>onChange(s)}>
-          {s==='all'?t.shiftAll:s}
+          className={`stoggle${value === s ? ' on' : ''} ${s === 'AM' ? 'am' : s === 'PM' ? 'pm' : ''}`}
+          onClick={() => onChange(s)}>
+          {s === 'all' ? t.shiftAll : s}
         </button>
       ))}
     </div>
@@ -391,28 +405,28 @@ function ShiftToggle({ value, onChange, t }) {
 
 // ── PivotTable ───────────────────────────────────────────────────────────────
 function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFilter, lang, hideAvg }) {
-  const filtered = useMemo(()=>rows.filter(r=>{
-    if(shiftFilter!=='all' && r.shift!==shiftFilter) return false;
-    if(userFilter && userFilter!=='all' && r.user_name!==userFilter) return false;
-    if(searchFilter && !r[rowKey]?.toLowerCase().includes(searchFilter.toLowerCase())
-       && !r.user_name?.toLowerCase().includes(searchFilter.toLowerCase())) return false;
+  const filtered = useMemo(() => rows.filter(r => {
+    if (shiftFilter !== 'all' && r.shift !== shiftFilter) return false;
+    if (userFilter && userFilter !== 'all' && r.user_name !== userFilter) return false;
+    if (searchFilter && !r[rowKey]?.toLowerCase().includes(searchFilter.toLowerCase())
+      && !r.user_name?.toLowerCase().includes(searchFilter.toLowerCase())) return false;
     return true;
   }), [rows, rowKey, shiftFilter, userFilter, searchFilter]);
-  const users = useMemo(()=>[...new Set(filtered.map(r=>r.user_name))].sort(),[filtered]);
-  const rowKeys = useMemo(()=>[...new Set(filtered.map(r=>r[rowKey]))].sort(),[filtered,rowKey]);
-  const cells = useMemo(()=>{
-    const c={};
-    filtered.forEach(r=>{
-      const k=r[rowKey]; if(!c[k])c[k]={};
-      c[k][r.user_name]=(c[k][r.user_name]||0)+(r[valueKey]||0);
+  const users = useMemo(() => [...new Set(filtered.map(r => r.user_name))].sort(), [filtered]);
+  const rowKeys = useMemo(() => [...new Set(filtered.map(r => r[rowKey]))].sort(), [filtered, rowKey]);
+  const cells = useMemo(() => {
+    const c = {};
+    filtered.forEach(r => {
+      const k = r[rowKey]; if (!c[k]) c[k] = {};
+      c[k][r.user_name] = (c[k][r.user_name] || 0) + (r[valueKey] || 0);
     });
     return c;
-  },[filtered,rowKey,valueKey]);
-  const colTotals = useMemo(()=>{
-    const ct={};
-    users.forEach(u=>ct[u]=filtered.filter(r=>r.user_name===u).reduce((s,r)=>s+(r[valueKey]||0),0));
+  }, [filtered, rowKey, valueKey]);
+  const colTotals = useMemo(() => {
+    const ct = {};
+    users.forEach(u => ct[u] = filtered.filter(r => r.user_name === u).reduce((s, r) => s + (r[valueKey] || 0), 0));
     return ct;
-  },[users,filtered,valueKey]);
+  }, [users, filtered, valueKey]);
 
   // Synced top scrollbar — lets people scroll horizontally without hunting
   // for the scrollbar at the bottom of a long table.
@@ -446,58 +460,58 @@ function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFil
     topScrollRef.current.scrollLeft = wrapRef.current.scrollLeft;
   };
 
-  if(!filtered.length) return <div className="dash-empty">{lang==='ar'?'لا توجد بيانات':'No data'}</div>;
+  if (!filtered.length) return <div className="dash-empty">{lang === 'ar' ? 'لا توجد بيانات' : 'No data'}</div>;
   return (
     <>
       <div className="pivot-top-scroll" ref={topScrollRef} onScroll={handleTopScroll}>
         <div style={{ width: tableWidth, height: 1 }} />
       </div>
       <div className="pivot-wrap" ref={wrapRef} onScroll={handleWrapScroll}>
-      <table className="pivot-tbl">
-        <thead>
-          <tr>
-            <th className="s-col">{rowKey==='specialty'?(lang==='ar'?'التخصص':'Specialty'):(lang==='ar'?'المنتج':'Product')}</th>
-            {users.map(u=><th key={u} title={u}>{u.split(' ').slice(0,2).join(' ')}</th>)}
-            <th className="t-col">Σ Total</th>
-          </tr>
-          {!hideAvg && (
-            <tr className="avg-row">
-              <th className="s-col avg-lbl">⌀ Avg / rep</th>
-              {users.map(u=>{
-                const uTotal = colTotals[u]||0;
-                const uRows  = rowKeys.filter(k=>cells[k]?.[u]).length;
-                return <th key={u} className="avg-cell">{uRows>0?Math.round(uTotal/uRows):0}</th>;
-              })}
-              <th className="t-col avg-cell">
-                {(() => {
-                  const gt = filtered.reduce((s,r)=>s+(r[valueKey]||0),0);
-                  return users.length>0?Math.round(gt/users.length):0;
-                })()}
-              </th>
+        <table className="pivot-tbl">
+          <thead>
+            <tr>
+              <th className="s-col">{rowKey === 'specialty' ? (lang === 'ar' ? 'التخصص' : 'Specialty') : (lang === 'ar' ? 'المنتج' : 'Product')}</th>
+              {users.map(u => <th key={u} title={u}>{u.split(' ').slice(0, 2).join(' ')}</th>)}
+              <th className="t-col">Σ Total</th>
             </tr>
-          )}
-        </thead>
-        <tbody>
-          {rowKeys.map(k=>{
-            const rowTotal=users.reduce((s,u)=>s+(cells[k]?.[u]||0),0);
-            return (
-              <tr key={k}>
-                <td className="s-col">{k}</td>
-                {users.map(u=>{
-                  const v=cells[k]?.[u];
-                  return <td key={u} className={v?'has-v':'nil'}>{v||''}</td>;
+            {!hideAvg && (
+              <tr className="avg-row">
+                <th className="s-col avg-lbl">⌀ Avg / rep</th>
+                {users.map(u => {
+                  const uTotal = colTotals[u] || 0;
+                  const uRows = rowKeys.filter(k => cells[k]?.[u]).length;
+                  return <th key={u} className="avg-cell">{uRows > 0 ? Math.round(uTotal / uRows) : 0}</th>;
                 })}
-                <td className="t-col">{rowTotal}</td>
+                <th className="t-col avg-cell">
+                  {(() => {
+                    const gt = filtered.reduce((s, r) => s + (r[valueKey] || 0), 0);
+                    return users.length > 0 ? Math.round(gt / users.length) : 0;
+                  })()}
+                </th>
               </tr>
-            );
-          })}
-          <tr className="tot-row">
-            <td className="s-col">Σ Total</td>
-            {users.map(u=><td key={u}>{colTotals[u]||0}</td>)}
-            <td className="t-col">{filtered.reduce((s,r)=>s+(r[valueKey]||0),0)}</td>
-          </tr>
-        </tbody>
-      </table>
+            )}
+          </thead>
+          <tbody>
+            {rowKeys.map(k => {
+              const rowTotal = users.reduce((s, u) => s + (cells[k]?.[u] || 0), 0);
+              return (
+                <tr key={k}>
+                  <td className="s-col">{k}</td>
+                  {users.map(u => {
+                    const v = cells[k]?.[u];
+                    return <td key={u} className={v ? 'has-v' : 'nil'}>{v || ''}</td>;
+                  })}
+                  <td className="t-col">{rowTotal}</td>
+                </tr>
+              );
+            })}
+            <tr className="tot-row">
+              <td className="s-col">Σ Total</td>
+              {users.map(u => <td key={u}>{colTotals[u] || 0}</td>)}
+              <td className="t-col">{filtered.reduce((s, r) => s + (r[valueKey] || 0), 0)}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </>
   );
@@ -505,34 +519,37 @@ function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFil
 
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const { profile, hierarchy, visibleCodes } = useAuth();
-  const [lang, setLang]       = useState(profile?.preferred_lang||'en');
-  const [period, setPeriod]   = useState('recent');
-  const [team, setTeam]       = useState('all');
-  const [shift, setShift]     = useState('PM'); // Default is PM
-  const [search, setSearch]   = useState('');
+  const { profile, hierarchy, visibleCodes, signOut } = useAuth();
+  const [lang, setLang] = useState(profile?.preferred_lang || 'en');
+  const [period, setPeriod] = useState('recent');
+  const [team, setTeam] = useState('all');
+  const [shift, setShift] = useState('all'); // Default is Both
+  const [search, setSearch] = useState('');
   const [userFilter, setUser] = useState('all');
-  const [tab, setTab]         = useState('summary');
-  const [summary, setSummary]       = useState([]);
-  const [specialty, setSpecialty]   = useState([]);
-  const [products, setProducts]     = useState([]);
-  const [coaching, setCoaching]     = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [error, setError]           = useState('');
+  const [tab, setTab] = useState('summary');
+  const [summary, setSummary] = useState([]);
+  const [specialty, setSpecialty] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [coaching, setCoaching] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   // Sidebar states
-  const [selectedRep, setSelectedRep]         = useState(null);
+  const [selectedRep, setSelectedRep] = useState(null);
+  const [specialtyFilter, setSpecialtyFilter] = useState(new Set());
+  const [productFilter, setProductFilter] = useState(new Set());
+  const [classificationFilter, setClassificationFilter] = useState(new Set());
+  const [selectedManager, setSelectedManager] = useState(null);
   const [lineManagerFilter, setLineManagerFilter] = useState('all');
   const [managerTerritoryFilter, setManagerTerritoryFilter] = useState('all');
-  const [sidebarOpen, setSidebarOpen]         = useState(false);
-  const [theme, setTheme]                     = useState(() => {
-    const saved = localStorage.getItem('theme');
-    if (!saved || saved === 'light') {
-      localStorage.setItem('theme', 'dark');
-      return 'dark';
-    }
-    return saved;
-  });
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
+
+  // AI Chat States
+  const [isAiOpen, setIsAiOpen] = useState(false);
+  const [aiInput, setAiInput] = useState('');
+  const [aiHistory, setAiHistory] = useState([]);
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
@@ -547,23 +564,23 @@ export default function Dashboard() {
     }
   };
 
-  const t   = T[lang]||T.en;
-  const rtl = lang==='ar';
-  const isMgr = profile?.role && profile.role!=='MR';
-  const periodLabel = period==='last_month'?'Last Month':'Recent';
+  const t = T[lang] || T.en;
+  const rtl = lang === 'ar';
+  const isMgr = profile?.role && profile.role !== 'MR';
+  const periodLabel = period === 'last_month' ? 'Last Month' : 'Recent';
   // Stable ref tracking what data has been fetched — survives re-renders without causing them
   const fetchedKeyRef = React.useRef(null);
   const codesKey = visibleCodes ? [...visibleCodes].sort().join(',') : '';
   const currentKey = `${periodLabel}|${codesKey}|${isMgr}`;
 
-  const load = useCallback(async(force=false)=>{
-    if(!visibleCodes?.length){setLoading(false);return;}
+  const load = useCallback(async (force = false) => {
+    if (!visibleCodes?.length) { setLoading(false); return; }
     const isAdmin = profile?.role === 'Admin';
     const codes = visibleCodes;
     const cacheKey = `dash_${periodLabel}_${isMgr}`;
 
     // Skip if already fetched this key (tab switch won't retrigger)
-    if(!force && fetchedKeyRef.current === currentKey) return;
+    if (!force && fetchedKeyRef.current === currentKey) return;
 
     const SPECIAL_MANAGERS = [
       'ahmad morsy', 'ahmed elasyed', 'ahmed tarek mohamed', 'akram ahmed elhossary',
@@ -583,7 +600,7 @@ export default function Dashboard() {
 
     // Try sessionStorage cache first
     const cached = !force && sessionStorage.getItem(cacheKey);
-    if(cached) {
+    if (cached) {
       try {
         const parsed = JSON.parse(cached);
         setSummary(overrideSpecialManagers(parsed.summaries));
@@ -593,7 +610,7 @@ export default function Dashboard() {
         fetchedKeyRef.current = currentKey;
         setLoading(false);
         return;
-      } catch(e) { /* ignore corrupted cache */ }
+      } catch (e) { /* ignore corrupted cache */ }
     }
 
     setLoading(true); setError('');
@@ -607,7 +624,7 @@ export default function Dashboard() {
     if (rpcError) {
       setError(rpcError.message);
     } else {
-      try { sessionStorage.setItem(cacheKey, JSON.stringify(data)); } catch(e) {}
+      try { sessionStorage.setItem(cacheKey, JSON.stringify(data)); } catch (e) { }
     }
 
     setSummary(overrideSpecialManagers(data?.summaries));
@@ -616,10 +633,10 @@ export default function Dashboard() {
     setCoaching(overrideSpecialManagers(data?.coaching));
     fetchedKeyRef.current = currentKey;
     setLoading(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[periodLabel, currentKey, isMgr, profile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periodLabel, currentKey, isMgr, profile]);
 
-  useEffect(()=>{ load(); },[load]);
+  useEffect(() => { load(); }, [load]);
 
   // ── Filtering ──────────────────────────────────────────────────────────────
   const [viewMode, setViewMode] = useState('teams'); // 'teams' | 'employees'
@@ -759,10 +776,10 @@ export default function Dashboard() {
     });
   }, [managerTerritoryFilter, territoryEmployeeNamesMap]);
 
-  const fSummary=useMemo(()=>{
-    let r=byManagerTerritory(byLineManager(byTeam(summary)));
-    if(search) r=r.filter(x=>x.user_name?.toLowerCase().includes(search.toLowerCase())||x.territory?.toLowerCase().includes(search.toLowerCase()));
-    if(userFilter!=='all') {
+  const fSummary = useMemo(() => {
+    let r = byManagerTerritory(byLineManager(byTeam(summary)));
+    if (search) r = r.filter(x => x.user_name?.toLowerCase().includes(search.toLowerCase()) || x.territory?.toLowerCase().includes(search.toLowerCase()));
+    if (userFilter !== 'all') {
       const targetNames = new Set([userFilter]);
       (hierarchy || []).forEach(h => {
         if (h.area_manager_name === userFilter || h.supervisor_name === userFilter) {
@@ -771,61 +788,61 @@ export default function Dashboard() {
       });
       r = r.filter(x => targetNames.has(x.user_name));
     }
-    const m=new Map();
-    r.forEach(x=>{
-      const k=x.user_name;
-      if(!m.has(k)){
-        m.set(k,{...x,_am_days_sum:x.am_shift_days||0,_pm_days_sum:x.pm_shift_days||0,_am_dur_sum:(x.avg_am_shift_hm||0)*(x.am_shift_days||0),_pm_dur_sum:(x.avg_pm_shift_hm||0)*(x.pm_shift_days||0)});
-      }else{
-        const existing=m.get(k);
-        const sumKeys=['working_days','complete_field_days','am_shift_days','pm_shift_days','double_visit_days','office_work_days','no_activities','no_events','am_calls','pm_calls','total_am_covered','total_pm_covered','amcenter_covered','hospital_covered','clinic_covered','polyclinic_covered','pharmacies_visited','pharmacies_covered','total_product_calls','distinct_products','coaching_days'];
-        sumKeys.forEach(sk=>existing[sk]=(existing[sk]||0)+(x[sk]||0));
-        if(x.territory && !existing.territory?.includes(x.territory)){
-          existing.territory=existing.territory?`${existing.territory}; ${x.territory}`:x.territory;
+    const m = new Map();
+    r.forEach(x => {
+      const k = x.user_name;
+      if (!m.has(k)) {
+        m.set(k, { ...x, _am_days_sum: x.am_shift_days || 0, _pm_days_sum: x.pm_shift_days || 0, _am_dur_sum: (x.avg_am_shift_hm || 0) * (x.am_shift_days || 0), _pm_dur_sum: (x.avg_pm_shift_hm || 0) * (x.pm_shift_days || 0) });
+      } else {
+        const existing = m.get(k);
+        const sumKeys = ['working_days', 'complete_field_days', 'am_shift_days', 'pm_shift_days', 'double_visit_days', 'office_work_days', 'no_activities', 'no_events', 'am_calls', 'pm_calls', 'total_am_covered', 'total_pm_covered', 'amcenter_covered', 'hospital_covered', 'clinic_covered', 'polyclinic_covered', 'pharmacies_visited', 'pharmacies_covered', 'total_product_calls', 'distinct_products', 'coaching_days'];
+        sumKeys.forEach(sk => existing[sk] = (existing[sk] || 0) + (x[sk] || 0));
+        if (x.territory && !existing.territory?.includes(x.territory)) {
+          existing.territory = existing.territory ? `${existing.territory}; ${x.territory}` : x.territory;
         }
-        existing._am_days_sum+=(x.am_shift_days||0);
-        existing._pm_days_sum+=(x.pm_shift_days||0);
-        existing._am_dur_sum+=(x.avg_am_shift_hm||0)*(x.am_shift_days||0);
-        existing._pm_dur_sum+=(x.avg_pm_shift_hm||0)*(x.pm_shift_days||0);
-        existing.am_call_rate=existing.am_shift_days?(existing.am_calls/existing.am_shift_days):0;
-        existing.pm_call_rate=existing.pm_shift_days?(existing.pm_calls/existing.pm_shift_days):0;
-        existing.avg_am_shift_hm=existing._am_days_sum>0?(existing._am_dur_sum/existing._am_days_sum):0;
-        existing.avg_pm_shift_hm=existing._pm_days_sum>0?(existing._pm_dur_sum/existing._pm_days_sum):0;
+        existing._am_days_sum += (x.am_shift_days || 0);
+        existing._pm_days_sum += (x.pm_shift_days || 0);
+        existing._am_dur_sum += (x.avg_am_shift_hm || 0) * (x.am_shift_days || 0);
+        existing._pm_dur_sum += (x.avg_pm_shift_hm || 0) * (x.pm_shift_days || 0);
+        existing.am_call_rate = existing.am_shift_days ? (existing.am_calls / existing.am_shift_days) : 0;
+        existing.pm_call_rate = existing.pm_shift_days ? (existing.pm_calls / existing.pm_shift_days) : 0;
+        existing.avg_am_shift_hm = existing._am_days_sum > 0 ? (existing._am_dur_sum / existing._am_days_sum) : 0;
+        existing.avg_pm_shift_hm = existing._pm_days_sum > 0 ? (existing._pm_dur_sum / existing._pm_days_sum) : 0;
       }
     });
     const finalArr = Array.from(m.values());
-    
+
     // Recalculate coaching days from actual coaching data for both managers and reps
     const mgrCoachingMap = {};
     const repCoachingMap = {};
     (coaching || []).forEach(c => {
-       const mgr = c.manager_name;
-       const rep = c.rep_name;
-       if (mgr) {
-         if (!mgrCoachingMap[mgr]) mgrCoachingMap[mgr] = new Set();
-         mgrCoachingMap[mgr].add(c.coaching_date);
-       }
-       if (rep) {
-         if (!repCoachingMap[rep]) repCoachingMap[rep] = new Set();
-         repCoachingMap[rep].add(c.coaching_date);
-       }
+      const mgr = c.manager_name;
+      const rep = c.rep_name;
+      if (mgr) {
+        if (!mgrCoachingMap[mgr]) mgrCoachingMap[mgr] = new Set();
+        mgrCoachingMap[mgr].add(c.coaching_date);
+      }
+      if (rep) {
+        if (!repCoachingMap[rep]) repCoachingMap[rep] = new Set();
+        repCoachingMap[rep].add(c.coaching_date);
+      }
     });
 
     finalArr.forEach(x => {
-       if (x.is_manager) {
-           x.coaching_days = mgrCoachingMap[x.user_name] ? mgrCoachingMap[x.user_name].size : 0;
-       } else {
-           x.coaching_days = repCoachingMap[x.user_name] ? repCoachingMap[x.user_name].size : 0;
-       }
+      if (x.is_manager) {
+        x.coaching_days = mgrCoachingMap[x.user_name] ? mgrCoachingMap[x.user_name].size : 0;
+      } else {
+        x.coaching_days = repCoachingMap[x.user_name] ? repCoachingMap[x.user_name].size : 0;
+      }
     });
 
     return sortSummary(finalArr);
-  },[summary,coaching,byTeam,byLineManager,byManagerTerritory,search,userFilter,hierarchy]);
+  }, [summary, coaching, byTeam, byLineManager, byManagerTerritory, search, userFilter, hierarchy]);
 
-  const fSpecialty = useMemo(()=>{
-    let r=byManagerTerritory(byLineManager(byTeam(specialty)));
-    if(search) r=r.filter(x=>x.user_name?.toLowerCase().includes(search.toLowerCase())||x.territory?.toLowerCase().includes(search.toLowerCase()));
-    if(userFilter!=='all') {
+  const fSpecialty = useMemo(() => {
+    let r = byManagerTerritory(byLineManager(byTeam(specialty)));
+    if (search) r = r.filter(x => x.user_name?.toLowerCase().includes(search.toLowerCase()) || x.territory?.toLowerCase().includes(search.toLowerCase()));
+    if (userFilter !== 'all') {
       const targetNames = new Set([userFilter]);
       (hierarchy || []).forEach(h => {
         if (h.area_manager_name === userFilter || h.supervisor_name === userFilter) {
@@ -835,12 +852,12 @@ export default function Dashboard() {
       r = r.filter(x => targetNames.has(x.user_name));
     }
     return r;
-  },[specialty,byTeam,byLineManager,byManagerTerritory,search,userFilter,hierarchy]);
+  }, [specialty, byTeam, byLineManager, byManagerTerritory, search, userFilter, hierarchy]);
 
-  const fProducts  = useMemo(()=>{
-    let r=byManagerTerritory(byLineManager(byTeam(products)));
-    if(search) r=r.filter(x=>x.user_name?.toLowerCase().includes(search.toLowerCase())||x.territory?.toLowerCase().includes(search.toLowerCase()));
-    if(userFilter!=='all') {
+  const fProducts = useMemo(() => {
+    let r = byManagerTerritory(byLineManager(byTeam(products)));
+    if (search) r = r.filter(x => x.user_name?.toLowerCase().includes(search.toLowerCase()) || x.territory?.toLowerCase().includes(search.toLowerCase()));
+    if (userFilter !== 'all') {
       const targetNames = new Set([userFilter]);
       (hierarchy || []).forEach(h => {
         if (h.area_manager_name === userFilter || h.supervisor_name === userFilter) {
@@ -850,7 +867,7 @@ export default function Dashboard() {
       r = r.filter(x => targetNames.has(x.user_name));
     }
     return r;
-  },[products,byTeam,byLineManager,byManagerTerritory,search,userFilter,hierarchy]);
+  }, [products, byTeam, byLineManager, byManagerTerritory, search, userFilter, hierarchy]);
 
   const visibleNames = useMemo(() => {
     if (!hierarchy?.length || !visibleCodes?.length) return null;
@@ -865,13 +882,13 @@ export default function Dashboard() {
     return names;
   }, [hierarchy, visibleCodes, profile]);
 
-  const fCoaching  = useMemo(()=>{
-    let r=byManagerTerritory(byLineManager(byTeam(coaching)));
+  const fCoaching = useMemo(() => {
+    let r = byManagerTerritory(byLineManager(byTeam(coaching)));
     if (visibleNames && profile?.role !== 'Admin') {
       r = r.filter(x => visibleNames.has(x.manager_name) || visibleNames.has(x.rep_name));
     }
-    if(search) r=r.filter(x=>x.manager_name?.toLowerCase().includes(search.toLowerCase())||x.rep_name?.toLowerCase().includes(search.toLowerCase()));
-    if(userFilter!=='all') {
+    if (search) r = r.filter(x => x.manager_name?.toLowerCase().includes(search.toLowerCase()) || x.rep_name?.toLowerCase().includes(search.toLowerCase()));
+    if (userFilter !== 'all') {
       const managerNames = new Set([userFilter]);
       (hierarchy || []).forEach(h => {
         if (h.area_manager_name === userFilter || h.supervisor_name === userFilter) {
@@ -882,32 +899,18 @@ export default function Dashboard() {
       });
       r = r.filter(x => managerNames.has(x.manager_name) || managerNames.has(x.rep_name));
     }
-
-    // Deduplicate coaching sessions (ultra-aggressive: remove all non-alphanumeric chars for key matching)
-    const map = new Map();
-    r.forEach(x => {
-      const normalize = (str) => (str || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-      const mgr = normalize(x.manager_name);
-      const rep = normalize(x.rep_name);
-      const d = normalize(x.coaching_date);
-      const key = `${mgr}|${rep}|${d}`;
-      
-      const existing = map.get(key);
-      const currentTotal = (Number(x.am_visits) || 0) + (Number(x.pm_visits) || 0);
-      
-      if (!existing) {
-        map.set(key, x);
-      } else {
-        const existingTotal = (Number(existing.am_visits) || 0) + (Number(existing.pm_visits) || 0);
-        if (currentTotal > existingTotal) {
-          map.set(key, x);
-        }
-      }
-    });
-    r = Array.from(map.values());
-
     return r;
-  },[coaching,byTeam,byLineManager,byManagerTerritory,search,userFilter,visibleNames,profile,hierarchy]);
+  }, [coaching, byTeam, byLineManager, byManagerTerritory, search, userFilter, visibleNames, profile, hierarchy]);
+
+  const companyAverages = useMemo(() => {
+    const reps = summary.filter(r => !r.is_manager);
+    const avgs = {};
+    NUMERIC_KPI_KEYS.forEach(key => {
+      const vals = reps.map(r => Number(r[key]) || 0).filter(v => v > 0);
+      avgs[key] = vals.length ? (vals.reduce((s, v) => s + v, 0) / vals.length) : 0;
+    });
+    return avgs;
+  }, [summary]);
 
   const userTeamMap = useMemo(() => {
     const map = {};
@@ -941,6 +944,9 @@ export default function Dashboard() {
     return { totalActivities, totalEvents };
   }, [fSummary, selectedRep]);
 
+  const allUsers = useMemo(() => [...new Set(byTeam(summary).map(r => r.user_name))].sort(), [summary, byTeam]);
+  const teamCount = new Set(fSummary.map(r => r.team)).size;
+
   const teamGroups = useMemo(() => {
     const isAdmin = profile?.role === 'Admin';
     const otherLabel = rtl ? 'مدراء آخرين' : 'Other Managers';
@@ -961,13 +967,13 @@ export default function Dashboard() {
         groups[label].push(r);
       });
     });
-    return Object.entries(groups).sort((a,b) => a[0].localeCompare(b[0])).map(([label, rows]) => ({ label, rows }));
+    return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0])).map(([label, rows]) => ({ label, rows }));
   }, [fSummary, team, profile, rtl]);
 
-  const visibleTabs=useMemo(()=>{
-    const all=Object.entries(t.tabs);
-    return isMgr?all:all.filter(([k])=>k!=='coaching');
-  },[t.tabs,isMgr]);
+  const visibleTabs = useMemo(() => {
+    const all = Object.entries(t.tabs);
+    return isMgr ? all : all.filter(([k]) => k !== 'coaching');
+  }, [t.tabs, isMgr]);
 
   // ── Sidebar computed data ──────────────────────────────────────────────────
   const selectedRepData = useMemo(() => {
@@ -981,7 +987,7 @@ export default function Dashboard() {
     if (selectedRep) {
       list = list.filter(r => r.user_name === selectedRep);
     }
-    return shift==='all' ? list : list.filter(r => r.shift===shift);
+    return shift === 'all' ? list : list.filter(r => r.shift === shift);
   }, [fSpecialty, shift, selectedRep]);
 
   const specialtyPieData = useMemo(() => {
@@ -990,9 +996,9 @@ export default function Dashboard() {
       list = list.filter(r => classificationFilter.has(r.classification));
     }
     const m = {};
-    list.forEach(r => { const s=r.specialty||'Other'; m[s]=(m[s]||0)+(r.call_count||0); });
-    return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,10)
-      .map(([label,value],i) => ({ label, value, color: PIE_COLORS[i%PIE_COLORS.length] }));
+    list.forEach(r => { const s = r.specialty || 'Other'; m[s] = (m[s] || 0) + (r.call_count || 0); });
+    return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 10)
+      .map(([label, value], i) => ({ label, value, color: PIE_COLORS[i % PIE_COLORS.length] }));
   }, [shiftFilteredSpecialty, classificationFilter]);
 
   const classificationPieData = useMemo(() => {
@@ -1001,14 +1007,14 @@ export default function Dashboard() {
       list = list.filter(r => specialtyFilter.has(r.specialty));
     }
     const m = {};
-    list.forEach(r => { const c=r.classification||'Unclassified'; m[c]=(m[c]||0)+(r.call_count||0); });
-    return Object.entries(m).sort((a,b)=>b[1]-a[1])
-      .map(([label,value],i) => ({ label, value, color: PIE_COLORS[i%PIE_COLORS.length] }));
+    list.forEach(r => { const c = r.classification || 'Unclassified'; m[c] = (m[c] || 0) + (r.call_count || 0); });
+    return Object.entries(m).sort((a, b) => b[1] - a[1])
+      .map(([label, value], i) => ({ label, value, color: PIE_COLORS[i % PIE_COLORS.length] }));
   }, [shiftFilteredSpecialty, specialtyFilter]);
 
   const allSpecialties = useMemo(() =>
     [...new Set(fSpecialty.map(r => r.specialty).filter(Boolean))].sort()
-  , [fSpecialty]);
+    , [fSpecialty]);
 
   const filteredSpecialty = useMemo(() => {
     let res = fSpecialty;
@@ -1028,7 +1034,7 @@ export default function Dashboard() {
 
   const allProducts = useMemo(() =>
     [...new Set(fProducts.map(r => r.product).filter(Boolean))].sort()
-  , [fProducts]);
+    , [fProducts]);
 
   // Products pie chart (shift-filtered & rep-filtered)
   const shiftFilteredProducts = useMemo(() => {
@@ -1036,34 +1042,34 @@ export default function Dashboard() {
     if (selectedRep) {
       list = list.filter(r => r.user_name === selectedRep);
     }
-    return shift==='all' ? list : list.filter(r => r.shift===shift);
+    return shift === 'all' ? list : list.filter(r => r.shift === shift);
   }, [fProducts, shift, selectedRep]);
 
   const productPieData = useMemo(() => {
     const m = {};
-    shiftFilteredProducts.forEach(r => { const p=r.product||'Other'; m[p]=(m[p]||0)+(r.call_count||0); });
-    return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,10)
-      .map(([label,value],i) => ({ label, value, color: PIE_COLORS[i%PIE_COLORS.length] }));
+    shiftFilteredProducts.forEach(r => { const p = r.product || 'Other'; m[p] = (m[p] || 0) + (r.call_count || 0); });
+    return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 10)
+      .map(([label, value], i) => ({ label, value, color: PIE_COLORS[i % PIE_COLORS.length] }));
   }, [shiftFilteredProducts]);
 
   const topProducts = useMemo(() => {
     const m = {};
-    shiftFilteredProducts.forEach(r => { const p=r.product||'Other'; m[p]=(m[p]||0)+(r.call_count||0); });
-    const sorted = Object.entries(m).sort((a,b)=>b[1]-a[1]);
-    const max = sorted[0]?.[1]||1;
-    return sorted.slice(0,8).map(([name,count]) => ({ name, count, pct: Math.round(count/max*100) }));
+    shiftFilteredProducts.forEach(r => { const p = r.product || 'Other'; m[p] = (m[p] || 0) + (r.call_count || 0); });
+    const sorted = Object.entries(m).sort((a, b) => b[1] - a[1]);
+    const max = sorted[0]?.[1] || 1;
+    return sorted.slice(0, 8).map(([name, count]) => ({ name, count, pct: Math.round(count / max * 100) }));
   }, [shiftFilteredProducts]);
 
   // Coaching manager groups
   const managerGroups = useMemo(() => {
     const m = {};
     fCoaching.forEach(r => {
-      const mgr = r.manager_name||'Unknown';
-      if(!m[mgr]) m[mgr] = { name: mgr, team: r.team||'', dates: new Set(), reps: new Set() };
+      const mgr = r.manager_name || 'Unknown';
+      if (!m[mgr]) m[mgr] = { name: mgr, team: r.team || '', dates: new Set(), reps: new Set() };
       m[mgr].dates.add(r.coaching_date);
       m[mgr].reps.add(r.rep_name);
     });
-    return Object.values(m).sort((a,b) => a.team.localeCompare(b.team) || a.name.localeCompare(b.name))
+    return Object.values(m).sort((a, b) => a.team.localeCompare(b.team) || a.name.localeCompare(b.name))
       .map(g => ({ ...g, dayCount: g.dates.size, repCount: g.reps.size }));
   }, [fCoaching]);
 
@@ -1096,41 +1102,78 @@ export default function Dashboard() {
     setSidebarOpen(false);
   }
 
-  function doExport(){
-    const wb=XLSX.utils.book_new();
-    
-    if (tab === 'summary') {
-      const allKpiKeys=t.kpiGroups.flatMap(g=>g.keys);
-      const sh=[['Team','User','Territory','Manager',...allKpiKeys.map(k=>t.kpi[k]||k)]];
-      fSummary.forEach(r=>sh.push([r.team,r.user_name,r.territory,r.is_manager?'✓':'',...allKpiKeys.map(k=>r[k]??'')]));
-      const aggRows=[['Team','KPI','Sum','Avg']];
-      teamGroups.forEach(({label,rows})=>{
-        const {agg}=computeAggregates(rows);
-        NUMERIC_KPI_KEYS.forEach(k=>{
-          if(agg[k]) aggRows.push([label,t.kpi[k]||k,agg[k].sum,+agg[k].avg.toFixed(2)]);
-        });
-      });
-      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sh),'Summary');
-      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aggRows),'Team Averages');
-    } else if (tab === 'specialty') {
-      const sh=[['Team','User','Territory','Specialty','Classification','Call Count']];
-      filteredSpecialty.forEach(r=>sh.push([r.team||'—',r.user_name||'—',r.territory||'—',r.specialty||'—',r.classification||'—',r.call_count||0]));
-      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sh),'Specialty');
-    } else if (tab === 'products') {
-      const sh=[['Team','User','Territory','Product','Call Count']];
-      filteredProducts.forEach(r=>sh.push([r.team||'—',r.user_name||'—',r.territory||'—',r.product||'—',r.call_count||0]));
-      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sh),'Products');
-    } else if (tab === 'coaching') {
-      const sh=[['Manager','Rep','Date','Team','AM Visits','AM Acc.','AM %','PM Visits','PM Acc.','PM %']];
-      [...filteredCoaching].sort((a,b)=>(a.manager_name||'').localeCompare(b.manager_name||'')||(a.coaching_date||'').localeCompare(b.coaching_date||'')).forEach(r=>{
-        const amPct = r.am_visits ? Math.round((r.am_accompanied/r.am_visits)*100)+'%' : '-';
-        const pmPct = r.pm_visits ? Math.round((r.pm_accompanied/r.pm_visits)*100)+'%' : '-';
-        sh.push([r.manager_name||'—',r.rep_name||'—',r.coaching_date||'—',r.team||'—',r.am_visits||0,r.am_accompanied||0,amPct,r.pm_visits||0,r.pm_accompanied||0,pmPct]);
-      });
-      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sh),'Coaching');
+  function doExport() {
+    const wb = XLSX.utils.book_new();
+
+    if (tab === 'coaching') {
+      // Export whatever the user is currently looking at in the Coaching tab
+      const rows = selectedManager ? filteredCoaching : fCoaching;
+      const sh = [['Manager', 'Rep', 'Date', 'Team', 'AM Visits', 'AM Acc.', 'AM %', 'PM Visits', 'PM Acc.', 'PM %']];
+      [...rows]
+        .sort((a, b) => (a.manager_name || '').localeCompare(b.manager_name || '') || (a.coaching_date || '').localeCompare(b.coaching_date || ''))
+        .forEach(r => sh.push([
+          r.manager_name, r.rep_name, r.coaching_date, r.team || '—',
+          r.am_visits || 0, r.am_accompanied || 0, r.am_visits ? Math.round((r.am_accompanied / r.am_visits) * 100) + '%' : '-',
+          r.pm_visits || 0, r.pm_accompanied || 0, r.pm_visits ? Math.round((r.pm_accompanied / r.pm_visits) * 100) + '%' : '-'
+        ]));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sh), 'Coaching');
+      XLSX.writeFile(wb, `excellence_coaching_${periodLabel.replace(' ', '_')}_${Date.now()}.xlsx`);
+      return;
     }
 
-    XLSX.writeFile(wb,`excellence_${tab}_${periodLabel.replace(' ','_')}_${Date.now()}.xlsx`);
+    if (tab === 'specialty' || tab === 'products') {
+      const rowKey = tab === 'specialty' ? 'specialty' : 'product';
+      const baseRows = tab === 'specialty' ? filteredSpecialty : filteredProducts;
+
+      // Replicate PivotTable's own filtering exactly, so the export matches
+      // whatever is currently on screen (shift toggle, selected rep, search box).
+      const rows = baseRows.filter(r => {
+        if (shift !== 'all' && r.shift !== shift) return false;
+        if (userFilter && userFilter !== 'all' && r.user_name !== userFilter) return false;
+        if (search && !r[rowKey]?.toLowerCase().includes(search.toLowerCase())
+          && !r.user_name?.toLowerCase().includes(search.toLowerCase())) return false;
+        return true;
+      });
+
+      const users = [...new Set(rows.map(r => r.user_name))].sort();
+      const rowKeys = [...new Set(rows.map(r => r[rowKey]))].sort();
+      const cells = {};
+      rows.forEach(r => {
+        const k = r[rowKey];
+        if (!cells[k]) cells[k] = {};
+        cells[k][r.user_name] = (cells[k][r.user_name] || 0) + (r.call_count || 0);
+      });
+
+      const header = [tab === 'specialty' ? 'Specialty' : 'Product', ...users, 'Σ Total'];
+      const sh = [header];
+      rowKeys.forEach(k => {
+        const rowTotal = users.reduce((s, u) => s + (cells[k]?.[u] || 0), 0);
+        sh.push([k, ...users.map(u => cells[k]?.[u] || 0), rowTotal]);
+      });
+      // Grand total row
+      const colTotals = users.map(u => rows.filter(r => r.user_name === u).reduce((s, r) => s + (r.call_count || 0), 0));
+      const grandTotal = colTotals.reduce((s, v) => s + v, 0);
+      sh.push(['Σ Total', ...colTotals, grandTotal]);
+
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sh), tab === 'specialty' ? 'Specialty' : 'Products');
+      XLSX.writeFile(wb, `excellence_${tab}_${periodLabel.replace(' ', '_')}_${Date.now()}.xlsx`);
+      return;
+    }
+
+    // Default: Summary tab (also always includes Team Averages)
+    const allKpiKeys = t.kpiGroups.flatMap(g => g.keys);
+    const sh = [['Team', 'User', 'Territory', 'Manager', ...allKpiKeys.map(k => t.kpi[k] || k)]];
+    fSummary.forEach(r => sh.push([r.team, r.user_name, r.territory, r.is_manager ? '✓' : '', ...allKpiKeys.map(k => r[k] ?? '')]));
+    const aggRows = [['Team', 'KPI', 'Sum', 'Avg']];
+    teamGroups.forEach(({ label, rows }) => {
+      const { agg } = computeAggregates(rows);
+      NUMERIC_KPI_KEYS.forEach(k => {
+        if (agg[k]) aggRows.push([label, t.kpi[k] || k, agg[k].sum, +agg[k].avg.toFixed(2)]);
+      });
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sh), 'Summary');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aggRows), 'Team Averages');
+    XLSX.writeFile(wb, `excellence_${periodLabel.replace(' ', '_')}_${Date.now()}.xlsx`);
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -1149,7 +1192,7 @@ export default function Dashboard() {
         specialty: tab === 'specialty' ? fSpecialty : undefined,
         products: tab === 'products' ? fProducts : undefined,
       };
-      
+
       const res = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1171,7 +1214,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className={`dash${rtl?' rtl':''}`} dir={rtl?'rtl':'ltr'}>
+    <div className={`dash${rtl ? ' rtl' : ''}`} dir={rtl ? 'rtl' : 'ltr'}>
 
       {/* HEADER */}
       <header className="dash-hdr">
@@ -1180,16 +1223,16 @@ export default function Dashboard() {
             <span className="dash-brand">{rtl ? 'إكسيلنس - CRM' : 'Excellence - CRM'}</span>
             <span className="dash-brand-sub">{rtl ? 'تطبيق الويب' : 'web app'}</span>
           </div>
-          <div className="dash-sep"/>
-          <span className="dash-view">{t.roleView[profile?.role]||''}</span>
+          <div className="dash-sep" />
+          <span className="dash-view">{t.roleView[profile?.role] || ''}</span>
         </div>
         <div className="dash-hdr-r">
-          {profile?.role==='Admin'&&<a className="hbtn hbtn-outline" href="#/admin">{t.adminPanel}</a>}
-          <button className="hbtn hbtn-outline" style={{padding: '6px 12px', fontSize: '13px'}} onClick={toggleTheme} title="Toggle Dark/Light Mode">
+          {profile?.role === 'Admin' && <a className="hbtn hbtn-outline" href="#/admin">{t.adminPanel}</a>}
+          <button className="hbtn hbtn-outline" style={{ padding: '6px 12px', fontSize: '13px' }} onClick={toggleTheme} title="Toggle Dark/Light Mode">
             {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
           </button>
-          <button className="hbtn hbtn-lang" onClick={()=>setLang(lang==='en'?'ar':'en')}>
-            {lang==='en'?'عربي':'EN'}
+          <button className="hbtn hbtn-lang" onClick={() => setLang(lang === 'en' ? 'ar' : 'en')}>
+            {lang === 'en' ? 'عربي' : 'EN'}
           </button>
           <div className="dash-user">
             <div className="du-name">{profile?.employee_name}</div>
@@ -1198,12 +1241,12 @@ export default function Dashboard() {
           <button
             className="hbtn hbtn-outline"
             title={rtl ? 'تحديث البيانات' : 'Refresh Data'}
-            style={{padding: '6px 10px', fontSize: '13px', lineHeight: 1}}
-            onClick={()=>{ sessionStorage.clear(); fetchedKeyRef.current = null; load(true); }}
+            style={{ padding: '6px 10px', fontSize: '13px', lineHeight: 1 }}
+            onClick={() => { sessionStorage.clear(); fetchedKeyRef.current = null; load(true); }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{display:'inline-block',verticalAlign:'middle'}}>
-              <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+              <path d="M23 4v6h-6" /><path d="M1 20v-6h6" />
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
             </svg>
           </button>
           <button className="hbtn hbtn-outline" onClick={signOut}>{t.signOut}</button>
@@ -1215,285 +1258,285 @@ export default function Dashboard() {
 
         {/* ── SIDEBAR ────────────────────────────────────────────── */}
         {tab !== 'roadmap' && (
-          <aside className={`dash-sidebar${sidebarOpen?' open':''}`}>
-            <button className="sb-close" onClick={()=>setSidebarOpen(false)}>✕</button>
+          <aside className={`dash-sidebar${sidebarOpen ? ' open' : ''}`}>
+            <button className="sb-close" onClick={() => setSidebarOpen(false)}>✕</button>
 
             {/* ─── SUMMARY SIDEBAR ─────────────────────────────── */}
-            {tab==='summary' && (
+            {tab === 'summary' && (
               <div className="sb-panel">
-              {pmCoveragePieData.length > 0 && (
-                <>
-                  <div className="sb-section-hd">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
-                    {rtl ? 'توزيع تغطية PM (عيادات vs مراكز)' : 'PM Coverage (Clinic vs Poly Clinic)'}
-                  </div>
-                  <PieChart data={pmCoveragePieData} title={rtl ? 'نسبة المساهمة %' : 'Contribution %'} />
-                  <div className="sb-divider"/>
-                </>
-              )}
-              {(activityEventData.totalActivities > 0 || activityEventData.totalEvents > 0) && (
-                <>
-                  <div className="sb-section-hd">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
-                    {rtl ? 'الأنشطة والفعاليات' : 'Activities & Events'}
-                  </div>
-                  <div className="sb-team-group" style={{marginTop: '8px', marginBottom: '16px'}}>
-                    <div className="sb-rep-row" style={{cursor:'default', background:'transparent'}}>
-                      <span className="sb-rep-name">{t.kpi.no_activities || 'Activities'}</span>
-                      <div className="sb-rep-bar-wrap">
-                        <div className="sb-rep-bar" style={{backgroundColor: '#8b5cf6', width:`${Math.min(100, activityEventData.totalActivities / Math.max(1, activityEventData.totalActivities, activityEventData.totalEvents) * 100)}%`}}/>
-                      </div>
-                      <span className="sb-rep-val">{activityEventData.totalActivities}</span>
+                {pmCoveragePieData.length > 0 && (
+                  <>
+                    <div className="sb-section-hd">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 8v8M8 12h8" /></svg>
+                      {rtl ? 'توزيع تغطية PM (عيادات vs مراكز)' : 'PM Coverage (Clinic vs Poly Clinic)'}
                     </div>
-                    <div className="sb-rep-row" style={{cursor:'default', background:'transparent'}}>
-                      <span className="sb-rep-name">{t.kpi.no_events || 'Events'}</span>
-                      <div className="sb-rep-bar-wrap">
-                        <div className="sb-rep-bar" style={{backgroundColor: '#ec4899', width:`${Math.min(100, activityEventData.totalEvents / Math.max(1, activityEventData.totalActivities, activityEventData.totalEvents) * 100)}%`}}/>
-                      </div>
-                      <span className="sb-rep-val">{activityEventData.totalEvents}</span>
+                    <PieChart data={pmCoveragePieData} title={rtl ? 'نسبة المساهمة %' : 'Contribution %'} />
+                    <div className="sb-divider" />
+                  </>
+                )}
+                {(activityEventData.totalActivities > 0 || activityEventData.totalEvents > 0) && (
+                  <>
+                    <div className="sb-section-hd">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20V10M18 20V4M6 20v-4" /></svg>
+                      {rtl ? 'الأنشطة والفعاليات' : 'Activities & Events'}
                     </div>
-                  </div>
-                  <div className="sb-divider"/>
-                </>
-              )}
-              {selectedRepData ? (
-                <div className="sb-rep-detail">
-                  <button className="sb-back" onClick={()=>setSelectedRep(null)}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                    {rtl?'رجوع':'Back to list'}
-                  </button>
-                  <div className="sb-rep-hdr">
-                    <div className="sb-rep-name-lg">{selectedRepData.user_name}</div>
-                    <div className="sb-rep-team">{selectedRepData.team}{selectedRepData.is_manager?' · Manager':''}</div>
-                    {selectedRepData.territory&&<div className="sb-rep-terr">{selectedRepData.territory}</div>}
-                  </div>
-                  {t.kpiGroups.map(g => {
-                    const keys = g.keys.filter(k => {
-                      if(shift==='AM') return !['pm_calls','pm_call_rate','pm_shift_days','total_pm_covered','clinic_covered','polyclinic_covered','avg_pm_shift_hm'].includes(k);
-                      if(shift==='PM') return !['am_calls','am_call_rate','am_shift_days','total_am_covered','amcenter_covered','hospital_covered','avg_am_shift_hm','avg_am_start_time'].includes(k);
-                      return true;
-                    });
-                    // Hide entire group if no valid keys OR if it's the coaching tab and the user has no coaching records
-                    if(g.keys.includes('coaching_days') && (selectedRepData.coaching_days === 0 || !selectedRepData.coaching_days)) return null;
-                    const kpiRows = keys.map(k=>({k,v:selectedRepData[k]})).filter(x=>x.v!==null&&x.v!==undefined&&x.v!=='');
-                    if(!kpiRows.length) return null;
-                    return (
-                      <div key={g.label} className="sb-kpi-sec">
-                        <div className="sb-kpi-hd">{g.label}</div>
-                        {kpiRows.map(({k,v})=>(
-                          <div key={k} className="sb-kpi-row">
-                            <span>{k === 'coaching_days' ? (selectedRepData.is_manager ? t.kpi[k] : (rtl ? 'تم التوجيه' : 'Coached')) : (t.kpi[k]||k)}</span>
-                            <span className="sb-kpi-val">{fmtVal(v,k)}</span>
-                          </div>
-                        ))}
+                    <div className="sb-team-group" style={{ marginTop: '8px', marginBottom: '16px' }}>
+                      <div className="sb-rep-row" style={{ cursor: 'default', background: 'transparent' }}>
+                        <span className="sb-rep-name">{t.kpi.no_activities || 'Activities'}</span>
+                        <div className="sb-rep-bar-wrap">
+                          <div className="sb-rep-bar" style={{ backgroundColor: '#8b5cf6', width: `${Math.min(100, activityEventData.totalActivities / Math.max(1, activityEventData.totalActivities, activityEventData.totalEvents) * 100)}%` }} />
+                        </div>
+                        <span className="sb-rep-val">{activityEventData.totalActivities}</span>
                       </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <>
-                  <div className="sb-section-hd">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    {rtl?'زيارات PM حسب المندوب':'PM Visits by Rep'}
-                  </div>
-                  {teamGroups.map(({label, rows}) => {
-                    const reps = [...rows].filter(r=>!r.is_manager).sort((a,b)=>(b.pm_calls||0)-(a.pm_calls||0));
-                    if(!reps.length) return null;
-                    return (
-                      <div key={label} className="sb-team-group">
-                        <div className="sb-team-label">{label}</div>
-                        {reps.map(r => (
-                          <div key={r.user_name}
-                            className={`sb-rep-row${selectedRep===r.user_name?' active':''}`}
-                            onClick={()=>setSelectedRep(r.user_name)}>
-                            <span className="sb-rep-name">{r.user_name}</span>
-                            <div className="sb-rep-bar-wrap">
-                              <div className="sb-rep-bar" style={{width:`${Math.min(100, (r.pm_calls||0) / Math.max(1,...reps.map(x=>x.pm_calls||1)) * 100)}%`}}/>
+                      <div className="sb-rep-row" style={{ cursor: 'default', background: 'transparent' }}>
+                        <span className="sb-rep-name">{t.kpi.no_events || 'Events'}</span>
+                        <div className="sb-rep-bar-wrap">
+                          <div className="sb-rep-bar" style={{ backgroundColor: '#ec4899', width: `${Math.min(100, activityEventData.totalEvents / Math.max(1, activityEventData.totalActivities, activityEventData.totalEvents) * 100)}%` }} />
+                        </div>
+                        <span className="sb-rep-val">{activityEventData.totalEvents}</span>
+                      </div>
+                    </div>
+                    <div className="sb-divider" />
+                  </>
+                )}
+                {selectedRepData ? (
+                  <div className="sb-rep-detail">
+                    <button className="sb-back" onClick={() => setSelectedRep(null)}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+                      {rtl ? 'رجوع' : 'Back to list'}
+                    </button>
+                    <div className="sb-rep-hdr">
+                      <div className="sb-rep-name-lg">{selectedRepData.user_name}</div>
+                      <div className="sb-rep-team">{selectedRepData.team}{selectedRepData.is_manager ? ' · Manager' : ''}</div>
+                      {selectedRepData.territory && <div className="sb-rep-terr">{selectedRepData.territory}</div>}
+                    </div>
+                    {t.kpiGroups.map(g => {
+                      const keys = g.keys.filter(k => {
+                        if (shift === 'AM') return !['pm_calls', 'pm_call_rate', 'pm_shift_days', 'total_pm_covered', 'clinic_covered', 'polyclinic_covered', 'avg_pm_shift_hm'].includes(k);
+                        if (shift === 'PM') return !['am_calls', 'am_call_rate', 'am_shift_days', 'total_am_covered', 'amcenter_covered', 'hospital_covered', 'avg_am_shift_hm', 'avg_am_start_time'].includes(k);
+                        return true;
+                      });
+                      // Hide entire group if no valid keys OR if it's the coaching tab and the user has no coaching records
+                      if (g.keys.includes('coaching_days') && (selectedRepData.coaching_days === 0 || !selectedRepData.coaching_days)) return null;
+                      const kpiRows = keys.map(k => ({ k, v: selectedRepData[k] })).filter(x => x.v !== null && x.v !== undefined && x.v !== '');
+                      if (!kpiRows.length) return null;
+                      return (
+                        <div key={g.label} className="sb-kpi-sec">
+                          <div className="sb-kpi-hd">{g.label}</div>
+                          {kpiRows.map(({ k, v }) => (
+                            <div key={k} className="sb-kpi-row">
+                              <span>{k === 'coaching_days' ? (selectedRepData.is_manager ? t.kpi[k] : (rtl ? 'تم التوجيه' : 'Coached')) : (t.kpi[k] || k)}</span>
+                              <span className="sb-kpi-val">{fmtVal(v, k)}</span>
                             </div>
-                            <span className="sb-rep-val">{r.pm_calls||0}</span>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })}
-                </>
-              )}
-            </div>
-          )}
-
-          {/* ─── SPECIALTY SIDEBAR ───────────────────────────── */}
-          {tab==='specialty' && (
-            <div className="sb-panel">
-              {/* Specialty Dropdown Slicer */}
-              <div className="sb-slicer" style={{ marginBottom: '24px' }}>
-                <div className="sb-slicer-hd">
-                  <span>{rtl?'فلتر التخصص':'Filter Specialty'}</span>
-                  {(specialtyFilter.size > 0 || classificationFilter.size > 0) && (
-                    <button className="sb-slicer-clear" onClick={()=>{setSpecialtyFilter(new Set()); setClassificationFilter(new Set());}}>
-                      {rtl?'مسح':'Clear'}
-                    </button>
-                  )}
-                </div>
-                <select 
-                  className="ctrl-sel" 
-                  style={{ width: '100%' }}
-                  value={specialtyFilter.size === 1 ? Array.from(specialtyFilter)[0] : (specialtyFilter.size === 0 ? '' : 'mixed')}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === '') setSpecialtyFilter(new Set());
-                    else if (val !== 'mixed') setSpecialtyFilter(new Set([val]));
-                  }}
-                >
-                  <option value="">{rtl ? 'كل التخصصات' : 'All Specialties'}</option>
-                  {specialtyFilter.size > 1 && <option value="mixed" disabled>{rtl ? 'تخصصات متعددة' : 'Multiple selected'}</option>}
-                  {allSpecialties.map(s => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="sb-section-hd">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
-                {rtl?'تغطية التخصصات':'Specialty Coverage'}
-              </div>
-              <PieChart 
-                data={specialtyPieData} 
-                title={rtl?'حسب التخصص':'By Specialty'}
-                onSelect={(s) => {
-                  setSpecialtyFilter(prev => {
-                    if (prev.has(s) && prev.size === 1) return new Set();
-                    return new Set([s]);
-                  });
-                }}
-                activeFilters={specialtyFilter}
-              />
-
-              <div className="sb-divider"/>
-
-              <PieChart 
-                data={classificationPieData} 
-                title={rtl?'حسب التصنيف':'By Classification'}
-                onSelect={(c) => {
-                  setClassificationFilter(prev => {
-                    if (prev.has(c) && prev.size === 1) return new Set();
-                    return new Set([c]);
-                  });
-                }}
-                activeFilters={classificationFilter}
-              />
-            </div>
-          )}
-
-          {/* ─── PRODUCTS SIDEBAR ────────────────────────────── */}
-          {tab==='products' && (
-            <div className="sb-panel">
-              {/* Product Dropdown Slicer — matches the Specialty slicer pattern */}
-              <div className="sb-slicer" style={{ marginBottom: '24px' }}>
-                <div className="sb-slicer-hd">
-                  <span>{rtl?'فلتر المنتج':'Filter Product'}</span>
-                  {productFilter.size > 0 && (
-                    <button className="sb-slicer-clear" onClick={()=>setProductFilter(new Set())}>
-                      {rtl?'مسح':'Clear'}
-                    </button>
-                  )}
-                </div>
-                <select
-                  className="ctrl-sel"
-                  style={{ width: '100%' }}
-                  value={productFilter.size === 1 ? Array.from(productFilter)[0] : (productFilter.size === 0 ? '' : 'mixed')}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === '') setProductFilter(new Set());
-                    else if (val !== 'mixed') setProductFilter(new Set([val]));
-                  }}
-                >
-                  <option value="">{rtl ? 'كل المنتجات' : 'All Products'}</option>
-                  {productFilter.size > 1 && <option value="mixed" disabled>{rtl ? 'منتجات متعددة' : 'Multiple selected'}</option>}
-                  {allProducts.map(p => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="sb-section-hd">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                {rtl?'مساهمة المنتجات':'Product Contribution'}
-              </div>
-              <PieChart 
-                data={productPieData} 
-                title={rtl?'حسب المنتج':'By Product'}
-                onSelect={(p) => {
-                  setProductFilter(prev => {
-                    if (prev.has(p) && prev.size === 1) return new Set();
-                    return new Set([p]);
-                  });
-                }}
-                activeFilters={productFilter}
-              />
-
-              <div className="sb-divider"/>
-
-              <div className="sb-section-hd" style={{marginTop:0}}>
-                {rtl?'أعلى المنتجات':'Top Products'}
-              </div>
-              <div className="sb-top-list">
-                {topProducts.map((p,i) => (
-                  <div key={p.name} className="sb-top-item">
-                    <span className="sb-top-rank">#{i+1}</span>
-                    <div className="sb-top-info">
-                      <div className="sb-top-name">{p.name}</div>
-                      <div className="sb-top-bar-wrap">
-                        <div className="sb-top-bar" style={{width:`${p.pct}%`}}/>
-                      </div>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <>
+                    <div className="sb-section-hd">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                      {rtl ? 'زيارات PM حسب المندوب' : 'PM Visits by Rep'}
                     </div>
-                    <span className="sb-top-count">{p.count}</span>
-                  </div>
-                ))}
+                    {teamGroups.map(({ label, rows }) => {
+                      const reps = [...rows].filter(r => !r.is_manager).sort((a, b) => (b.pm_calls || 0) - (a.pm_calls || 0));
+                      if (!reps.length) return null;
+                      return (
+                        <div key={label} className="sb-team-group">
+                          <div className="sb-team-label">{label}</div>
+                          {reps.map(r => (
+                            <div key={r.user_name}
+                              className={`sb-rep-row${selectedRep === r.user_name ? ' active' : ''}`}
+                              onClick={() => setSelectedRep(r.user_name)}>
+                              <span className="sb-rep-name">{r.user_name}</span>
+                              <div className="sb-rep-bar-wrap">
+                                <div className="sb-rep-bar" style={{ width: `${Math.min(100, (r.pm_calls || 0) / Math.max(1, ...reps.map(x => x.pm_calls || 1)) * 100)}%` }} />
+                              </div>
+                              <span className="sb-rep-val">{r.pm_calls || 0}</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
               </div>
-            </div>
-          )}
+            )}
 
-          {/* ─── COACHING SIDEBAR ────────────────────────────── */}
-          {tab==='coaching' && (
-            <div className="sb-panel">
-              <div className="sb-section-hd">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                {rtl?'المديرون':'Managers'}
+            {/* ─── SPECIALTY SIDEBAR ───────────────────────────── */}
+            {tab === 'specialty' && (
+              <div className="sb-panel">
+                {/* Specialty Dropdown Slicer */}
+                <div className="sb-slicer" style={{ marginBottom: '24px' }}>
+                  <div className="sb-slicer-hd">
+                    <span>{rtl ? 'فلتر التخصص' : 'Filter Specialty'}</span>
+                    {(specialtyFilter.size > 0 || classificationFilter.size > 0) && (
+                      <button className="sb-slicer-clear" onClick={() => { setSpecialtyFilter(new Set()); setClassificationFilter(new Set()); }}>
+                        {rtl ? 'مسح' : 'Clear'}
+                      </button>
+                    )}
+                  </div>
+                  <select
+                    className="ctrl-sel"
+                    style={{ width: '100%' }}
+                    value={specialtyFilter.size === 1 ? Array.from(specialtyFilter)[0] : (specialtyFilter.size === 0 ? '' : 'mixed')}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '') setSpecialtyFilter(new Set());
+                      else if (val !== 'mixed') setSpecialtyFilter(new Set([val]));
+                    }}
+                  >
+                    <option value="">{rtl ? 'كل التخصصات' : 'All Specialties'}</option>
+                    {specialtyFilter.size > 1 && <option value="mixed" disabled>{rtl ? 'تخصصات متعددة' : 'Multiple selected'}</option>}
+                    {allSpecialties.map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="sb-section-hd">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 8v8M8 12h8" /></svg>
+                  {rtl ? 'تغطية التخصصات' : 'Specialty Coverage'}
+                </div>
+                <PieChart
+                  data={specialtyPieData}
+                  title={rtl ? 'حسب التخصص' : 'By Specialty'}
+                  onSelect={(s) => {
+                    setSpecialtyFilter(prev => {
+                      if (prev.has(s) && prev.size === 1) return new Set();
+                      return new Set([s]);
+                    });
+                  }}
+                  activeFilters={specialtyFilter}
+                />
+
+                <div className="sb-divider" />
+
+                <PieChart
+                  data={classificationPieData}
+                  title={rtl ? 'حسب التصنيف' : 'By Classification'}
+                  onSelect={(c) => {
+                    setClassificationFilter(prev => {
+                      if (prev.has(c) && prev.size === 1) return new Set();
+                      return new Set([c]);
+                    });
+                  }}
+                  activeFilters={classificationFilter}
+                />
               </div>
-              {selectedManager && (
-                <button className="sb-back" onClick={()=>setSelectedManager(null)}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                  {rtl?'عرض الكل':'Show all'}
-                </button>
-              )}
-              {managerGroups.length > 0 ? managerGroups.map(mgr => (
-                <div key={mgr.name}
-                  className={`sb-mgr-card${selectedManager===mgr.name?' active':''}`}
-                  onClick={()=>setSelectedManager(selectedManager===mgr.name?null:mgr.name)}>
-                  <div className="sb-mgr-avatar">
-                    {mgr.name.split(' ').map(w=>w[0]).slice(0,2).join('')}
+            )}
+
+            {/* ─── PRODUCTS SIDEBAR ────────────────────────────── */}
+            {tab === 'products' && (
+              <div className="sb-panel">
+                {/* Product Dropdown Slicer — matches the Specialty slicer pattern */}
+                <div className="sb-slicer" style={{ marginBottom: '24px' }}>
+                  <div className="sb-slicer-hd">
+                    <span>{rtl ? 'فلتر المنتج' : 'Filter Product'}</span>
+                    {productFilter.size > 0 && (
+                      <button className="sb-slicer-clear" onClick={() => setProductFilter(new Set())}>
+                        {rtl ? 'مسح' : 'Clear'}
+                      </button>
+                    )}
                   </div>
-                  <div className="sb-mgr-info">
-                    <div className="sb-mgr-name">{mgr.name}</div>
-                    <div className="sb-mgr-meta">{mgr.team}</div>
-                  </div>
-                  <div className="sb-mgr-stats">
-                    <div className="sb-mgr-stat">{mgr.dayCount}<small> days</small></div>
-                    <div className="sb-mgr-stat">{mgr.repCount}<small> reps</small></div>
-                  </div>
+                  <select
+                    className="ctrl-sel"
+                    style={{ width: '100%' }}
+                    value={productFilter.size === 1 ? Array.from(productFilter)[0] : (productFilter.size === 0 ? '' : 'mixed')}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '') setProductFilter(new Set());
+                      else if (val !== 'mixed') setProductFilter(new Set([val]));
+                    }}
+                  >
+                    <option value="">{rtl ? 'كل المنتجات' : 'All Products'}</option>
+                    {productFilter.size > 1 && <option value="mixed" disabled>{rtl ? 'منتجات متعددة' : 'Multiple selected'}</option>}
+                    {allProducts.map(p => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
                 </div>
-              )) : (
-                <div style={{padding: '16px', color: 'var(--text-light)', fontSize: '13px', textAlign: 'center'}}>
-                  {rtl ? 'لا يوجد مديرون لهذه الفترة.' : 'No managers for this period.'}
+
+                <div className="sb-section-hd">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>
+                  {rtl ? 'مساهمة المنتجات' : 'Product Contribution'}
                 </div>
-              )}
-            </div>
+                <PieChart
+                  data={productPieData}
+                  title={rtl ? 'حسب المنتج' : 'By Product'}
+                  onSelect={(p) => {
+                    setProductFilter(prev => {
+                      if (prev.has(p) && prev.size === 1) return new Set();
+                      return new Set([p]);
+                    });
+                  }}
+                  activeFilters={productFilter}
+                />
+
+                <div className="sb-divider" />
+
+                <div className="sb-section-hd" style={{ marginTop: 0 }}>
+                  {rtl ? 'أعلى المنتجات' : 'Top Products'}
+                </div>
+                <div className="sb-top-list">
+                  {topProducts.map((p, i) => (
+                    <div key={p.name} className="sb-top-item">
+                      <span className="sb-top-rank">#{i + 1}</span>
+                      <div className="sb-top-info">
+                        <div className="sb-top-name">{p.name}</div>
+                        <div className="sb-top-bar-wrap">
+                          <div className="sb-top-bar" style={{ width: `${p.pct}%` }} />
+                        </div>
+                      </div>
+                      <span className="sb-top-count">{p.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ─── COACHING SIDEBAR ────────────────────────────── */}
+            {tab === 'coaching' && (
+              <div className="sb-panel">
+                <div className="sb-section-hd">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
+                  {rtl ? 'المديرون' : 'Managers'}
+                </div>
+                {selectedManager && (
+                  <button className="sb-back" onClick={() => setSelectedManager(null)}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+                    {rtl ? 'عرض الكل' : 'Show all'}
+                  </button>
+                )}
+                {managerGroups.length > 0 ? managerGroups.map(mgr => (
+                  <div key={mgr.name}
+                    className={`sb-mgr-card${selectedManager === mgr.name ? ' active' : ''}`}
+                    onClick={() => setSelectedManager(selectedManager === mgr.name ? null : mgr.name)}>
+                    <div className="sb-mgr-avatar">
+                      {mgr.name.split(' ').map(w => w[0]).slice(0, 2).join('')}
+                    </div>
+                    <div className="sb-mgr-info">
+                      <div className="sb-mgr-name">{mgr.name}</div>
+                      <div className="sb-mgr-meta">{mgr.team}</div>
+                    </div>
+                    <div className="sb-mgr-stats">
+                      <div className="sb-mgr-stat">{mgr.dayCount}<small> days</small></div>
+                      <div className="sb-mgr-stat">{mgr.repCount}<small> reps</small></div>
+                    </div>
+                  </div>
+                )) : (
+                  <div style={{ padding: '16px', color: 'var(--text-light)', fontSize: '13px', textAlign: 'center' }}>
+                    {rtl ? 'لا يوجد مديرون لهذه الفترة.' : 'No managers for this period.'}
+                  </div>
+                )}
+              </div>
             )}
           </aside>
         )}
 
         {/* Mobile backdrop */}
-        {sidebarOpen && <div className="sb-backdrop" onClick={()=>setSidebarOpen(false)}/>}
+        {sidebarOpen && <div className="sb-backdrop" onClick={() => setSidebarOpen(false)} />}
 
         {/* ── MAIN CONTENT ───────────────────────────────────── */}
         <div className="dash-content">
@@ -1502,22 +1545,22 @@ export default function Dashboard() {
           <div className="ctrl-bar">
             <div className="ctrl-row">
               <div className="ctrl-group">
-                <span className="ctrl-lbl">{rtl?'الفترة':'Period'}</span>
+                <span className="ctrl-lbl">{rtl ? 'الفترة' : 'Period'}</span>
                 <div className="shift-toggle">
-                  <button className={`stoggle${period==='recent'?' on':''}`} onClick={()=>setPeriod('recent')}>{t.recent}</button>
-                  <button className={`stoggle${period==='last_month'?' on':''}`} disabled style={{opacity:0.5, cursor:'not-allowed'}}>{t.lastMonth}</button>
+                  <button className={`stoggle${period === 'recent' ? ' on' : ''}`} onClick={() => setPeriod('recent')}>{t.recent}</button>
+                  <button className={`stoggle${period === 'last_month' ? ' on' : ''}`} disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>{t.lastMonth}</button>
                 </div>
               </div>
               <div className="ctrl-group">
-                <span className="ctrl-lbl">{rtl?'الوردية':'Shift'}</span>
-                <ShiftToggle value={shift} onChange={setShift} t={t}/>
+                <span className="ctrl-lbl">{rtl ? 'الوردية' : 'Shift'}</span>
+                <ShiftToggle value={shift} onChange={setShift} t={t} />
               </div>
-              {teams.length>1&&(
+              {teams.length > 1 && (
                 <div className="ctrl-group">
-                  <span className="ctrl-lbl">{rtl?'الفريق':'Team'}</span>
-                  <select className="ctrl-sel" value={team} onChange={e=>{setTeam(e.target.value);setUser('all');}}>
+                  <span className="ctrl-lbl">{rtl ? 'الفريق' : 'Team'}</span>
+                  <select className="ctrl-sel" value={team} onChange={e => { setTeam(e.target.value); setUser('all'); }}>
                     <option value="all">{t.allTeams}</option>
-                    {teams.map(tm=><option key={tm} value={tm}>{tm}</option>)}
+                    {teams.map(tm => <option key={tm} value={tm}>{tm}</option>)}
                   </select>
                 </div>
               )}
@@ -1539,26 +1582,26 @@ export default function Dashboard() {
                   </select>
                 </div>
               )}
-              {isMgr&&allUsers.length>1&&(
+              {isMgr && allUsers.length > 1 && (
                 <div className="ctrl-group">
-                  <span className="ctrl-lbl">{rtl?'المندوب':'Rep'}</span>
-                  <select className="ctrl-sel" value={userFilter} onChange={e=>{
+                  <span className="ctrl-lbl">{rtl ? 'المندوب' : 'Rep'}</span>
+                  <select className="ctrl-sel" value={userFilter} onChange={e => {
                     const val = e.target.value;
                     setUser(val);
-                    setSelectedRep(val==='all'?null:val);
+                    setSelectedRep(val === 'all' ? null : val);
                   }}>
                     <option value="all">{t.allUsers}</option>
-                    {allUsers.map(u=><option key={u} value={u}>{u}</option>)}
+                    {allUsers.map(u => <option key={u} value={u}>{u}</option>)}
                   </select>
                 </div>
               )}
-              {tab==='summary' && (
+              {tab === 'summary' && (
                 <div className="ctrl-group">
                   <div className="shift-toggle">
-                    <button className={`stoggle${viewMode==='teams'?' on':''}`} onClick={()=>setViewMode('teams')}>
+                    <button className={`stoggle${viewMode === 'teams' ? ' on' : ''}`} onClick={() => setViewMode('teams')}>
                       👥 {rtl ? 'ملخص الفرق' : 'Team Brief'}
                     </button>
-                    <button className={`stoggle${viewMode==='employees'?' on':''}`} onClick={()=>setViewMode('employees')}>
+                    <button className={`stoggle${viewMode === 'employees' ? ' on' : ''}`} onClick={() => setViewMode('employees')}>
                       👤 {rtl ? 'المندوبون' : 'Employee Brief'}
                     </button>
                   </div>
@@ -1567,15 +1610,15 @@ export default function Dashboard() {
               <div className="ctrl-group ctrl-search">
                 <div className="search-box">
                   <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="9" cy="9" r="6"/><path d="M15 15l-3.5-3.5"/>
+                    <circle cx="9" cy="9" r="6" /><path d="M15 15l-3.5-3.5" />
                   </svg>
                   <input className="search-inp" placeholder={t.search}
-                    value={search} onChange={e=>setSearch(e.target.value)}/>
-                  {search&&<button className="search-clear" onClick={()=>setSearch('')}>✕</button>}
+                    value={search} onChange={e => setSearch(e.target.value)} />
+                  {search && <button className="search-clear" onClick={() => setSearch('')}>✕</button>}
                 </div>
               </div>
               <div className="ctrl-end" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <span className="ctrl-stat">{t.people(fSummary.length)}{teamCount>1&&` · ${teamCount} teams`}</span>
+                <span className="ctrl-stat">{t.people(fSummary.length)}{teamCount > 1 && ` · ${teamCount} teams`}</span>
                 <button className="hbtn hbtn-primary" onClick={doExport}>↓ Export</button>
                 <span style={{ fontSize: '10px', marginTop: '2px', color: 'var(--text-muted)' }}>be the analyst</span>
               </div>
@@ -1584,32 +1627,32 @@ export default function Dashboard() {
 
           {/* TABS */}
           <nav className="dash-tabs">
-            {tab!=='roadmap' && (
-              <button className="sidebar-toggle" onClick={()=>setSidebarOpen(!sidebarOpen)} title="Toggle panel">
+            {tab !== 'roadmap' && (
+              <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)} title="Toggle panel">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/>
+                  <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18" />
                 </svg>
               </button>
             )}
-            {visibleTabs.map(([k,label])=>(
-              <button key={k} className={`dtab${tab===k?' on':''}`} onClick={()=>changeTab(k)}>{label}</button>
+            {visibleTabs.map(([k, label]) => (
+              <button key={k} className={`dtab${tab === k ? ' on' : ''}`} onClick={() => changeTab(k)}>{label}</button>
             ))}
           </nav>
 
-          {error&&<div className="dash-err">{error}</div>}
+          {error && <div className="dash-err">{error}</div>}
 
-          {loading?(
+          {loading ? (
             <div className="dash-empty">{t.loading}</div>
-          ):(
+          ) : (
             <div className="dash-body">
 
               {/* SUMMARY TAB */}
-              {tab==='summary'&&(
-                fSummary.length===0?<div className="dash-empty">{t.noData}</div>:(
+              {tab === 'summary' && (
+                fSummary.length === 0 ? <div className="dash-empty">{t.noData}</div> : (
                   <>
                     {viewMode === 'teams' ? (
                       <div className="cards-grid">
-                        {teamGroups.map(({label, rows}) => (
+                        {teamGroups.map(({ label, rows }) => (
                           <TeamBriefCard
                             key={label}
                             rows={rows}
@@ -1627,37 +1670,37 @@ export default function Dashboard() {
                       </div>
                     ) : (
                       <div className="cards-grid">
-                        {fSummary.map((r,i)=>(
-                          <div key={r.id||i} className={`ucard${r.is_manager?' mgr':''}${selectedRep===r.user_name?' ucard-selected':''}`}
-                            onClick={()=>handleSelectRep(r.user_name)}>
+                        {fSummary.map((r, i) => (
+                          <div key={r.id || i} className={`ucard${r.is_manager ? ' mgr' : ''}${selectedRep === r.user_name ? ' ucard-selected' : ''}`}
+                            onClick={() => handleSelectRep(r.user_name)}>
                             <div className="ucard-hdr">
                               <div className="ucard-info">
                                 <div className="ucard-name">{r.user_name}</div>
-                                <div className="ucard-meta">{r.team||''}{r.is_manager?' · Manager':''}</div>
-                                {r.territory&&<div className="ucard-terr" title={r.territory}>{r.territory}</div>}
-                                {(r.avg_am_shift_hm||r.avg_pm_shift_hm)&&(
+                                <div className="ucard-meta">{r.team || ''}{r.is_manager ? ' · Manager' : ''}</div>
+                                {r.territory && <div className="ucard-terr" title={r.territory}>{r.territory}</div>}
+                                {(r.avg_am_shift_hm || r.avg_pm_shift_hm) && (
                                   <div className="ucard-dur">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                                    {r.avg_am_shift_hm?<span className="dur-am">AM {fmtDuration(r.avg_am_shift_hm)}</span>:null}
-                                    {r.avg_pm_shift_hm?<span className="dur-pm">PM {fmtDuration(r.avg_pm_shift_hm)}</span>:null}
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+                                    {r.avg_am_shift_hm ? <span className="dur-am">AM {fmtDuration(r.avg_am_shift_hm)}</span> : null}
+                                    {r.avg_pm_shift_hm ? <span className="dur-pm">PM {fmtDuration(r.avg_pm_shift_hm)}</span> : null}
                                   </div>
                                 )}
                               </div>
-                              {r.is_manager&&<span className="mgr-pip">MGR</span>}
+                              {r.is_manager && <span className="mgr-pip">MGR</span>}
                             </div>
-                            {t.kpiGroups.map(g=>{
-                              const keys=g.keys.filter(k=>{
-                                if(shift==='AM') return !['pm_calls','pm_call_rate','pm_shift_days','total_pm_covered','clinic_covered','polyclinic_covered','avg_pm_shift_hm'].includes(k);
-                                if(shift==='PM') return !['am_calls','am_call_rate','am_shift_days','total_am_covered','amcenter_covered','hospital_covered','avg_am_shift_hm','avg_am_start_time'].includes(k);
+                            {t.kpiGroups.map(g => {
+                              const keys = g.keys.filter(k => {
+                                if (shift === 'AM') return !['pm_calls', 'pm_call_rate', 'pm_shift_days', 'total_pm_covered', 'clinic_covered', 'polyclinic_covered', 'avg_pm_shift_hm'].includes(k);
+                                if (shift === 'PM') return !['am_calls', 'am_call_rate', 'am_shift_days', 'total_am_covered', 'amcenter_covered', 'hospital_covered', 'avg_am_shift_hm', 'avg_am_start_time'].includes(k);
                                 return true;
                               });
-                              if(g.keys.includes('coaching_days')&&!isMgr) return null;
-                              const kpiRows=keys.map(k=>({k,v:r[k]})).filter(x=>x.v!==null&&x.v!==undefined&&x.v!=='');
-                              if(!kpiRows.length) return null;
+                              if (g.keys.includes('coaching_days') && !isMgr) return null;
+                              const kpiRows = keys.map(k => ({ k, v: r[k] })).filter(x => x.v !== null && x.v !== undefined && x.v !== '');
+                              if (!kpiRows.length) return null;
                               return (
-                                <div key={g.label} className={`kpi-sec${g.keys.includes('avg_am_start_time')?' kpi-timing':''}`}>
+                                <div key={g.label} className={`kpi-sec${g.keys.includes('avg_am_start_time') ? ' kpi-timing' : ''}`}>
                                   <div className="kpi-sec-hd">{g.label}</div>
-                                  {kpiRows.map(({k,v})=>{
+                                  {kpiRows.map(({ k, v }) => {
                                     const target = KPI_TARGETS[k];
                                     const avgVal = companyAverages[k] || 0;
                                     const numVal = Number(v) || 0;
@@ -1671,11 +1714,11 @@ export default function Dashboard() {
                                       <div key={k} className="kpi-row-wrapper">
                                         <div className="kpi-row">
                                           <span className="kpi-lbl">
-                                            {t.kpi[k]||k}
+                                            {t.kpi[k] || k}
                                             {benchmarkClass === 'above-avg' && <span className="bench-arrow up" title="Above company average">▲</span>}
                                             {benchmarkClass === 'below-avg' && <span className="bench-arrow down" title="Below company average">▼</span>}
                                           </span>
-                                          <span className={`kpi-v ${k.includes('rate')?'rate':''} ${benchmarkClass}`}>{fmtVal(v,k)}</span>
+                                          <span className={`kpi-v ${k.includes('rate') ? 'rate' : ''} ${benchmarkClass}`}>{fmtVal(v, k)}</span>
                                         </div>
                                         {pct !== null && (
                                           <div className="kpi-card-progress" title={`${pct}% of target (${target})`}>
@@ -1688,9 +1731,9 @@ export default function Dashboard() {
                                 </div>
                               );
                             })}
-                            {r.product_calls_detail&&shift!=='AM'&&(
+                            {r.product_calls_detail && shift !== 'AM' && (
                               <div className="kpi-sec">
-                                <div className="kpi-sec-hd">{rtl?'تفاصيل المنتج':'Product Detail'}</div>
+                                <div className="kpi-sec-hd">{rtl ? 'تفاصيل المنتج' : 'Product Detail'}</div>
                                 <div className="prod-det">{r.product_calls_detail}</div>
                               </div>
                             )}
@@ -1703,56 +1746,56 @@ export default function Dashboard() {
               )}
 
               {/* SPECIALTY TAB */}
-              {tab==='specialty'&&(
+              {tab === 'specialty' && (
                 <>
-                  <PivotSummaryBanner 
-                    rows={filteredSpecialty} 
-                    valueKey="call_count" 
-                    rowKey="specialty" 
-                    shift={shift} 
+                  <PivotSummaryBanner
+                    rows={filteredSpecialty}
+                    valueKey="call_count"
+                    rowKey="specialty"
+                    shift={shift}
                     t={t}
                     selectedTeam={team}
                     onSelectTeam={setTeam}
                     userTeamMap={userTeamMap}
                   />
                   <PivotTable rows={filteredSpecialty} rowKey="specialty" valueKey="call_count"
-                    shiftFilter={shift} userFilter={userFilter} searchFilter={search} lang={lang} hideAvg={true}/>
+                    shiftFilter={shift} userFilter={userFilter} searchFilter={search} lang={lang} hideAvg={true} />
                 </>
               )}
 
               {/* PRODUCTS TAB */}
-              {tab==='products'&&(
+              {tab === 'products' && (
                 <>
-                  <PivotSummaryBanner 
-                    rows={filteredProducts} 
-                    valueKey="call_count" 
-                    rowKey="product" 
-                    shift={shift} 
+                  <PivotSummaryBanner
+                    rows={filteredProducts}
+                    valueKey="call_count"
+                    rowKey="product"
+                    shift={shift}
                     t={t}
                     selectedTeam={team}
                     onSelectTeam={setTeam}
                     userTeamMap={userTeamMap}
                   />
                   <PivotTable rows={filteredProducts} rowKey="product" valueKey="call_count"
-                    shiftFilter={shift} userFilter={userFilter} searchFilter={search} lang={lang}/>
+                    shiftFilter={shift} userFilter={userFilter} searchFilter={search} lang={lang} />
                 </>
               )}
 
               {/* COACHING TAB */}
-              {tab==='coaching'&&isMgr&&(
-                filteredCoaching.length===0?(
+              {tab === 'coaching' && isMgr && (
+                filteredCoaching.length === 0 ? (
                   <div className="dash-empty">
                     {selectedManager
-                      ? (rtl?'لا توجد بيانات لهذا المدير':'No coaching data for this manager')
+                      ? (rtl ? 'لا توجد بيانات لهذا المدير' : 'No coaching data for this manager')
                       : t.noData}
                   </div>
-                ):(
+                ) : (
                   <>
                     {selectedManager && (
                       <div className="coaching-selected-hdr">
                         <span className="coaching-sel-name">{selectedManager}</span>
                         <span className="coaching-sel-meta">
-                          {filteredCoaching.length} {rtl?'جلسة':'session'}{filteredCoaching.length!==1?'s':''}
+                          {filteredCoaching.length} {rtl ? 'جلسة' : 'session'}{filteredCoaching.length !== 1 ? 's' : ''}
                         </span>
                       </div>
                     )}
@@ -1760,31 +1803,31 @@ export default function Dashboard() {
                       <table className="pivot-tbl">
                         <thead>
                           <tr>
-                            <th className="s-col">{rtl?'المدير':'Manager'}</th>
-                            <th className="rep-col">{rtl?'المندوب':'Rep'}</th>
-                            <th>{rtl?'التاريخ':'Date'}</th>
-                            <th>{rtl?'الفريق':'Team'}</th>
-                            <th>{rtl?'زيارات AM':'AM Visits'}</th>
-                            <th>{rtl?'مرافقة AM':'AM Acc.'}</th>
+                            <th className="s-col">{rtl ? 'المدير' : 'Manager'}</th>
+                            <th className="rep-col">{rtl ? 'المندوب' : 'Rep'}</th>
+                            <th>{rtl ? 'التاريخ' : 'Date'}</th>
+                            <th>{rtl ? 'الفريق' : 'Team'}</th>
+                            <th>{rtl ? 'زيارات AM' : 'AM Visits'}</th>
+                            <th>{rtl ? 'مرافقة AM' : 'AM Acc.'}</th>
                             <th>AM %</th>
-                            <th>{rtl?'زيارات PM':'PM Visits'}</th>
-                            <th>{rtl?'مرافقة PM':'PM Acc.'}</th>
+                            <th>{rtl ? 'زيارات PM' : 'PM Visits'}</th>
+                            <th>{rtl ? 'مرافقة PM' : 'PM Acc.'}</th>
                             <th>PM %</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {[...filteredCoaching].sort((a,b)=>(a.manager_name||'').localeCompare(b.manager_name||'')||(a.coaching_date||'').localeCompare(b.coaching_date||'')).map((r,i)=>(
-                            <tr key={r.id||i}>
+                          {[...filteredCoaching].sort((a, b) => (a.manager_name || '').localeCompare(b.manager_name || '') || (a.coaching_date || '').localeCompare(b.coaching_date || '')).map((r, i) => (
+                            <tr key={r.id || i}>
                               <td className="s-col">{r.manager_name}</td>
                               <td className="rep-col">{r.rep_name}</td>
                               <td>{r.coaching_date}</td>
-                              <td>{r.team||'—'}</td>
-                              <td>{r.am_visits||0}</td>
-                              <td>{r.am_accompanied||0}</td>
-                              <td>{r.am_visits ? Math.round((r.am_accompanied/r.am_visits)*100)+'%' : '-'}</td>
-                              <td>{r.pm_visits||0}</td>
-                              <td>{r.pm_accompanied||0}</td>
-                              <td>{r.pm_visits ? Math.round((r.pm_accompanied/r.pm_visits)*100)+'%' : '-'}</td>
+                              <td>{r.team || '—'}</td>
+                              <td>{r.am_visits || 0}</td>
+                              <td>{r.am_accompanied || 0}</td>
+                              <td>{r.am_visits ? Math.round((r.am_accompanied / r.am_visits) * 100) + '%' : '-'}</td>
+                              <td>{r.pm_visits || 0}</td>
+                              <td>{r.pm_accompanied || 0}</td>
+                              <td>{r.pm_visits ? Math.round((r.pm_accompanied / r.pm_visits) * 100) + '%' : '-'}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -1815,7 +1858,7 @@ export default function Dashboard() {
               {aiHistory.length === 0 ? (
                 <div className="ai-welcome">
                   Ask me anything about the current dashboard data!
-                  <br/><br/>
+                  <br /><br />
                   <small>Example: "Who are the top performers in EAGLES 1?"</small>
                 </div>
               ) : (
@@ -1828,11 +1871,11 @@ export default function Dashboard() {
               {isAiLoading && <div className="ai-msg assistant loading">Thinking...</div>}
             </div>
             <form className="ai-chat-input-area" onSubmit={handleAiSubmit}>
-              <input 
-                type="text" 
-                placeholder="Ask about this data..." 
-                value={aiInput} 
-                onChange={e => setAiInput(e.target.value)} 
+              <input
+                type="text"
+                placeholder="Ask about this data..."
+                value={aiInput}
+                onChange={e => setAiInput(e.target.value)}
                 disabled={isAiLoading}
               />
               <button type="submit" disabled={isAiLoading || !aiInput.trim()}>Send</button>
