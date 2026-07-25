@@ -11,41 +11,50 @@
   --navy4: #64748b;
   --gold: #2456db;
   --gold2: #2fa8d9;
-  --gold-glow: rgba(36, 86, 219, 0.18);
+  --gold-glow: rgba(36, 86, 219, 0.16);
 
-  /* Corporate Crystal Blue — pale mist backdrop with a cobalt/cyan facet duo */
-  --ink: #0b1f3a;
-  --slate: #46567a;
-  --mist: #eef3fb;
+  /* Corporate Clean — flat white cards on a pale lavender-grey backdrop,
+     one confident blue accent. Reference: Invo./modern SaaS dashboards. */
+  --ink: #0f172a;
+  --slate: #5b6b8c;
+  --mist: #f4f6fb;
 
-  --bg: linear-gradient(165deg, #e7eefb 0%, #f3f7fd 45%, #fbfdff 100%);
-  --surf: rgba(255, 255, 255, 0.86);
-  --surf2: rgba(238, 243, 251, 0.80);
-  --bdr: rgba(36, 86, 219, 0.14);
-  --bdr2: rgba(47, 168, 217, 0.30);
+  --bg: #f4f6fb;
+  --surf: #ffffff;
+  --surf2: #f8f9fd;
+  --bdr: rgba(15, 23, 42, 0.07);
+  --bdr2: rgba(36, 86, 219, 0.22);
 
   --txt: var(--ink);
   --mute: var(--slate);
 
   --am: #2456db;
-  --am-bg: rgba(36, 86, 219, 0.10);
+  --am-bg: rgba(36, 86, 219, 0.09);
   --pm: #0e88a8;
-  --pm-bg: rgba(14, 136, 168, 0.10);
+  --pm-bg: rgba(14, 136, 168, 0.09);
   --accent2: #6d5ce8;
-  --accent2-bg: rgba(109, 92, 232, 0.10);
+  --accent2-bg: rgba(109, 92, 232, 0.09);
 
-  --r: 14px;
-  --r-sm: 10px;
+  /* Status accent set — for badges/pills, one solid hue each, not gradients */
+  --good: #17a673;
+  --good-bg: #e4f8ef;
+  --bad: #e0473f;
+  --bad-bg: #fdecea;
+  --warn: #e8952e;
+  --warn-bg: #fdf1e2;
 
-  --sh: 0 1px 3px rgba(11, 31, 58, 0.10), 0 1px 2px rgba(11, 31, 58, 0.06);
-  --sh2: 0 6px 16px -2px rgba(11, 31, 58, 0.14), 0 2px 6px -2px rgba(36, 86, 219, 0.08);
-  --sh3: 0 16px 32px -6px rgba(11, 31, 58, 0.18), 0 6px 12px -4px rgba(36, 86, 219, 0.10);
+  --r: 16px;
+  --r-sm: 11px;
 
-  --grad-surf: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(238, 246, 255, 0.78) 100%);
+  /* Soft, neutral, diffuse shadows — separation via whitespace, not glow */
+  --sh:  0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.04);
+  --sh2: 0 2px 4px rgba(16, 24, 40, 0.04), 0 8px 16px rgba(16, 24, 40, 0.06);
+  --sh3: 0 4px 8px rgba(16, 24, 40, 0.05), 0 16px 32px rgba(16, 24, 40, 0.08);
+
+  --grad-surf: #ffffff;
   --grad-primary: linear-gradient(135deg, #1d3fb0 0%, #2456db 55%, #2fa8d9 100%);
-  --grad-navy: linear-gradient(180deg, #eef4ff 0%, #dfeaff 100%);
-  /* Signature crystal-facet hairline — a beam of light catching a blue facet edge */
-  --crystal-edge: linear-gradient(90deg, transparent 0%, rgba(47, 168, 217, 0) 8%, var(--gold2) 30%, var(--gold) 50%, var(--gold2) 70%, rgba(47, 168, 217, 0) 92%, transparent 100%);
+  --grad-navy: #eef1f8;
+  --crystal-edge: transparent;
 
   --transition: .2s cubic-bezier(0.4, 0, 0.2, 1);
   --glass-blur: 18px;
@@ -356,8 +365,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 58px;
-  padding: 0 28px;
+  height: 50px;
+  padding: 0 24px;
   background: var(--panel-bg);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
@@ -513,7 +522,7 @@ body {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--panel-border);
-  padding: 12px 28px;
+  padding: 9px 24px;
   box-shadow: var(--sh);
 }
 
