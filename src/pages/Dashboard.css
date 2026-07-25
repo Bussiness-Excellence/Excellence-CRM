@@ -407,7 +407,7 @@ body {
 .dash-brand-sub {
   font-size: 10px;
   font-weight: 500;
-  color: rgba(177, 210, 255, .5);
+  color: var(--mute);
   text-transform: lowercase;
   letter-spacing: 0.04em;
 }
@@ -1088,7 +1088,7 @@ body {
 .pivot-tbl th {
   padding: 12px 14px;
   background: var(--panel-bg);
-  color: #c8deff;
+  color: var(--navy);
   font-weight: 700;
   text-align: center;
   white-space: nowrap;
@@ -1146,7 +1146,7 @@ body {
   border-right: 1px solid rgba(77, 159, 255, .08);
   text-align: center;
   white-space: nowrap;
-  color: #b3d4ff;
+  color: var(--navy);
   transition: background var(--transition);
 }
 
@@ -1261,7 +1261,7 @@ body {
   font-weight: 800;
   letter-spacing: .12em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, .3);
+  color: var(--mute);
   margin-bottom: 6px;
 }
 
@@ -1274,7 +1274,7 @@ body {
 
 .agg-lbl {
   font-size: 11px;
-  color: rgba(255, 255, 255, .5);
+  color: var(--mute);
 }
 
 .agg-vals {
@@ -1293,7 +1293,7 @@ body {
 
 .agg-sum {
   background: rgba(37, 99, 235, .2);
-  color: #93c5fd;
+  color: var(--gold);
 }
 
 .agg-avg {
@@ -1385,7 +1385,7 @@ body {
 
 .pb-sub {
   font-size: 9px;
-  color: rgba(255, 255, 255, .4);
+  color: var(--mute);
   margin-top: 2px;
 }
 
@@ -1444,7 +1444,7 @@ body {
 
 .tk-count {
   font-size: 11px;
-  color: rgba(255, 255, 255, .4);
+  color: var(--mute);
   font-weight: 600;
 }
 
@@ -1590,7 +1590,7 @@ body {
   font-weight: 800;
   letter-spacing: .08em;
   text-transform: uppercase;
-  color: rgba(150, 190, 255, .75);
+  color: var(--navy2);
   display: flex;
   align-items: center;
   gap: 8px;

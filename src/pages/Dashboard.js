@@ -523,7 +523,7 @@ export default function Dashboard() {
   const [lang, setLang] = useState(profile?.preferred_lang || 'en');
   const [period, setPeriod] = useState('recent');
   const [team, setTeam] = useState('all');
-  const [shift, setShift] = useState('PM'); // Default is PM
+  const [shift, setShift] = useState('all'); // Default is Both
   const [search, setSearch] = useState('');
   const [userFilter, setUser] = useState('all');
   const [tab, setTab] = useState('summary');
