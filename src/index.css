@@ -105,7 +105,7 @@ html.dark {
   --sidebar-bg: #030a21;
 }
 
-/* ── Dark Mode Overrides — flat surfaces, no blur/glow ───── */
+/* ── Dark Mode Overrides — flat surfaces, high contrast ───── */
 html.dark .ctrl-bar {
   background: var(--panel-bg);
   border-color: var(--panel-border);
@@ -113,15 +113,40 @@ html.dark .ctrl-bar {
 
 html.dark .ctrl-sel,
 html.dark .search-inp {
-  background: #161b26;
+  background: #091a3b;
   color: var(--txt);
   border-color: var(--bdr2);
 }
 
 html.dark .ctrl-stat {
-  background: #161b26;
+  background: #091a3b;
   color: var(--mute);
   border-color: var(--bdr2);
+}
+
+html.dark .hbtn-outline {
+  background: rgba(37, 99, 235, 0.15);
+  color: #ffffff;
+  border-color: var(--bdr2);
+}
+
+html.dark .hbtn-outline:hover {
+  background: rgba(37, 99, 235, 0.3);
+  color: #ffffff;
+}
+
+html.dark .stoggle {
+  color: var(--mute);
+}
+
+html.dark .stoggle:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+html.dark .stoggle.on {
+  background: var(--gold);
+  color: #ffffff;
 }
 
 html.dark .dash-tabs {
@@ -196,29 +221,45 @@ html.dark .pivot-banner-team .pb-sub {
 
 /* KPI Rep Cards Dark Overrides */
 html.dark .ucard {
-  background: var(--surf);
-  border-color: var(--bdr);
+  background: #06122d !important;
+  border-color: #1e3a8a !important;
+  color: #ffffff !important;
+}
+
+html.dark .ucard-hdr {
+  background: #091a3b !important;
+  border-bottom-color: #1e3a8a !important;
+}
+
+html.dark .ucard-name {
+  color: #ffffff !important;
+}
+
+html.dark .ucard-meta,
+html.dark .ucard-terr {
+  color: #94a3b8 !important;
 }
 
 html.dark .kpi-sec-hd {
-  color: var(--mute);
+  color: #3b82f6 !important;
 }
 
 html.dark .kpi-lbl {
-  color: var(--mute);
+  color: #cbd5e1 !important;
 }
 
 html.dark .kpi-v {
-  color: var(--txt);
+  color: #ffffff !important;
 }
 
 html.dark .kpi-v.rate {
-  color: var(--gold);
+  color: #00d665 !important;
+  background: rgba(0, 214, 101, 0.15) !important;
 }
 
 html.dark .prod-det {
-  color: var(--mute);
-  background: rgba(255, 255, 255, .03);
+  color: #cbd5e1 !important;
+  background: rgba(255, 255, 255, .03) !important;
 }
 
 /* Team Aggregate Hover Cards Dark Overrides */

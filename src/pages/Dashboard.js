@@ -285,7 +285,7 @@ function TeamBriefCard({ rows, teamLabel, rtl, t, shift, isMgr, onSelectTeam }) 
             </div>
           )}
         </div>
-        <span className="mgr-pip" style={{ background: 'var(--navy)', color: '#fff' }}>{rtl ? 'فريق' : 'TEAM'}</span>
+        <span className="mgr-pip" style={{ background: 'var(--gold)', color: '#fff' }}>{rtl ? 'فريق' : 'TEAM'}</span>
       </div>
 
       {t.kpiGroups.map(g => {
@@ -544,6 +544,16 @@ export default function Dashboard() {
   const [managerTerritoryFilter, setManagerTerritoryFilter] = useState('all');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
 
   // AI Chat States
   const [isAiOpen, setIsAiOpen] = useState(false);
