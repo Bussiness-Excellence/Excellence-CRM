@@ -527,10 +527,10 @@ export default function Dashboard() {
   const [search, setSearch] = useState('');
   const [userFilter, setUser] = useState('all');
   const [tab, setTab] = useState('summary');
-  const [summary, setSummary] = useState([]);
-  const [specialty, setSpecialty] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [coaching, setCoaching] = useState([]);
+  const [rawSummary, setSummary] = useState([]);
+  const [rawSpecialty, setSpecialty] = useState([]);
+  const [rawProducts, setProducts] = useState([]);
+  const [rawCoaching, setCoaching] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -544,6 +544,60 @@ export default function Dashboard() {
   const [managerTerritoryFilter, setManagerTerritoryFilter] = useState('all');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
+
+  const userHierarchyMap = useMemo(() => {
+    const map = {};
+    (hierarchy || []).forEach(h => {
+      if (h.employee_name && !map[h.employee_name]) {
+        map[h.employee_name] = {
+          blm_name: h.blm_name,
+          territory: h.division_name,
+          area_manager: h.area_manager_name,
+          supervisor: h.supervisor_name,
+        };
+      }
+    });
+    return map;
+  }, [hierarchy]);
+
+  const userTeamMap = useMemo(() => {
+    const map = {};
+    rawSummary.forEach(r => {
+      if (r.user_name && r.team && r.team !== 'Unknown') {
+        if (!map[r.user_name]) map[r.user_name] = new Set();
+        r.team.split('; ').forEach(t => map[r.user_name].add(t));
+      }
+    });
+    rawSummary.forEach(r => {
+      if (!r.team || r.team === 'Unknown') return;
+      const repTms = r.team.split('; ').filter(Boolean);
+      const meta = userHierarchyMap[r.user_name];
+      if (meta) {
+        const addTeams = (mgr) => {
+          if (mgr) {
+            if (!map[mgr]) map[mgr] = new Set();
+            repTms.forEach(t => map[mgr].add(t));
+          }
+        };
+        addTeams(meta.supervisor);
+        addTeams(meta.area_manager);
+        if (meta.blm_name && !meta.blm_name.includes('Directory') && !meta.blm_name.includes('TEAM')) {
+          addTeams(meta.blm_name);
+        }
+      }
+    });
+    const finalMap = {};
+    Object.keys(map).forEach(k => {
+      finalMap[k] = Array.from(map[k]).sort().join('; ');
+    });
+    return finalMap;
+  }, [rawSummary, userHierarchyMap]);
+
+  const summary = useMemo(() => rawSummary.map(r => ({ ...r, team: userTeamMap[r.user_name] || r.team })), [rawSummary, userTeamMap]);
+  const specialty = useMemo(() => rawSpecialty.map(r => ({ ...r, team: userTeamMap[r.user_name] || r.team })), [rawSpecialty, userTeamMap]);
+  const products = useMemo(() => rawProducts.map(r => ({ ...r, team: userTeamMap[r.user_name] || r.team })), [rawProducts, userTeamMap]);
+  const coaching = useMemo(() => rawCoaching.map(r => ({ ...r, team: userTeamMap[r.manager_name] || r.team })), [rawCoaching, userTeamMap]);
+
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -685,20 +739,7 @@ export default function Dashboard() {
     return rows.filter(r => (r.team || '').split('; ').includes(team));
   }, [team, profile]);
 
-  const userHierarchyMap = useMemo(() => {
-    const map = {};
-    (hierarchy || []).forEach(h => {
-      if (h.employee_name && !map[h.employee_name]) {
-        map[h.employee_name] = {
-          blm_name: h.blm_name,
-          territory: h.division_name,
-          area_manager: h.area_manager_name,
-          supervisor: h.supervisor_name,
-        };
-      }
-    });
-    return map;
-  }, [hierarchy]);
+  // userHierarchyMap previously defined here
 
   const allLineManagers = useMemo(() => {
     const list = new Set();
@@ -942,15 +983,7 @@ export default function Dashboard() {
     return avgs;
   }, [summary]);
 
-  const userTeamMap = useMemo(() => {
-    const map = {};
-    summary.forEach(r => {
-      if (r.user_name && r.team) {
-        map[r.user_name] = r.team;
-      }
-    });
-    return map;
-  }, [summary]);
+  // userTeamMap previously defined here
 
   const pmCoveragePieData = useMemo(() => {
     let rows = fSummary.filter(r => !r.is_manager);
