@@ -531,6 +531,7 @@ export default function Dashboard() {
   const [rawSpecialty, setSpecialty] = useState([]);
   const [rawProducts, setProducts] = useState([]);
   const [rawCoaching, setCoaching] = useState([]);
+  const [teamsMap, setTeamsMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -560,43 +561,46 @@ export default function Dashboard() {
     return map;
   }, [hierarchy]);
 
-  const userTeamMap = useMemo(() => {
-    const map = {};
-    rawSummary.forEach(r => {
-      if (r.user_name && r.team && r.team !== 'Unknown') {
-        if (!map[r.user_name]) map[r.user_name] = new Set();
-        r.team.split('; ').forEach(t => map[r.user_name].add(t));
-      }
-    });
-    rawSummary.forEach(r => {
-      if (!r.team || r.team === 'Unknown') return;
-      const repTms = r.team.split('; ').filter(Boolean);
-      const meta = userHierarchyMap[r.user_name];
-      if (meta) {
-        const addTeams = (mgr) => {
-          if (mgr) {
-            if (!map[mgr]) map[mgr] = new Set();
-            repTms.forEach(t => map[mgr].add(t));
-          }
-        };
-        addTeams(meta.supervisor);
-        addTeams(meta.area_manager);
-        if (meta.blm_name && !meta.blm_name.includes('Directory') && !meta.blm_name.includes('TEAM')) {
-          addTeams(meta.blm_name);
-        }
-      }
-    });
-    const finalMap = {};
-    Object.keys(map).forEach(k => {
-      finalMap[k] = Array.from(map[k]).sort().join('; ');
-    });
-    return finalMap;
-  }, [rawSummary, userHierarchyMap]);
+    const userTeamMap = useMemo(() => {
+      const map = {};
+      
+      const addTeam = (mgrName, teamStr) => {
+        if (!mgrName || !teamStr || teamStr === 'Unknown') return;
+        const norm = mgrName.toLowerCase().trim();
+        if (!map[norm]) map[norm] = new Set();
+        teamStr.split(/;\s*/).filter(Boolean).forEach(t => map[norm].add(t));
+      };
 
-  const summary = useMemo(() => rawSummary.map(r => ({ ...r, team: userTeamMap[r.user_name] || r.team })), [rawSummary, userTeamMap]);
-  const specialty = useMemo(() => rawSpecialty.map(r => ({ ...r, team: userTeamMap[r.user_name] || r.team })), [rawSpecialty, userTeamMap]);
-  const products = useMemo(() => rawProducts.map(r => ({ ...r, team: userTeamMap[r.user_name] || r.team })), [rawProducts, userTeamMap]);
-  const coaching = useMemo(() => rawCoaching.map(r => ({ ...r, team: userTeamMap[r.manager_name] || r.team })), [rawCoaching, userTeamMap]);
+      // 1. Gather from rawSummary
+      rawSummary.forEach(r => {
+        if (r.user_name && r.team) addTeam(r.user_name, r.team);
+      });
+
+      // 2. Gather from complete hierarchy using teamsMap
+      (hierarchy || []).forEach(h => {
+        const teamName = teamsMap[h.team_id];
+        if (!teamName) return;
+        
+        if (h.employee_name) addTeam(h.employee_name, teamName);
+        if (h.supervisor_name) addTeam(h.supervisor_name, teamName);
+        if (h.area_manager_name) addTeam(h.area_manager_name, teamName);
+        if (h.blm_name && !h.blm_name.toLowerCase().includes('directory') && !h.blm_name.toLowerCase().includes('team')) {
+          addTeam(h.blm_name, teamName);
+        }
+      });
+
+      const finalMap = {};
+      Object.keys(map).forEach(k => {
+        finalMap[k] = Array.from(map[k]).sort().join('; ');
+      });
+      return finalMap;
+    }, [rawSummary, hierarchy, teamsMap]);
+
+    const summary = useMemo(() => rawSummary.map(r => ({ ...r, team: userTeamMap[r.user_name?.toLowerCase().trim()] || r.team })), [rawSummary, userTeamMap]);
+    const specialty = useMemo(() => rawSpecialty.map(r => ({ ...r, team: userTeamMap[r.user_name?.toLowerCase().trim()] || r.team })), [rawSpecialty, userTeamMap]);
+    const products = useMemo(() => rawProducts.map(r => ({ ...r, team: userTeamMap[r.user_name?.toLowerCase().trim()] || r.team })), [rawProducts, userTeamMap]);
+    const coaching = useMemo(() => rawCoaching.map(r => ({ ...r, team: userTeamMap[r.manager_name?.toLowerCase().trim()] || r.team })), [rawCoaching, userTeamMap]);
+
 
 
   useEffect(() => {
@@ -678,12 +682,23 @@ export default function Dashboard() {
     }
 
     setLoading(true); setError('');
-    const { data, error: rpcError } = await supabase.rpc('get_dashboard_data', {
-      p_period: periodLabel,
-      p_codes: codes,
-      p_is_admin: isAdmin,
-      p_is_manager: isMgr
-    });
+    const [rpcRes, teamsRes] = await Promise.all([
+      supabase.rpc('get_dashboard_data', {
+        p_period: periodLabel,
+        p_codes: codes,
+        p_is_admin: isAdmin,
+        p_is_manager: isMgr
+      }),
+      supabase.from('teams').select('id, name')
+    ]);
+
+    if (teamsRes.data) {
+      const tMap = {};
+      teamsRes.data.forEach(t => tMap[t.id] = t.name);
+      setTeamsMap(tMap);
+    }
+
+    const { data, error: rpcError } = rpcRes;
 
     if (rpcError) {
       setError(rpcError.message);
