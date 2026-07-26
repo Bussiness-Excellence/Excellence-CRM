@@ -285,7 +285,7 @@ function TeamBriefCard({ rows, teamLabel, rtl, t, shift, isMgr, onSelectTeam }) 
             </div>
           )}
         </div>
-        <span className="mgr-pip" style={{ background: 'var(--navy)', color: '#fff' }}>{rtl ? 'فريق' : 'TEAM'}</span>
+        <span className="mgr-pip" style={{ background: 'var(--gold)', color: '#fff' }}>{rtl ? 'فريق' : 'TEAM'}</span>
       </div>
 
       {t.kpiGroups.map(g => {
@@ -545,6 +545,16 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
 
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
+
   // AI Chat States
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [aiInput, setAiInput] = useState('');
@@ -577,7 +587,7 @@ export default function Dashboard() {
     if (!visibleCodes?.length) { setLoading(false); return; }
     const isAdmin = profile?.role === 'Admin';
     const codes = visibleCodes;
-    const cacheKey = `dash_${periodLabel}_${isMgr}`;
+    const cacheKey = `dash_${periodLabel}_${isMgr}_${codesKey}`;
 
     // Skip if already fetched this key (tab switch won't retrigger)
     if (!force && fetchedKeyRef.current === currentKey) return;
@@ -785,6 +795,11 @@ export default function Dashboard() {
         if (h.area_manager_name === userFilter || h.supervisor_name === userFilter) {
           if (h.employee_name) targetNames.add(h.employee_name);
         }
+        if (h.employee_name === userFilter) {
+          if (h.supervisor_name) targetNames.add(h.supervisor_name);
+          else if (h.area_manager_name) targetNames.add(h.area_manager_name);
+          else if (h.blm_name && !h.blm_name.includes('Directory') && !h.blm_name.includes('TEAM')) targetNames.add(h.blm_name);
+        }
       });
       r = r.filter(x => targetNames.has(x.user_name));
     }
@@ -848,6 +863,11 @@ export default function Dashboard() {
         if (h.area_manager_name === userFilter || h.supervisor_name === userFilter) {
           if (h.employee_name) targetNames.add(h.employee_name);
         }
+        if (h.employee_name === userFilter) {
+          if (h.supervisor_name) targetNames.add(h.supervisor_name);
+          else if (h.area_manager_name) targetNames.add(h.area_manager_name);
+          else if (h.blm_name && !h.blm_name.includes('Directory') && !h.blm_name.includes('TEAM')) targetNames.add(h.blm_name);
+        }
       });
       r = r.filter(x => targetNames.has(x.user_name));
     }
@@ -862,6 +882,11 @@ export default function Dashboard() {
       (hierarchy || []).forEach(h => {
         if (h.area_manager_name === userFilter || h.supervisor_name === userFilter) {
           if (h.employee_name) targetNames.add(h.employee_name);
+        }
+        if (h.employee_name === userFilter) {
+          if (h.supervisor_name) targetNames.add(h.supervisor_name);
+          else if (h.area_manager_name) targetNames.add(h.area_manager_name);
+          else if (h.blm_name && !h.blm_name.includes('Directory') && !h.blm_name.includes('TEAM')) targetNames.add(h.blm_name);
         }
       });
       r = r.filter(x => targetNames.has(x.user_name));
@@ -895,6 +920,11 @@ export default function Dashboard() {
           if (h.role === 'Area Manager' || h.role === 'Supervisor' || h.employee_name === userFilter) {
             if (h.employee_name) managerNames.add(h.employee_name);
           }
+        }
+        if (h.employee_name === userFilter) {
+          if (h.supervisor_name) managerNames.add(h.supervisor_name);
+          else if (h.area_manager_name) managerNames.add(h.area_manager_name);
+          else if (h.blm_name && !h.blm_name.includes('Directory') && !h.blm_name.includes('TEAM')) managerNames.add(h.blm_name);
         }
       });
       r = r.filter(x => managerNames.has(x.manager_name) || managerNames.has(x.rep_name));
@@ -1122,39 +1152,10 @@ export default function Dashboard() {
     }
 
     if (tab === 'specialty' || tab === 'products') {
-      const rowKey = tab === 'specialty' ? 'specialty' : 'product';
-      const baseRows = tab === 'specialty' ? filteredSpecialty : filteredProducts;
-
-      // Replicate PivotTable's own filtering exactly, so the export matches
-      // whatever is currently on screen (shift toggle, selected rep, search box).
-      const rows = baseRows.filter(r => {
-        if (shift !== 'all' && r.shift !== shift) return false;
-        if (userFilter && userFilter !== 'all' && r.user_name !== userFilter) return false;
-        if (search && !r[rowKey]?.toLowerCase().includes(search.toLowerCase())
-          && !r.user_name?.toLowerCase().includes(search.toLowerCase())) return false;
-        return true;
-      });
-
-      const users = [...new Set(rows.map(r => r.user_name))].sort();
-      const rowKeys = [...new Set(rows.map(r => r[rowKey]))].sort();
-      const cells = {};
-      rows.forEach(r => {
-        const k = r[rowKey];
-        if (!cells[k]) cells[k] = {};
-        cells[k][r.user_name] = (cells[k][r.user_name] || 0) + (r.call_count || 0);
-      });
-
-      const header = [tab === 'specialty' ? 'Specialty' : 'Product', ...users, 'Σ Total'];
-      const sh = [header];
-      rowKeys.forEach(k => {
-        const rowTotal = users.reduce((s, u) => s + (cells[k]?.[u] || 0), 0);
-        sh.push([k, ...users.map(u => cells[k]?.[u] || 0), rowTotal]);
-      });
-      // Grand total row
-      const colTotals = users.map(u => rows.filter(r => r.user_name === u).reduce((s, r) => s + (r.call_count || 0), 0));
-      const grandTotal = colTotals.reduce((s, v) => s + v, 0);
-      sh.push(['Σ Total', ...colTotals, grandTotal]);
-
+      const rows = tab === 'specialty' ? fSpecialty : fProducts;
+      const allKpiKeys = t.kpiGroups.flatMap(g => g.keys);
+      const sh = [['Team', 'User', 'Territory', 'Manager', ...allKpiKeys.map(k => t.kpi[k] || k)]];
+      rows.forEach(r => sh.push([r.team, r.user_name, r.territory, r.is_manager ? '✓' : '', ...allKpiKeys.map(k => r[k] ?? '')]));
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sh), tab === 'specialty' ? 'Specialty' : 'Products');
       XLSX.writeFile(wb, `excellence_${tab}_${periodLabel.replace(' ', '_')}_${Date.now()}.xlsx`);
       return;
@@ -1242,7 +1243,22 @@ export default function Dashboard() {
             className="hbtn hbtn-outline"
             title={rtl ? 'تحديث البيانات' : 'Refresh Data'}
             style={{ padding: '6px 10px', fontSize: '13px', lineHeight: 1 }}
-            onClick={() => { sessionStorage.clear(); fetchedKeyRef.current = null; load(true); }}
+            onClick={() => {
+              sessionStorage.clear();
+              fetchedKeyRef.current = null;
+              setTeam('all');
+              setShift('all');
+              setSearch('');
+              setUser('all');
+              setSpecialtyFilter(new Set());
+              setProductFilter(new Set());
+              setClassificationFilter(new Set());
+              setSelectedManager(null);
+              setLineManagerFilter('all');
+              setManagerTerritoryFilter('all');
+              setSelectedRep(null);
+              load(true);
+            }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
               <path d="M23 4v6h-6" /><path d="M1 20v-6h6" />
