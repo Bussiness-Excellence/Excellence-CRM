@@ -795,6 +795,11 @@ export default function Dashboard() {
         if (h.area_manager_name === userFilter || h.supervisor_name === userFilter) {
           if (h.employee_name) targetNames.add(h.employee_name);
         }
+        if (h.employee_name === userFilter) {
+          if (h.supervisor_name) targetNames.add(h.supervisor_name);
+          else if (h.area_manager_name) targetNames.add(h.area_manager_name);
+          else if (h.blm_name && !h.blm_name.includes('Directory') && !h.blm_name.includes('TEAM')) targetNames.add(h.blm_name);
+        }
       });
       r = r.filter(x => targetNames.has(x.user_name));
     }
@@ -858,6 +863,11 @@ export default function Dashboard() {
         if (h.area_manager_name === userFilter || h.supervisor_name === userFilter) {
           if (h.employee_name) targetNames.add(h.employee_name);
         }
+        if (h.employee_name === userFilter) {
+          if (h.supervisor_name) targetNames.add(h.supervisor_name);
+          else if (h.area_manager_name) targetNames.add(h.area_manager_name);
+          else if (h.blm_name && !h.blm_name.includes('Directory') && !h.blm_name.includes('TEAM')) targetNames.add(h.blm_name);
+        }
       });
       r = r.filter(x => targetNames.has(x.user_name));
     }
@@ -872,6 +882,11 @@ export default function Dashboard() {
       (hierarchy || []).forEach(h => {
         if (h.area_manager_name === userFilter || h.supervisor_name === userFilter) {
           if (h.employee_name) targetNames.add(h.employee_name);
+        }
+        if (h.employee_name === userFilter) {
+          if (h.supervisor_name) targetNames.add(h.supervisor_name);
+          else if (h.area_manager_name) targetNames.add(h.area_manager_name);
+          else if (h.blm_name && !h.blm_name.includes('Directory') && !h.blm_name.includes('TEAM')) targetNames.add(h.blm_name);
         }
       });
       r = r.filter(x => targetNames.has(x.user_name));
@@ -905,6 +920,11 @@ export default function Dashboard() {
           if (h.role === 'Area Manager' || h.role === 'Supervisor' || h.employee_name === userFilter) {
             if (h.employee_name) managerNames.add(h.employee_name);
           }
+        }
+        if (h.employee_name === userFilter) {
+          if (h.supervisor_name) managerNames.add(h.supervisor_name);
+          else if (h.area_manager_name) managerNames.add(h.area_manager_name);
+          else if (h.blm_name && !h.blm_name.includes('Directory') && !h.blm_name.includes('TEAM')) managerNames.add(h.blm_name);
         }
       });
       r = r.filter(x => managerNames.has(x.manager_name) || managerNames.has(x.rep_name));
@@ -1223,7 +1243,22 @@ export default function Dashboard() {
             className="hbtn hbtn-outline"
             title={rtl ? 'تحديث البيانات' : 'Refresh Data'}
             style={{ padding: '6px 10px', fontSize: '13px', lineHeight: 1 }}
-            onClick={() => { sessionStorage.clear(); fetchedKeyRef.current = null; load(true); }}
+            onClick={() => {
+              sessionStorage.clear();
+              fetchedKeyRef.current = null;
+              setTeam('all');
+              setShift('all');
+              setSearch('');
+              setUser('all');
+              setSpecialtyFilter(new Set());
+              setProductFilter(new Set());
+              setClassificationFilter(new Set());
+              setSelectedManager(null);
+              setLineManagerFilter('all');
+              setManagerTerritoryFilter('all');
+              setSelectedRep(null);
+              load(true);
+            }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
               <path d="M23 4v6h-6" /><path d="M1 20v-6h6" />
