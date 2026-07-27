@@ -561,6 +561,7 @@ export default function Dashboard() {
     (hierarchy || []).forEach(h => {
       if (h.employee_name && !map[h.employee_name]) {
         map[h.employee_name] = {
+          role: h.role,
           blm_name: h.blm_name,
           territory: h.division_name,
           area_manager: h.area_manager_name,
@@ -1744,24 +1745,39 @@ export default function Dashboard() {
                       </div>
                     ) : (
                       <div className="cards-grid">
-                        {fSummary.map((r, i) => (
-                          <div key={r.id || i} className={`ucard${r.is_manager ? ' mgr' : ''}${selectedRep === r.user_name ? ' ucard-selected' : ''}`}
-                            onClick={() => handleSelectRep(r.user_name)}>
-                            <div className="ucard-hdr">
-                              <div className="ucard-info">
-                                <div className="ucard-name">{r.user_name}</div>
-                                <div className="ucard-meta">{r.team || ''}{r.is_manager ? ' · Manager' : ''}</div>
-                                {r.territory && <div className="ucard-terr" title={r.territory}>{r.territory}</div>}
-                                {(r.avg_am_shift_hm || r.avg_pm_shift_hm) && (
-                                  <div className="ucard-dur">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
-                                    {r.avg_am_shift_hm ? <span className="dur-am">AM {fmtDuration(r.avg_am_shift_hm)}</span> : null}
-                                    {r.avg_pm_shift_hm ? <span className="dur-pm">PM {fmtDuration(r.avg_pm_shift_hm)}</span> : null}
-                                  </div>
-                                )}
+                        {fSummary.map((r, i) => {
+                          const rawRole = r.role || userHierarchyMap[r.user_name]?.role || (r.is_manager ? 'Supervisor' : 'MR');
+                          const roleLower = String(rawRole).toLowerCase();
+                          const roleClass = roleLower.includes('area') ? 'hdr-role-am'
+                            : (roleLower.includes('supervisor') || roleLower.includes('sup')) ? 'hdr-role-sup'
+                            : roleLower.includes('blm') ? 'hdr-role-blm'
+                            : 'hdr-role-mr';
+
+                          const roleLabel = roleLower.includes('area') ? (rtl ? 'مدير منطقة' : 'Area Manager')
+                            : (roleLower.includes('supervisor') || roleLower.includes('sup')) ? (rtl ? 'مشرف' : 'Supervisor')
+                            : roleLower.includes('blm') ? (rtl ? 'مدير خط' : 'BLM')
+                            : (rtl ? 'مندوب' : 'MR');
+
+                          return (
+                            <div key={r.id || i} className={`ucard ${roleClass}${r.is_manager ? ' mgr' : ''}${selectedRep === r.user_name ? ' ucard-selected' : ''}`}
+                              onClick={() => handleSelectRep(r.user_name)}>
+                              <div className={`ucard-hdr ${roleClass}`}>
+                                <div className="ucard-info">
+                                  <div className="ucard-name">{r.user_name}</div>
+                                  <div className="ucard-meta">{r.team || ''} · {roleLabel}</div>
+                                  {r.territory && <div className="ucard-terr" title={r.territory}>{r.territory}</div>}
+                                  {(r.avg_am_shift_hm || r.avg_pm_shift_hm) && (
+                                    <div className="ucard-dur">
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+                                      {r.avg_am_shift_hm ? <span className="dur-am">AM {fmtDuration(r.avg_am_shift_hm)}</span> : null}
+                                      {r.avg_pm_shift_hm ? <span className="dur-pm">PM {fmtDuration(r.avg_pm_shift_hm)}</span> : null}
+                                    </div>
+                                  )}
+                                </div>
+                                <span className={`mgr-pip ${roleClass}`}>{roleLabel.toUpperCase()}</span>
                               </div>
-                              {r.is_manager && <span className="mgr-pip">MGR</span>}
-                            </div>
+                          );
+                        })}
                             {t.kpiGroups.map(g => {
                               const keys = g.keys.filter(k => {
                                 if (shift === 'AM') return !['pm_calls', 'pm_call_rate', 'pm_shift_days', 'total_pm_covered', 'clinic_covered', 'polyclinic_covered', 'avg_pm_shift_hm'].includes(k);

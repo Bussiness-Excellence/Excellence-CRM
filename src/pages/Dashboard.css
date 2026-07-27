@@ -298,9 +298,7 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans
 /* Manager role highlighting: BLM green, Area Manager dark red, Supervisor yellow */
 .ucard.role-blm { border-top: 3px solid var(--good) }
 .ucard.role-am { border-top: 3px solid var(--bad) }
-.ucard.role-sup { border-top: 3px solid var(--warn) }
-
-/* Card header */
+/* Base Card Header */
 .ucard-hdr { display: flex; justify-content: space-between; align-items: flex-start; padding: 14px 14px 12px; background: var(--navy2) }
 .ucard-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 }
 .ucard-name { font-size: 15px; font-weight: 700; color: #fff; line-height: 1.3 }
@@ -311,6 +309,46 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans
 .dur-am, .dur-pm { font-size: 11px; font-weight: 700; letter-spacing: .02em; padding: 1px 6px; border-radius: 4px }
 .dur-am { background: rgba(26, 111, 196, .22); color: #7ec1ff }
 .dur-pm { background: rgba(13, 158, 110, .22); color: #6fe0b8 }
+
+/* Role-based Card Headers */
+/* Area Manager — Dark Red */
+.ucard-hdr.hdr-role-am {
+  background: linear-gradient(135deg, #7f1d1d 0%, #450a0a 100%) !important;
+}
+.ucard-hdr.hdr-role-am .ucard-name { color: #ffffff !important; }
+.ucard-hdr.hdr-role-am .ucard-meta,
+.ucard-hdr.hdr-role-am .ucard-terr { color: #fca5a5 !important; }
+.ucard-hdr.hdr-role-am .mgr-pip { background: #dc2626 !important; color: #ffffff !important; }
+
+/* Supervisor — Dark Gold */
+.ucard-hdr.hdr-role-sup {
+  background: linear-gradient(135deg, #785a00 0%, #473500 100%) !important;
+}
+.ucard-hdr.hdr-role-sup .ucard-name { color: #ffffff !important; }
+.ucard-hdr.hdr-role-sup .ucard-meta,
+.ucard-hdr.hdr-role-sup .ucard-terr { color: #fef08a !important; }
+.ucard-hdr.hdr-role-sup .mgr-pip { background: #ca8a04 !important; color: #ffffff !important; }
+
+/* BLM — Dark Green */
+.ucard-hdr.hdr-role-blm {
+  background: linear-gradient(135deg, #064e3b 0%, #022c22 100%) !important;
+}
+.ucard-hdr.hdr-role-blm .ucard-name { color: #ffffff !important; }
+.ucard-hdr.hdr-role-blm .ucard-meta,
+.ucard-hdr.hdr-role-blm .ucard-terr { color: #6ee7b7 !important; }
+.ucard-hdr.hdr-role-blm .mgr-pip { background: #059669 !important; color: #ffffff !important; }
+
+/* MR — Light Blue */
+.ucard-hdr.hdr-role-mr {
+  background: linear-gradient(135deg, #dbeafe 0%, #bae6fd 100%) !important;
+}
+.ucard-hdr.hdr-role-mr .ucard-name { color: #0f1f3d !important; }
+.ucard-hdr.hdr-role-mr .ucard-meta,
+.ucard-hdr.hdr-role-mr .ucard-terr { color: #0369a1 !important; font-weight: 600 !important; }
+.ucard-hdr.hdr-role-mr .mgr-pip { background: #0284c7 !important; color: #ffffff !important; }
+.ucard-hdr.hdr-role-mr .dur-am { background: rgba(2, 132, 199, 0.18) !important; color: #0369a1 !important; }
+.ucard-hdr.hdr-role-mr .dur-pm { background: rgba(13, 148, 136, 0.18) !important; color: #0f766e !important; }
+.ucard-hdr.hdr-role-mr svg { color: rgba(15, 31, 61, 0.5) !important; }
 
 .mgr-pip { background: var(--gold); color: var(--navy); font-size: 11px; font-weight: 800; letter-spacing: .08em; padding: 2px 7px; border-radius: 4px; flex-shrink: 0; align-self: flex-start }
 .mgr-pip.role-blm { background: var(--good); color: #fff }
