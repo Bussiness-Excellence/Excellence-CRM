@@ -217,8 +217,7 @@ function PieChart({ data, title, size = 140, thickness = 22, onSelect, activeFil
               style={{
                 cursor: 'pointer',
                 opacity: fade ? 0.25 : 1,
-                transformOrigin: `${center}px ${center}px`,
-                transition: 'all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                transition: 'stroke-width 0.3s ease, filter 0.3s ease, opacity 0.3s ease, stroke-dasharray 0.5s ease-out, stroke-dashoffset 0.5s ease-out',
                 filter: isHovered ? `drop-shadow(0 0 8px ${seg.color})` : 'none',
               }}
               onMouseEnter={() => setHoveredLabel(seg.label)}

@@ -228,10 +228,10 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans
 /* Pie chart */
 .pie-chart { display: flex; flex-direction: column; align-items: center; padding: 4px 0 }
 .pie-title { font-size: 11px; font-weight: 700; color: var(--mute); margin-bottom: 12px; text-transform: uppercase; letter-spacing: .04em }
-.pie-svg { filter: drop-shadow(0 2px 6px rgba(15, 23, 42, .08)); overflow: visible }
-.pie-svg.animated-pie { animation: piePopIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards }
+.pie-svg { filter: drop-shadow(0 2px 6px rgba(15, 23, 42, .08)); overflow: visible; transform-origin: center center }
+.pie-svg.animated-pie { animation: piePopIn 0.4s ease-out forwards }
 .pie-segment { transition: stroke-dasharray .5s ease-out, stroke-dashoffset .5s ease-out, stroke-width .3s ease, filter .3s ease, opacity .3s ease }
-.pie-center-val { font-size: 20px; font-weight: 800; fill: var(--navy); font-variant-numeric: tabular-nums; transition: transform 0.3s ease }
+.pie-center-val { font-size: 20px; font-weight: 800; fill: var(--navy); font-variant-numeric: tabular-nums }
 .pie-center-lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; fill: var(--mute) }
 .pie-legend { margin-top: 18px; width: 100%; display: flex; flex-direction: column; gap: 6px }
 .pie-leg-item { display: flex; align-items: center; font-size: 11px; font-weight: 600; color: var(--txt); transition: all 0.25s ease }
@@ -243,9 +243,8 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans
 .pie-empty { font-size: 11px; color: var(--mute); font-weight: 600; height: 100px; display: flex; align-items: center; justify-content: center }
 
 @keyframes piePopIn {
-  0% { transform: scale(0.85) rotate(-15deg); opacity: 0 }
-  70% { transform: scale(1.03) rotate(3deg) }
-  100% { transform: scale(1) rotate(0deg); opacity: 1 }
+  0% { transform: scale(0.9); opacity: 0 }
+  100% { transform: scale(1); opacity: 1 }
 }
 
 /* Specialty filter slicer */
