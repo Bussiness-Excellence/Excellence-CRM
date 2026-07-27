@@ -11,16 +11,16 @@ import ChangePassword from './components/ChangePassword';
 import './App.css';
 
 function LoginRoute() {
-  const { session, loading } = useAuth();
+  const { session, profile, loading } = useAuth();
   if (loading) return <div className="app-loading"><div className="app-spinner"/></div>;
-  if (session) return <Navigate to="/" replace />;
+  if (session && profile) return <Navigate to="/dashboard" replace />;
   return <Login />;
 }
 
 function RootRoute() {
-  const { profile, loading } = useAuth();
+  const { session, profile, loading } = useAuth();
   if (loading) return <div className="app-loading"><div className="app-spinner"/></div>;
-  if (!profile) return <Navigate to="/login" replace />;
+  if (!session || !profile) return <Navigate to="/login" replace />;
   // All roles (including Admin) land on the dashboard by default
   return <Navigate to="/dashboard" replace />;
 }

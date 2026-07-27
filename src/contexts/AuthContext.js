@@ -130,15 +130,36 @@ export function AuthProvider({ children }) {
   const loadedUserId = React.useRef(null);
 
   const loadProfileAndHierarchy = useCallback(async (userId) => {
-    const [{ data: profileRow, error: profileErr }, { data: hierarchyRows }, { data: teamsRows }] =
+    let [{ data: profileRow }, { data: hierarchyRows }, { data: teamsRows }] =
       await Promise.all([
-        supabase.from('app_users').select('*').eq('id', userId).single(),
+        supabase.from('app_users').select('*').eq('id', userId).maybeSingle(),
         supabase.from('hierarchy').select('*').range(0, 5000),
         supabase.from('teams').select('*'),
       ]);
 
-    if (profileErr) {
-      console.error('Profile load failed:', profileErr.message);
+    if (!profileRow) {
+      try {
+        const { data: authUserData } = await supabase.auth.getUser();
+        const authUser = authUserData?.user;
+        if (authUser?.email) {
+          const empCode = authUser.email.split('@')[0];
+          const { data: matchedProfile } = await supabase.from('app_users')
+            .select('*')
+            .or(`employee_code.eq.${empCode},email.eq.${authUser.email}`)
+            .maybeSingle();
+
+          if (matchedProfile) {
+            profileRow = matchedProfile;
+            supabase.from('app_users').update({ id: userId }).eq('employee_code', matchedProfile.employee_code).then(() => {});
+          }
+        }
+      } catch (e) {
+        console.error('Profile fallback lookup error:', e);
+      }
+    }
+
+    if (!profileRow) {
+      console.error('Profile not found for user ID:', userId);
       setProfile(null); setVisibleCodes([]);
       return;
     }
