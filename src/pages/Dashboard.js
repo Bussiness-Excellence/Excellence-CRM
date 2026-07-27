@@ -1765,7 +1765,7 @@ export default function Dashboard() {
                               <div className={`ucard-hdr ${roleClass}`}>
                                 <div className="ucard-info">
                                   <div className="ucard-name">{r.user_name}</div>
-                                  <div className="ucard-meta">{r.team || ''} · {roleLabel}</div>
+                                  <div className="ucard-meta">{roleLower.includes('mr') ? (r.team ? `${r.team} · ${roleLabel}` : roleLabel) : (r.team || '')}</div>
                                   {r.territory && <div className="ucard-terr" title={r.territory}>{r.territory}</div>}
                                   {(r.avg_am_shift_hm || r.avg_pm_shift_hm) && (
                                     <div className="ucard-dur">
