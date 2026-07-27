@@ -1690,10 +1690,8 @@ export default function Dashboard() {
                   {search && <button className="search-clear" onClick={() => setSearch('')}>✕</button>}
                 </div>
               </div>
-              <div className="ctrl-end" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <span className="ctrl-stat">{t.people(fSummary.length)}{teamCount > 1 && ` · ${teamCount} teams`}</span>
-                <button className="hbtn hbtn-primary" onClick={doExport}>↓ Export</button>
-                <span style={{ fontSize: '10px', marginTop: '2px', color: 'var(--text-muted)' }}>be the analyst</span>
+              <div className="ctrl-end">
+                <button className="hbtn hbtn-primary" onClick={doExport}>↓ Export — Be The Analyst</button>
               </div>
             </div>
           </div>
