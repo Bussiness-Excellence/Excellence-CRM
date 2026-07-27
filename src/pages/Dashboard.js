@@ -529,7 +529,6 @@ function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFil
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { profile, hierarchy, visibleCodes } = useAuth();
-  const isMgr = Boolean(profile?.is_manager || profile?.role === 'Supervisor' || profile?.role === 'Area Manager' || profile?.role === 'BLM' || profile?.role === 'Admin');
   const [lang, setLang] = useState(profile?.preferred_lang || 'en');
   const [period, setPeriod] = useState('recent');
   const [team, setTeam] = useState('all');
@@ -644,7 +643,7 @@ export default function Dashboard() {
 
   const t = T[lang] || T.en;
   const rtl = lang === 'ar';
-  const isMgr = profile?.role && profile.role !== 'MR';
+  const isMgr = Boolean(profile?.is_manager || (profile?.role && profile.role !== 'MR'));
   const periodLabel = period === 'last_month' ? 'Last Month' : 'Recent';
   // Stable ref tracking what data has been fetched — survives re-renders without causing them
   const fetchedKeyRef = React.useRef(null);
