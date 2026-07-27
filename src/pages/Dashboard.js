@@ -282,9 +282,9 @@ function TeamBriefCard({ rows, teamLabel, rtl, t, shift, isMgr, onSelectTeam }) 
 
   return (
     <div className="ucard team-brief-card" onClick={() => onSelectTeam && onSelectTeam(teamLabel)} style={{ cursor: 'pointer' }}>
-      <div className="ucard-hdr" style={{ borderBottom: '1px solid var(--bdr)' }}>
+      <div className="ucard-hdr">
         <div className="ucard-info">
-          <div className="ucard-name" style={{ color: 'var(--gold)', fontSize: '17px' }}>{teamLabel}</div>
+          <div className="ucard-name">{teamLabel}</div>
           <div className="ucard-meta">{repCount} {rtl ? 'مندوب' : 'reps'}</div>
           {(amShiftDur > 0 || pmShiftDur > 0) && (
             <div className="ucard-dur">
@@ -294,7 +294,7 @@ function TeamBriefCard({ rows, teamLabel, rtl, t, shift, isMgr, onSelectTeam }) 
             </div>
           )}
         </div>
-        <span className="mgr-pip" style={{ background: 'var(--gold)', color: '#fff' }}>{rtl ? 'فريق' : 'TEAM'}</span>
+        <span className="mgr-pip">{rtl ? 'فريق' : 'TEAM'}</span>
       </div>
 
       {t.kpiGroups.map(g => {
