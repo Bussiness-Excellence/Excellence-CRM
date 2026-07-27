@@ -549,6 +549,7 @@ export default function Dashboard() {
   const [specialtyFilter, setSpecialtyFilter] = useState(new Set());
   const [productFilter, setProductFilter] = useState(new Set());
   const [classificationFilter, setClassificationFilter] = useState(new Set());
+  const [selectedManager, setSelectedManager] = useState(null);
   const [lineManagerFilter, setLineManagerFilter] = useState('all');
   const [managerTerritoryFilter, setManagerTerritoryFilter] = useState('all');
   const [sidebarOpen, setSidebarOpen] = useState(false);
