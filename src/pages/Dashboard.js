@@ -528,7 +528,7 @@ function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFil
 
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const { profile, hierarchy, visibleCodes } = useAuth();
+  const { profile, hierarchy, visibleCodes, signOut } = useAuth();
   const [lang, setLang] = useState(profile?.preferred_lang || 'en');
   const [period, setPeriod] = useState('recent');
   const [team, setTeam] = useState('all');
