@@ -39,16 +39,10 @@ def upload_folder(folder, period, batch):
 
     url, key = _supabase_config()
 
-    print(f"   Clearing existing data for batch '{batch}'...")
-    for table in ("visits", "coaching_days", "summaries", "specialty_classification", "product_calls"):
-        try:
-            supabase_delete_where(url, key, table, "upload_batch", batch)
-        except Exception as e:
-            print(f"   Could not clear {table}: {e}")
-
-    print(f"\n   Uploading {latest.name}...")
+    file_batch = f"{batch}_{latest.stem}"
+    print(f"   Uploading {latest.name} (Batch: {file_batch})...")
     try:
-        upload_workbook(url, key, str(latest), period=period, batch=batch, append=True)
+        upload_workbook(url, key, str(latest), period=period, batch=file_batch, append=True)
     except Exception as e:
         print(f"   Failed to upload {latest.name}: {e}")
 

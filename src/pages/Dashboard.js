@@ -534,7 +534,29 @@ export default function Dashboard() {
   const [period, setPeriod] = useState('recent');
   const [team, setTeam] = useState('all');
   const [shift, setShift] = useState('all'); // Default is Both
+  const [timeGrain, setTimeGrain] = useState('all'); // 'all' | 'biweekly1' | 'biweekly2' | 'week1' | 'week2' | 'week3' | 'week4' | 'daily'
+  const [selectedDate, setSelectedDate] = useState('');
   const [search, setSearch] = useState('');
+
+  const filterByTimeGrain = useCallback((rows) => {
+    if (!rows || !rows.length || timeGrain === 'all') return rows;
+    return rows.filter(r => {
+      const dStr = r.visit_date || r.coaching_date || r.date;
+      if (!dStr) return true;
+      const m = String(dStr).match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (!m) return true;
+      const day = parseInt(m[3], 10);
+      const isoDate = `${m[1]}-${m[2]}-${m[3]}`;
+      if (timeGrain === 'daily') return selectedDate ? isoDate === selectedDate : true;
+      if (timeGrain === 'biweekly1') return day >= 1 && day <= 15;
+      if (timeGrain === 'biweekly2') return day >= 16 && day <= 31;
+      if (timeGrain === 'week1') return day >= 1 && day <= 7;
+      if (timeGrain === 'week2') return day >= 8 && day <= 14;
+      if (timeGrain === 'week3') return day >= 15 && day <= 21;
+      if (timeGrain === 'week4') return day >= 22 && day <= 31;
+      return true;
+    });
+  }, [timeGrain, selectedDate]);
   const [userFilter, setUser] = useState('all');
   const [tab, setTab] = useState('summary');
   const [rawSummary, setSummary] = useState([]);
@@ -925,7 +947,7 @@ export default function Dashboard() {
   }, [summary, coaching, byTeam, byLineManager, byManagerTerritory, search, userFilter, hierarchy]);
 
   const fSpecialty = useMemo(() => {
-    let r = byManagerTerritory(byLineManager(byTeam(specialty)));
+    let r = byManagerTerritory(byLineManager(byTeam(filterByTimeGrain(specialty))));
     if (search) r = r.filter(x => x.user_name?.toLowerCase().includes(search.toLowerCase()) || x.territory?.toLowerCase().includes(search.toLowerCase()));
     if (userFilter !== 'all') {
       const targetNames = new Set([userFilter]);
@@ -942,10 +964,10 @@ export default function Dashboard() {
       r = r.filter(x => targetNames.has(x.user_name));
     }
     return r;
-  }, [specialty, byTeam, byLineManager, byManagerTerritory, search, userFilter, hierarchy]);
+  }, [specialty, filterByTimeGrain, byTeam, byLineManager, byManagerTerritory, search, userFilter, hierarchy]);
 
   const fProducts = useMemo(() => {
-    let r = byManagerTerritory(byLineManager(byTeam(products)));
+    let r = byManagerTerritory(byLineManager(byTeam(filterByTimeGrain(products))));
     if (search) r = r.filter(x => x.user_name?.toLowerCase().includes(search.toLowerCase()) || x.territory?.toLowerCase().includes(search.toLowerCase()));
     if (userFilter !== 'all') {
       const targetNames = new Set([userFilter]);
@@ -962,7 +984,7 @@ export default function Dashboard() {
       r = r.filter(x => targetNames.has(x.user_name));
     }
     return r;
-  }, [products, byTeam, byLineManager, byManagerTerritory, search, userFilter, hierarchy]);
+  }, [products, filterByTimeGrain, byTeam, byLineManager, byManagerTerritory, search, userFilter, hierarchy]);
 
   const visibleNames = useMemo(() => {
     if (!hierarchy?.length || !visibleCodes?.length) return null;
@@ -978,7 +1000,7 @@ export default function Dashboard() {
   }, [hierarchy, visibleCodes, profile]);
 
   const fCoaching = useMemo(() => {
-    let r = byManagerTerritory(byLineManager(byTeam(coaching)));
+    let r = byManagerTerritory(byLineManager(byTeam(filterByTimeGrain(coaching))));
     if (visibleNames && profile?.role !== 'Admin') {
       r = r.filter(x => visibleNames.has(x.manager_name) || visibleNames.has(x.rep_name));
     }
@@ -1000,7 +1022,7 @@ export default function Dashboard() {
       r = r.filter(x => managerNames.has(x.manager_name) || managerNames.has(x.rep_name));
     }
     return r;
-  }, [coaching, byTeam, byLineManager, byManagerTerritory, search, userFilter, visibleNames, profile, hierarchy]);
+  }, [coaching, filterByTimeGrain, byTeam, byLineManager, byManagerTerritory, search, userFilter, visibleNames, profile, hierarchy]);
 
   const companyAverages = useMemo(() => {
     const reps = summary.filter(r => !r.is_manager);
@@ -1698,6 +1720,30 @@ export default function Dashboard() {
                   <button className={`stoggle${period === 'last_month' ? ' on' : ''}`} disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>{t.lastMonth}</button>
                 </div>
               </div>
+              <div className="ctrl-group">
+                <span className="ctrl-lbl">{rtl ? 'النطاق الزمني' : 'Time Slicer'}</span>
+                <select className="ctrl-sel" value={timeGrain} onChange={e => setTimeGrain(e.target.value)}>
+                  <option value="all">{rtl ? 'الشهر كامل' : 'Full Month'}</option>
+                  <option value="biweekly1">{rtl ? 'النصف الأول (1–15)' : 'Bi-Weekly (1–15)'}</option>
+                  <option value="biweekly2">{rtl ? 'النصف الثاني (16–31)' : 'Bi-Weekly (16–31)'}</option>
+                  <option value="week1">{rtl ? 'الأسبوع الأول (1–7)' : 'Week 1 (1–7)'}</option>
+                  <option value="week2">{rtl ? 'الأسبوع الثاني (8–14)' : 'Week 2 (8–14)'}</option>
+                  <option value="week3">{rtl ? 'الأسبوع الثالث (15–21)' : 'Week 3 (15–21)'}</option>
+                  <option value="week4">{rtl ? 'الأسبوع الرابع (22–31)' : 'Week 4 (22–31)'}</option>
+                  <option value="daily">{rtl ? 'يوم محدد' : 'Specific Day'}</option>
+                </select>
+              </div>
+              {timeGrain === 'daily' && (
+                <div className="ctrl-group">
+                  <span className="ctrl-lbl">{rtl ? 'التاريخ' : 'Date'}</span>
+                  <input
+                    type="date"
+                    className="ctrl-sel"
+                    value={selectedDate}
+                    onChange={e => setSelectedDate(e.target.value)}
+                  />
+                </div>
+              )}
               <div className="ctrl-group">
                 <span className="ctrl-lbl">{rtl ? 'الوردية' : 'Shift'}</span>
                 <ShiftToggle value={shift} onChange={setShift} t={t} />
