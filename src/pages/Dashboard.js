@@ -1681,7 +1681,7 @@ export default function Dashboard() {
                     </button>
                   </div>
                 </div>
-              )}
+              </div>
               <div className="ctrl-group ctrl-search">
                 <div className="search-box">
                   <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1777,48 +1777,38 @@ export default function Dashboard() {
                                 <span className={`mgr-pip ${roleClass}`}>{roleLabel.toUpperCase()}</span>
                               </div>
                               {t.kpiGroups.map(g => {
-                              const keys = g.keys.filter(k => {
-                                if (shift === 'AM') return !['pm_calls', 'pm_call_rate', 'pm_shift_days', 'total_pm_covered', 'clinic_covered', 'polyclinic_covered', 'avg_pm_shift_hm'].includes(k);
-                                if (shift === 'PM') return !['am_calls', 'am_call_rate', 'am_shift_days', 'total_am_covered', 'amcenter_covered', 'hospital_covered', 'avg_am_shift_hm', 'avg_am_start_time'].includes(k);
-                                return true;
-                              });
-                              if (g.keys.includes('coaching_days') && !isMgr) return null;
-                              const kpiRows = keys.map(k => ({ k, v: r[k] })).filter(x => x.v !== null && x.v !== undefined && x.v !== '');
-                              if (!kpiRows.length) return null;
-                              return (
-                                <div key={g.label} className={`kpi-sec${g.keys.includes('avg_am_start_time') ? ' kpi-timing' : ''}`}>
-                                  <div className="kpi-sec-hd">{g.label}</div>
-                                  {kpiRows.map(({ k, v }) => {
-                                    const target = KPI_TARGETS[k];
-                                    const avgVal = 0;
-                                    const numVal = Number(v) || 0;
-                                    let benchmarkClass = '';
-                                    if (avgVal > 0 && typeof numVal === 'number' && !k.includes('time') && !k.includes('hm')) {
-                                      if (numVal > avgVal * 1.05) benchmarkClass = 'above-avg';
-                                      else if (numVal < avgVal * 0.95) benchmarkClass = 'below-avg';
-                                    }
-                                    const pct = target ? Math.min(100, Math.round((numVal / target) * 100)) : null;
-                                    return (
-                                      <div key={k} className="kpi-row-wrapper">
-                                        <div className="kpi-row">
-                                          <span className="kpi-lbl">
-                                            {t.kpi[k] || k}
-                                            {benchmarkClass === 'above-avg' && <span className="bench-arrow up" title="Above company average">▲</span>}
-                                            {benchmarkClass === 'below-avg' && <span className="bench-arrow down" title="Below company average">▼</span>}
-                                          </span>
-                                          <span className={`kpi-v ${k.includes('rate') ? 'rate' : ''} ${benchmarkClass}`}>{fmtVal(v, k)}</span>
-                                        </div>
-                                        {pct !== null && (
-                                          <div className="kpi-card-progress" title={`${pct}% of target (${target})`}>
-                                            <div className="kpi-card-progress-bar" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#10b981' : pct >= 70 ? '#3b82f6' : '#ef4444' }} />
+                                const keys = g.keys.filter(k => {
+                                  if (shift === 'AM') return !['pm_calls', 'pm_call_rate', 'pm_shift_days', 'total_pm_covered', 'clinic_covered', 'polyclinic_covered', 'avg_pm_shift_hm'].includes(k);
+                                  if (shift === 'PM') return !['am_calls', 'am_call_rate', 'am_shift_days', 'total_am_covered', 'amcenter_covered', 'hospital_covered', 'avg_am_shift_hm', 'avg_am_start_time'].includes(k);
+                                  return true;
+                                });
+                                if (g.keys.includes('coaching_days') && !isMgr) return null;
+                                const kpiRows = keys.map(k => ({ k, v: r[k] })).filter(x => x.v !== null && x.v !== undefined && x.v !== '');
+                                if (!kpiRows.length) return null;
+                                return (
+                                  <div key={g.label} className={`kpi-sec${g.keys.includes('avg_am_start_time') ? ' kpi-timing' : ''}`}>
+                                    <div className="kpi-sec-hd">{g.label}</div>
+                                    {kpiRows.map(({ k, v }) => {
+                                      const target = KPI_TARGETS[k];
+                                      const numVal = Number(v) || 0;
+                                      const pct = target ? Math.min(100, Math.round((numVal / target) * 100)) : null;
+                                      return (
+                                        <div key={k} className="kpi-row-wrapper">
+                                          <div className="kpi-row">
+                                            <span className="kpi-lbl">{t.kpi[k] || k}</span>
+                                            <span className={`kpi-v ${k.includes('rate') ? 'rate' : ''}`}>{fmtVal(v, k)}</span>
                                           </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              );
-                            })}
+                                          {pct !== null && (
+                                            <div className="kpi-card-progress" title={`${pct}% of target (${target})`}>
+                                              <div className="kpi-card-progress-bar" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#10b981' : pct >= 70 ? '#3b82f6' : '#ef4444' }} />
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                );
+                              })}
                             {r.product_calls_detail && shift !== 'AM' && (
                               <div className="kpi-sec">
                                 <div className="kpi-sec-hd">{rtl ? 'تفاصيل المنتج' : 'Product Detail'}</div>
