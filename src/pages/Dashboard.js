@@ -1857,7 +1857,7 @@ export default function Dashboard() {
               {tab === 'specialty' && (
                 <>
                   <PivotSummaryBanner
-                    rows={filteredSpecialty}
+                    rows={fSpecialty}
                     valueKey="call_count"
                     rowKey="specialty"
                     shift={shift}
@@ -1866,7 +1866,7 @@ export default function Dashboard() {
                     onSelectTeam={setTeam}
                     userTeamMap={userTeamMap}
                   />
-                  <PivotTable rows={filteredSpecialty} rowKey="specialty" valueKey="call_count"
+                  <PivotTable rows={fSpecialty} rowKey="specialty" valueKey="call_count"
                     shiftFilter={shift} userFilter={userFilter} searchFilter={search} lang={lang} hideAvg={true} />
                 </>
               )}
@@ -1875,7 +1875,7 @@ export default function Dashboard() {
               {tab === 'products' && (
                 <>
                   <PivotSummaryBanner
-                    rows={filteredProducts}
+                    rows={fProducts}
                     valueKey="call_count"
                     rowKey="product"
                     shift={shift}
@@ -1884,7 +1884,7 @@ export default function Dashboard() {
                     onSelectTeam={setTeam}
                     userTeamMap={userTeamMap}
                   />
-                  <PivotTable rows={filteredProducts} rowKey="product" valueKey="call_count"
+                  <PivotTable rows={fProducts} rowKey="product" valueKey="call_count"
                     shiftFilter={shift} userFilter={userFilter} searchFilter={search} lang={lang} />
                 </>
               )}
