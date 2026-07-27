@@ -1213,38 +1213,80 @@ export default function Dashboard() {
     }
 
     if (tab === 'specialty') {
-      const sh = [['Specialty', 'User Name', 'Team', 'Territory', 'AM Calls', 'PM Calls', 'Total Calls', 'Clinic Covered', 'PolyClinic Covered', 'Center Covered', 'Hospital Covered']];
-      fSpecialty.forEach(r => sh.push([
-        r.specialty || r.name || '—',
-        r.user_name || '—',
-        r.team || '—',
-        r.territory || '—',
-        r.am_calls ?? 0,
-        r.pm_calls ?? 0,
-        r.total_calls ?? ((r.am_calls || 0) + (r.pm_calls || 0)),
-        r.clinic_covered ?? 0,
-        r.polyclinic_covered ?? 0,
-        r.amcenter_covered ?? r.center_covered ?? 0,
-        r.hospital_covered ?? 0
-      ]));
+      const sh = [['Specialty', 'User Name', 'Team', 'Territory', 'AM Calls', 'PM Calls', 'Total Calls']];
+      const specMap = new Map();
+      fSpecialty.forEach(r => {
+        const specName = r.specialty || r.name || '—';
+        const key = `${specName}||${r.user_name || '—'}`;
+        if (!specMap.has(key)) {
+          specMap.set(key, {
+            specialty: specName,
+            user_name: r.user_name || '—',
+            team: r.team || '—',
+            territory: r.territory || '—',
+            am_calls: 0,
+            pm_calls: 0
+          });
+        }
+        const item = specMap.get(key);
+        const count = Number(r.call_count || r.calls || r.v || 0);
+        if (r.shift === 'AM') item.am_calls += count;
+        else if (r.shift === 'PM') item.pm_calls += count;
+        else item.am_calls += count;
+      });
+
+      Array.from(specMap.values()).forEach(item => {
+        sh.push([
+          item.specialty,
+          item.user_name,
+          item.team,
+          item.territory,
+          item.am_calls,
+          item.pm_calls,
+          item.am_calls + item.pm_calls
+        ]);
+      });
+
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sh), 'Specialty');
       XLSX.writeFile(wb, `excellence_specialty_${periodLabel.replace(' ', '_')}_${Date.now()}.xlsx`);
       return;
     }
 
     if (tab === 'products') {
-      const sh = [['Product Name', 'User Name', 'Team', 'Territory', 'AM Calls', 'PM Calls', 'Total Calls', 'Pharmacies Visited', 'Pharmacies Covered']];
-      fProducts.forEach(r => sh.push([
-        r.product_name || r.product || r.name || '—',
-        r.user_name || '—',
-        r.team || '—',
-        r.territory || '—',
-        r.am_calls ?? 0,
-        r.pm_calls ?? 0,
-        r.total_calls ?? ((r.am_calls || 0) + (r.pm_calls || 0)),
-        r.pharmacies_visited ?? 0,
-        r.pharmacies_covered ?? 0
-      ]));
+      const sh = [['Product Name', 'User Name', 'Team', 'Territory', 'AM Calls', 'PM Calls', 'Total Calls']];
+      const prodMap = new Map();
+      fProducts.forEach(r => {
+        const prodName = r.product || r.product_name || r.name || '—';
+        const key = `${prodName}||${r.user_name || '—'}`;
+        if (!prodMap.has(key)) {
+          prodMap.set(key, {
+            product: prodName,
+            user_name: r.user_name || '—',
+            team: r.team || '—',
+            territory: r.territory || '—',
+            am_calls: 0,
+            pm_calls: 0
+          });
+        }
+        const item = prodMap.get(key);
+        const count = Number(r.call_count || r.calls || r.v || 0);
+        if (r.shift === 'AM') item.am_calls += count;
+        else if (r.shift === 'PM') item.pm_calls += count;
+        else item.am_calls += count;
+      });
+
+      Array.from(prodMap.values()).forEach(item => {
+        sh.push([
+          item.product,
+          item.user_name,
+          item.team,
+          item.territory,
+          item.am_calls,
+          item.pm_calls,
+          item.am_calls + item.pm_calls
+        ]);
+      });
+
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sh), 'Products');
       XLSX.writeFile(wb, `excellence_products_${periodLabel.replace(' ', '_')}_${Date.now()}.xlsx`);
       return;
