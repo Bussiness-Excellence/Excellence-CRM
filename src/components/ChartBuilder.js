@@ -68,7 +68,7 @@ export default function ChartBuilder({ data, isManager }) {
 
     const commonProps = {
       data: chartData,
-      margin: { top: 20, right: 30, left: 20, bottom: 100 }
+      margin: { top: 15, right: 30, left: 20, bottom: 120 }
     };
 
     const axes = (
@@ -80,7 +80,7 @@ export default function ChartBuilder({ data, isManager }) {
           tick={{fill: '#94a3b8', fontSize: 11}} 
           angle={-45} 
           textAnchor="end" 
-          height={120}
+          height={110}
           interval={0}
         />
         <YAxis 
@@ -89,10 +89,10 @@ export default function ChartBuilder({ data, isManager }) {
           tickFormatter={(value) => value.toLocaleString()}
         />
         <Tooltip 
-          contentStyle={{ backgroundColor: 'rgba(15,23,42,0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }}
+          contentStyle={{ backgroundColor: 'rgba(15,23,42,0.95)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', color: '#fff', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}
           itemStyle={{ color: '#60a5fa', fontWeight: 'bold' }}
         />
-        <Legend wrapperStyle={{ paddingTop: '20px' }} />
+        <Legend verticalAlign="top" align="right" wrapperStyle={{ paddingBottom: '20px', fontSize: '13px', fontWeight: 600 }} />
       </>
     );
 
