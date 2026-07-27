@@ -1681,7 +1681,7 @@ export default function Dashboard() {
                     </button>
                   </div>
                 </div>
-              </div>
+              )}
               <div className="ctrl-group ctrl-search">
                 <div className="search-box">
                   <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
