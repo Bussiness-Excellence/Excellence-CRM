@@ -557,14 +557,17 @@ export default function Dashboard() {
   const userHierarchyMap = useMemo(() => {
     const map = {};
     (hierarchy || []).forEach(h => {
-      if (h.employee_name && !map[h.employee_name]) {
-        map[h.employee_name] = {
-          role: h.role,
-          blm_name: h.blm_name,
-          territory: h.division_name,
-          area_manager: h.area_manager_name,
-          supervisor: h.supervisor_name,
-        };
+      if (h.employee_name) {
+        const k = h.employee_name.toLowerCase().trim();
+        if (!map[k]) {
+          map[k] = {
+            role: h.role,
+            blm_name: h.blm_name,
+            territory: h.division_name,
+            area_manager: h.area_manager_name,
+            supervisor: h.supervisor_name,
+          };
+        }
       }
     });
     return map;
@@ -834,7 +837,7 @@ export default function Dashboard() {
     if (lineManagerFilter === 'all') return rows;
     return rows.filter(r => {
       const name = r.user_name || r.employee_name || r.manager_name || r.rep_name;
-      const userMeta = userHierarchyMap[name];
+      const userMeta = userHierarchyMap[(name || '').toLowerCase().trim()];
       return userMeta?.blm_name === lineManagerFilter;
     });
   }, [lineManagerFilter, userHierarchyMap]);
@@ -1742,7 +1745,8 @@ export default function Dashboard() {
                     ) : (
                       <div className="cards-grid">
                         {fSummary.map((r, i) => {
-                          const rawRole = r.role || userHierarchyMap[r.user_name]?.role || (r.is_manager ? 'Supervisor' : 'MR');
+                          const normUser = (r.user_name || '').toLowerCase().trim();
+                          const rawRole = r.role || userHierarchyMap[normUser]?.role || (r.is_manager ? 'Supervisor' : 'MR');
                           const roleLower = String(rawRole).toLowerCase();
                           const roleClass = roleLower.includes('area') ? 'hdr-role-am'
                             : (roleLower.includes('supervisor') || roleLower.includes('sup')) ? 'hdr-role-sup'
