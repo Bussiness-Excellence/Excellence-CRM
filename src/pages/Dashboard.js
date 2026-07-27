@@ -1790,7 +1790,7 @@ export default function Dashboard() {
                                   <div className="kpi-sec-hd">{g.label}</div>
                                   {kpiRows.map(({ k, v }) => {
                                     const target = KPI_TARGETS[k];
-                                    const avgVal = companyAverages[k] || 0;
+                                    const avgVal = 0;
                                     const numVal = Number(v) || 0;
                                     let benchmarkClass = '';
                                     if (avgVal > 0 && typeof numVal === 'number' && !k.includes('time') && !k.includes('hm')) {
