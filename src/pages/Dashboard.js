@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import * as XLSX from 'xlsx';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import './Dashboard.css';
@@ -529,7 +528,7 @@ function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFil
 
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const { profile, hierarchy, visibleCodes, signOut } = useAuth();
+  const { profile, hierarchy, visibleCodes } = useAuth();
   const [lang, setLang] = useState(profile?.preferred_lang || 'en');
   const [period, setPeriod] = useState('recent');
   const [team, setTeam] = useState('all');
@@ -550,7 +549,6 @@ export default function Dashboard() {
   const [specialtyFilter, setSpecialtyFilter] = useState(new Set());
   const [productFilter, setProductFilter] = useState(new Set());
   const [classificationFilter, setClassificationFilter] = useState(new Set());
-  const [selectedManager, setSelectedManager] = useState(null);
   const [lineManagerFilter, setLineManagerFilter] = useState('all');
   const [managerTerritoryFilter, setManagerTerritoryFilter] = useState('all');
   const [sidebarOpen, setSidebarOpen] = useState(false);

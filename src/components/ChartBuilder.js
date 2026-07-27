@@ -27,7 +27,7 @@ const DIMENSIONS = [
 
 const CHART_TYPES = ['Bar', 'Area', 'Line'];
 
-export default function ChartBuilder({ data, isManager }) {
+export default function ChartBuilder({ data }) {
   const [metric, setMetric] = useState('am_calls');
   const [dimension, setDimension] = useState('user_name');
   const [chartType, setChartType] = useState('Bar');
