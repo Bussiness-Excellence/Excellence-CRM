@@ -338,17 +338,17 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans
 .ucard-hdr.hdr-role-blm .ucard-terr { color: #6ee7b7 !important; }
 .ucard-hdr.hdr-role-blm .mgr-pip { background: #059669 !important; color: #ffffff !important; }
 
-/* MR — Light Blue */
+/* MR — Dark Blue Gradient */
 .ucard-hdr.hdr-role-mr {
-  background: linear-gradient(135deg, #dbeafe 0%, #bae6fd 100%) !important;
+  background: linear-gradient(135deg, #1e3a8a 0%, #172554 100%) !important;
 }
-.ucard-hdr.hdr-role-mr .ucard-name { color: #0f1f3d !important; }
+.ucard-hdr.hdr-role-mr .ucard-name { color: #ffffff !important; }
 .ucard-hdr.hdr-role-mr .ucard-meta,
-.ucard-hdr.hdr-role-mr .ucard-terr { color: #0369a1 !important; font-weight: 600 !important; }
-.ucard-hdr.hdr-role-mr .mgr-pip { background: #0284c7 !important; color: #ffffff !important; }
-.ucard-hdr.hdr-role-mr .dur-am { background: rgba(2, 132, 199, 0.18) !important; color: #0369a1 !important; }
-.ucard-hdr.hdr-role-mr .dur-pm { background: rgba(13, 148, 136, 0.18) !important; color: #0f766e !important; }
-.ucard-hdr.hdr-role-mr svg { color: rgba(15, 31, 61, 0.5) !important; }
+.ucard-hdr.hdr-role-mr .ucard-terr { color: #93c5fd !important; font-weight: 500 !important; }
+.ucard-hdr.hdr-role-mr .mgr-pip { background: #2563eb !important; color: #ffffff !important; }
+.ucard-hdr.hdr-role-mr .dur-am { background: rgba(59, 130, 246, 0.25) !important; color: #93c5fd !important; }
+.ucard-hdr.hdr-role-mr .dur-pm { background: rgba(20, 184, 166, 0.25) !important; color: #5eead4 !important; }
+.ucard-hdr.hdr-role-mr svg { color: rgba(255, 255, 255, 0.6) !important; }
 
 .mgr-pip { background: var(--gold); color: var(--navy); font-size: 11px; font-weight: 800; letter-spacing: .08em; padding: 2px 7px; border-radius: 4px; flex-shrink: 0; align-self: flex-start }
 .mgr-pip.role-blm { background: var(--good); color: #fff }
@@ -566,7 +566,7 @@ html.dark .pie-center-lbl, html.dark .pie-title, html.dark .pie-leg-val, html.da
 html.dark .pie-leg-item { color: var(--txt) }
 
 html.dark .ucard { background: var(--surf); border-color: var(--bdr) }
-html.dark .ucard-hdr { background: var(--surf2) }
+html.dark .ucard:not([class*="hdr-role-"]) .ucard-hdr { background: var(--surf2) }
 html.dark .ucard-name { color: var(--txt) }
 html.dark .ucard-meta, html.dark .ucard-terr { color: var(--mute) }
 html.dark .ucard-dur svg { color: var(--mute) }
