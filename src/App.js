@@ -10,6 +10,41 @@ import ChangePassword from './components/ChangePassword';
 
 import './App.css';
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null, errorInfo: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("Uncaught runtime error:", error, errorInfo);
+    this.setState({ errorInfo });
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '40px', color: '#fff', backgroundColor: '#0f172a', minHeight: '100vh', fontFamily: 'sans-serif' }}>
+          <h2 style={{ color: '#ef4444', marginBottom: '16px' }}>⚠️ Dashboard Diagnostics</h2>
+          <div style={{ background: '#1e293b', padding: '20px', borderRadius: '8px', overflow: 'auto', border: '1px solid #334155' }}>
+            <p style={{ fontWeight: 'bold', color: '#f87171', fontSize: '16px' }}>{this.state.error && this.state.error.toString()}</p>
+            <pre style={{ color: '#94a3b8', fontSize: '12px', marginTop: '10px', whiteSpace: 'pre-wrap' }}>
+              {this.state.errorInfo && this.state.errorInfo.componentStack}
+            </pre>
+          </div>
+          <button 
+            onClick={() => { sessionStorage.clear(); window.location.reload(); }} 
+            style={{ marginTop: '20px', padding: '12px 24px', backgroundColor: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+            🔄 Reset Cache & Reload App
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function LoginRoute() {
   const { session, profile, loading } = useAuth();
   if (loading) return <div className="app-loading"><div className="app-spinner"/></div>;
@@ -72,10 +107,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    <ToastProvider>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </ToastProvider>
+    <ErrorBoundary>
+      <ToastProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ToastProvider>
+    </ErrorBoundary>
   );
 }
