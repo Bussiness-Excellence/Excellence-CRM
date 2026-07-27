@@ -1776,9 +1776,7 @@ export default function Dashboard() {
                                 </div>
                                 <span className={`mgr-pip ${roleClass}`}>{roleLabel.toUpperCase()}</span>
                               </div>
-                          );
-                        })}
-                            {t.kpiGroups.map(g => {
+                              {t.kpiGroups.map(g => {
                               const keys = g.keys.filter(k => {
                                 if (shift === 'AM') return !['pm_calls', 'pm_call_rate', 'pm_shift_days', 'total_pm_covered', 'clinic_covered', 'polyclinic_covered', 'avg_pm_shift_hm'].includes(k);
                                 if (shift === 'PM') return !['am_calls', 'am_call_rate', 'am_shift_days', 'total_am_covered', 'amcenter_covered', 'hospital_covered', 'avg_am_shift_hm', 'avg_am_start_time'].includes(k);
