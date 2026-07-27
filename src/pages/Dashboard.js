@@ -1198,13 +1198,12 @@ export default function Dashboard() {
     const wb = XLSX.utils.book_new();
 
     if (tab === 'coaching') {
-      // Export whatever the user is currently looking at in the Coaching tab
       const rows = selectedManager ? filteredCoaching : fCoaching;
       const sh = [['Manager', 'Rep', 'Date', 'Team', 'AM Visits', 'AM Acc.', 'AM %', 'PM Visits', 'PM Acc.', 'PM %']];
       [...rows]
         .sort((a, b) => (a.manager_name || '').localeCompare(b.manager_name || '') || (a.coaching_date || '').localeCompare(b.coaching_date || ''))
         .forEach(r => sh.push([
-          r.manager_name, r.rep_name, r.coaching_date, r.team || '—',
+          r.manager_name || '—', r.rep_name || '—', r.coaching_date || '—', r.team || '—',
           r.am_visits || 0, r.am_accompanied || 0, r.am_visits ? Math.round((r.am_accompanied / r.am_visits) * 100) + '%' : '-',
           r.pm_visits || 0, r.pm_accompanied || 0, r.pm_visits ? Math.round((r.pm_accompanied / r.pm_visits) * 100) + '%' : '-'
         ]));
@@ -1213,20 +1212,48 @@ export default function Dashboard() {
       return;
     }
 
-    if (tab === 'specialty' || tab === 'products') {
-      const rows = tab === 'specialty' ? fSpecialty : fProducts;
-      const allKpiKeys = t.kpiGroups.flatMap(g => g.keys);
-      const sh = [['Team', 'User', 'Territory', 'Manager', ...allKpiKeys.map(k => t.kpi[k] || k)]];
-      rows.forEach(r => sh.push([r.team, r.user_name, r.territory, r.is_manager ? '✓' : '', ...allKpiKeys.map(k => r[k] ?? '')]));
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sh), tab === 'specialty' ? 'Specialty' : 'Products');
-      XLSX.writeFile(wb, `excellence_${tab}_${periodLabel.replace(' ', '_')}_${Date.now()}.xlsx`);
+    if (tab === 'specialty') {
+      const sh = [['Specialty', 'User Name', 'Team', 'Territory', 'AM Calls', 'PM Calls', 'Total Calls', 'Clinic Covered', 'PolyClinic Covered', 'Center Covered', 'Hospital Covered']];
+      fSpecialty.forEach(r => sh.push([
+        r.specialty || r.name || '—',
+        r.user_name || '—',
+        r.team || '—',
+        r.territory || '—',
+        r.am_calls ?? 0,
+        r.pm_calls ?? 0,
+        r.total_calls ?? ((r.am_calls || 0) + (r.pm_calls || 0)),
+        r.clinic_covered ?? 0,
+        r.polyclinic_covered ?? 0,
+        r.amcenter_covered ?? r.center_covered ?? 0,
+        r.hospital_covered ?? 0
+      ]));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sh), 'Specialty');
+      XLSX.writeFile(wb, `excellence_specialty_${periodLabel.replace(' ', '_')}_${Date.now()}.xlsx`);
+      return;
+    }
+
+    if (tab === 'products') {
+      const sh = [['Product Name', 'User Name', 'Team', 'Territory', 'AM Calls', 'PM Calls', 'Total Calls', 'Pharmacies Visited', 'Pharmacies Covered']];
+      fProducts.forEach(r => sh.push([
+        r.product_name || r.product || r.name || '—',
+        r.user_name || '—',
+        r.team || '—',
+        r.territory || '—',
+        r.am_calls ?? 0,
+        r.pm_calls ?? 0,
+        r.total_calls ?? ((r.am_calls || 0) + (r.pm_calls || 0)),
+        r.pharmacies_visited ?? 0,
+        r.pharmacies_covered ?? 0
+      ]));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sh), 'Products');
+      XLSX.writeFile(wb, `excellence_products_${periodLabel.replace(' ', '_')}_${Date.now()}.xlsx`);
       return;
     }
 
     // Default: Summary tab (also always includes Team Averages)
     const allKpiKeys = t.kpiGroups.flatMap(g => g.keys);
-    const sh = [['Team', 'User', 'Territory', 'Manager', ...allKpiKeys.map(k => t.kpi[k] || k)]];
-    fSummary.forEach(r => sh.push([r.team, r.user_name, r.territory, r.is_manager ? '✓' : '', ...allKpiKeys.map(k => r[k] ?? '')]));
+    const sh = [['Team', 'User', 'Territory', 'Role', ...allKpiKeys.map(k => t.kpi[k] || k)]];
+    fSummary.forEach(r => sh.push([r.team || '—', r.user_name || '—', r.territory || '—', r.role || (r.is_manager ? 'Manager' : 'MR'), ...allKpiKeys.map(k => r[k] ?? '')]));
     const aggRows = [['Team', 'KPI', 'Sum', 'Avg']];
     teamGroups.forEach(({ label, rows }) => {
       const { agg } = computeAggregates(rows);
@@ -1236,7 +1263,7 @@ export default function Dashboard() {
     });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sh), 'Summary');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aggRows), 'Team Averages');
-    XLSX.writeFile(wb, `excellence_${periodLabel.replace(' ', '_')}_${Date.now()}.xlsx`);
+    XLSX.writeFile(wb, `excellence_summary_${periodLabel.replace(' ', '_')}_${Date.now()}.xlsx`);
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
