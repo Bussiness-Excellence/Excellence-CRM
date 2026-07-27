@@ -1811,7 +1811,8 @@ export default function Dashboard() {
                                 <div className="prod-det">{r.product_calls_detail}</div>
                               </div>
                             )}
-                          </div>
+                            </div>
+                          );
                         })}
                       </div>
                     )}
