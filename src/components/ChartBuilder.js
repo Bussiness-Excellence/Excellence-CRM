@@ -96,33 +96,78 @@ export default function ChartBuilder({ data, isManager }) {
       </>
     );
 
+    const gradientDefs = (
+      <defs>
+        <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#c8a84b" stopOpacity={0.9} />
+          <stop offset="100%" stopColor="#1a6fc4" stopOpacity={0.6} />
+        </linearGradient>
+        <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="5%" stopColor="#c8a84b" stopOpacity={0.8} />
+          <stop offset="95%" stopColor="#1a6fc4" stopOpacity={0.05} />
+        </linearGradient>
+        <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#c8a84b" />
+          <stop offset="100%" stopColor="#38bdf8" />
+        </linearGradient>
+      </defs>
+    );
+
     switch (chartType) {
       case 'Line':
         return (
           <LineChart {...commonProps}>
+            {gradientDefs}
             {axes}
-            <Line type="monotone" dataKey={metric} name={activeMetricLabel} stroke="#a78bfa" strokeWidth={3} dot={{ r: 4, fill: '#a78bfa', strokeWidth: 2 }} activeDot={{ r: 6 }} />
+            <Line 
+              type="monotone" 
+              dataKey={metric} 
+              name={activeMetricLabel} 
+              stroke="url(#lineGrad)" 
+              strokeWidth={3.5} 
+              dot={{ r: 4, fill: '#c8a84b', strokeWidth: 2, stroke: '#0f1f3d' }} 
+              activeDot={{ r: 8, fill: '#38bdf8', stroke: '#fff', strokeWidth: 3 }}
+              isAnimationActive={true}
+              animationDuration={1200}
+              animationEasing="ease-in-out"
+            />
           </LineChart>
         );
       case 'Area':
         return (
           <AreaChart {...commonProps}>
-            <defs>
-              <linearGradient id="colorMetric" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#60a5fa" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#60a5fa" stopOpacity={0}/>
-              </linearGradient>
-            </defs>
+            {gradientDefs}
             {axes}
-            <Area type="monotone" dataKey={metric} name={activeMetricLabel} stroke="#60a5fa" strokeWidth={2} fillOpacity={1} fill="url(#colorMetric)" />
+            <Area 
+              type="monotone" 
+              dataKey={metric} 
+              name={activeMetricLabel} 
+              stroke="#c8a84b" 
+              strokeWidth={2.5} 
+              fillOpacity={1} 
+              fill="url(#areaGrad)" 
+              isAnimationActive={true}
+              animationDuration={1200}
+              animationEasing="ease-out"
+            />
           </AreaChart>
         );
       case 'Bar':
       default:
         return (
           <BarChart {...commonProps}>
+            {gradientDefs}
             {axes}
-            <Bar dataKey={metric} name={activeMetricLabel} fill="#60a5fa" radius={[4, 4, 0, 0]} />
+            <Bar 
+              dataKey={metric} 
+              name={activeMetricLabel} 
+              fill="url(#barGrad)" 
+              radius={[6, 6, 0, 0]} 
+              isAnimationActive={true}
+              animationDuration={1000}
+              animationEasing="ease-out"
+              animationBegin={100}
+            />
           </BarChart>
         );
     }

@@ -180,6 +180,7 @@ const KPI_TARGETS = {
 
 // ── PieChart (SVG donut) ─────────────────────────────────────────────────────
 function PieChart({ data, title, size = 140, thickness = 22, onSelect, activeFilters = new Set() }) {
+  const [hoveredLabel, setHoveredLabel] = useState(null);
   const total = data.reduce((s, d) => s + d.value, 0);
   if (!total) return <div className="pie-empty">No data</div>;
   const center = size / 2;
@@ -199,23 +200,29 @@ function PieChart({ data, title, size = 140, thickness = 22, onSelect, activeFil
   return (
     <div className="pie-chart">
       {title && <div className="pie-title">{title}</div>}
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="pie-svg">
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="pie-svg animated-pie">
         <circle cx={center} cy={center} r={radius} fill="none" stroke="rgba(255,255,255,.06)" strokeWidth={thickness} />
         {segments.map((seg, i) => {
           const isSelected = activeFilters?.has(seg.label);
-          const fade = hasSelections && !isSelected;
+          const isHovered = hoveredLabel === seg.label;
+          const fade = (hasSelections && !isSelected) || (hoveredLabel && !isHovered);
+          const currentThickness = isHovered ? thickness + 6 : (isSelected ? thickness + 4 : thickness);
           return (
-            <circle key={i} cx={center} cy={center} r={radius} fill="none"
-              stroke={seg.color} strokeWidth={isSelected ? thickness + 4 : thickness}
+            <circle key={`${seg.label}-${i}`} cx={center} cy={center} r={radius} fill="none"
+              stroke={seg.color} strokeWidth={currentThickness}
               strokeDasharray={`${seg.arc} ${circumference - seg.arc}`}
               strokeDashoffset={-seg.offset}
               transform={`rotate(-90 ${center} ${center})`}
-              className="pie-segment" strokeLinecap="butt"
+              className={`pie-segment ${isHovered ? 'hovered' : ''}`} strokeLinecap="butt"
               style={{
-                cursor: onSelect ? 'pointer' : 'default',
+                cursor: 'pointer',
                 opacity: fade ? 0.25 : 1,
-                transition: 'opacity 0.2s, stroke-width 0.2s, stroke 0.2s',
+                transformOrigin: `${center}px ${center}px`,
+                transition: 'all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                filter: isHovered ? `drop-shadow(0 0 8px ${seg.color})` : 'none',
               }}
+              onMouseEnter={() => setHoveredLabel(seg.label)}
+              onMouseLeave={() => setHoveredLabel(null)}
               onClick={() => onSelect && onSelect(seg.label)}
             />
           );
@@ -226,22 +233,26 @@ function PieChart({ data, title, size = 140, thickness = 22, onSelect, activeFil
       <div className="pie-legend">
         {segments.slice(0, 6).map((seg, i) => {
           const isSelected = activeFilters?.has(seg.label);
-          const fade = hasSelections && !isSelected;
+          const isHovered = hoveredLabel === seg.label;
+          const fade = (hasSelections && !isSelected) || (hoveredLabel && !isHovered);
           return (
             <div key={i}
-              className={`pie-leg-item ${isSelected ? 'selected' : ''}`}
+              className={`pie-leg-item ${isSelected ? 'selected' : ''} ${isHovered ? 'hovered' : ''}`}
               style={{
-                cursor: onSelect ? 'pointer' : 'default',
+                cursor: 'pointer',
                 opacity: fade ? 0.4 : 1,
-                background: isSelected ? 'rgba(200, 168, 75, 0.12)' : 'none',
-                border: isSelected ? '1px solid rgba(200, 168, 75, 0.3)' : '1px solid transparent',
+                background: isHovered ? 'rgba(200, 168, 75, 0.2)' : (isSelected ? 'rgba(200, 168, 75, 0.12)' : 'none'),
+                border: isHovered ? '1px solid var(--gold)' : (isSelected ? '1px solid rgba(200, 168, 75, 0.3)' : '1px solid transparent'),
                 padding: '4px 6px',
                 borderRadius: '4px',
-                transition: 'opacity 0.2s, background 0.2s, border-color 0.2s',
+                transform: isHovered ? 'translateX(3px)' : 'none',
+                transition: 'all 0.25s ease',
               }}
+              onMouseEnter={() => setHoveredLabel(seg.label)}
+              onMouseLeave={() => setHoveredLabel(null)}
               onClick={() => onSelect && onSelect(seg.label)}
             >
-              <span className="pie-dot" style={{ background: seg.color }} />
+              <span className="pie-dot" style={{ background: seg.color, transform: isHovered ? 'scale(1.4)' : 'scale(1)', transition: 'transform 0.2s ease' }} />
               <span className="pie-leg-label">{seg.label}</span>
               <span className="pie-leg-val">{Math.round(seg.pct * 100)}%</span>
             </div>
