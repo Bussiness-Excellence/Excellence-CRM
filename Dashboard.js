@@ -855,19 +855,20 @@ export default function Dashboard() {
     });
     const finalArr = Array.from(m.values());
 
-    // Recalculate coaching days from actual coaching data for both managers and reps
+    // Recalculate coaching days from actual coaching data (filtered by exact time grain date if set)
+    const filteredCoaching = filterByTimeGrain(coaching || []);
     const mgrCoachingMap = {};
     const repCoachingMap = {};
-    (coaching || []).forEach(c => {
+    filteredCoaching.forEach(c => {
       const mgr = c.manager_name;
       const rep = c.rep_name;
       if (mgr) {
         if (!mgrCoachingMap[mgr]) mgrCoachingMap[mgr] = new Set();
-        mgrCoachingMap[mgr].add(c.coaching_date);
+        if (c.coaching_date) mgrCoachingMap[mgr].add(c.coaching_date);
       }
       if (rep) {
         if (!repCoachingMap[rep]) repCoachingMap[rep] = new Set();
-        repCoachingMap[rep].add(c.coaching_date);
+        if (c.coaching_date) repCoachingMap[rep].add(c.coaching_date);
       }
     });
 

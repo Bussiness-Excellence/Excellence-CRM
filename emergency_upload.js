@@ -137,6 +137,43 @@ async function uploadFile(filePath, periodLabel, batchLabel) {
             }
         }
     }
+
+    // RAW DATA -> visits
+    const rawSheet = wb.Sheets['RAW DATA'] || wb.Sheets['Raw Data'];
+    if (rawSheet) {
+        const data = xlsx.utils.sheet_to_json(rawSheet, { defval: null });
+        if (data.length > 0) {
+            console.log(`Uploading ${data.length} raw visits...`);
+            const rows = data.map(r => ({
+                team: cleanStr(r['Team']),
+                user: cleanStr(r['user'] || r['User']),
+                employee_code: cleanCode(r['user_code'] || r['Employee Code']),
+                territory: cleanStr(r['territory'] || r['Territory']),
+                visit_date: cleanStr(r['date'] || r['Date']),
+                visit_time: cleanStr(r['time'] || r['Time']),
+                acc_type_raw: cleanStr(r['acc_type_raw']),
+                acc_type_category: cleanStr(r['acc_type_category']),
+                shift: cleanStr(r['shift'] || r['Shift']),
+                visit_type_raw: cleanStr(r['visit_type_raw']),
+                visit_type_category: cleanStr(r['visit_type_category']),
+                acc_id: cleanStr(r['acc_id']),
+                acc_name: cleanStr(r['acc_name']),
+                doctor_key: cleanStr(r['doctor_key']),
+                doctor_name: cleanStr(r['doctor_name']),
+                specialty: cleanStr(r['specialty'] || r['Specialty']),
+                classification: cleanStr(r['classification'] || r['Classification']),
+                products: cleanStr(r['products'] || r['Products']),
+                notes: cleanStr(r['notes']),
+                upload_batch: batchLabel,
+            }));
+            
+            for (let i = 0; i < rows.length; i += 500) {
+                const chunk = rows.slice(i, i + 500);
+                const { error } = await supabase.from('visits').insert(chunk);
+                if (error) console.error("Error inserting visits:", error);
+            }
+        }
+    }
 }
 
 async function runBatch(folder, periodLabel, batchLabel) {
@@ -146,6 +183,7 @@ async function runBatch(folder, periodLabel, batchLabel) {
     await supabase.from('specialty_classification').delete().eq('upload_batch', batchLabel);
     await supabase.from('product_calls').delete().eq('upload_batch', batchLabel);
     await supabase.from('coaching_days').delete().eq('upload_batch', batchLabel);
+    await supabase.from('visits').delete().eq('upload_batch', batchLabel);
 
     if (!fs.existsSync(folder)) return;
     const files = fs.readdirSync(folder).filter(f => f.endsWith('.xlsx') && !f.startsWith('~'));
