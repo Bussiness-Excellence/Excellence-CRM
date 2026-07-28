@@ -546,7 +546,14 @@ export default function Dashboard() {
   useEffect(() => {
     async function loadPeriods() {
       try {
-        const { data } = await supabase.from('summaries').select('period');
+        const { data } = await supabase.from('summaries')
+          .select('period')
+          .neq('period', 'Recent')
+          .neq('period', 'Last Month')
+          .neq('period', 'Recent Month Data')
+          .neq('period', 'Prev. Month Data')
+          .neq('period', 'الأحدث  1–15')
+          .neq('period', 'الشهر الماضي');
         if (data && data.length > 0) {
           const validPeriods = data.map(r => r.period).filter(p => p && !p.toLowerCase().includes('recent') && !p.toLowerCase().includes('last month'));
           const uniq = [...new Set(validPeriods)].sort((a, b) => {
