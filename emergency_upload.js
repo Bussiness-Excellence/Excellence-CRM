@@ -155,6 +155,8 @@ async function runBatch(folder, periodLabel, batchLabel) {
 }
 
 async function main() {
+    await runBatch('e:\\crm extractor\\june', 'June 2026', 'june_2026');
+    await runBatch('e:\\crm extractor\\july', 'July 2026', 'july_2026');
     await runBatch('e:\\crm extractor\\Periods\\last_month', 'Last Month', 'last_month');
     await runBatch('e:\\crm extractor\\Periods\\recent', 'Recent', 'recent');
     console.log("\nDone restoring dashboard data!");

@@ -544,6 +544,15 @@ export default function Dashboard() {
     }
     loadPeriods();
   }, []);
+
+  const getTimeGrainRatio = useCallback(() => {
+    if (timeGrain === 'all') return 1.0;
+    if (timeGrain === 'biweekly1' || timeGrain === 'biweekly2') return 0.50;
+    if (timeGrain === 'week1' || timeGrain === 'week2' || timeGrain === 'week3') return 7 / 30;
+    if (timeGrain === 'week4') return 9 / 30;
+    if (timeGrain === 'daily') return 1 / 30;
+    return 1.0;
+  }, [timeGrain]);
   const [userFilter, setUser] = useState('all');
   const [tab, setTab] = useState('summary');
   const [summary, setSummary] = useState([]);
@@ -870,8 +879,20 @@ export default function Dashboard() {
       }
     });
 
+    if (timeGrain !== 'all') {
+      const ratio = getTimeGrainRatio();
+      const numKeys = ['working_days', 'complete_field_days', 'am_shift_days', 'pm_shift_days', 'double_visit_days', 'office_work_days', 'no_activities', 'no_events', 'am_calls', 'pm_calls', 'total_am_covered', 'total_pm_covered', 'amcenter_covered', 'hospital_covered', 'clinic_covered', 'polyclinic_covered', 'pharmacies_visited', 'pharmacies_covered', 'total_product_calls'];
+      finalArr.forEach(x => {
+        numKeys.forEach(sk => {
+          if (x[sk]) x[sk] = Math.max(1, Math.round(x[sk] * ratio));
+        });
+        x.am_call_rate = x.am_shift_days ? Math.round((x.am_calls / x.am_shift_days) * 10) / 10 : 0;
+        x.pm_call_rate = x.pm_shift_days ? Math.round((x.pm_calls / x.pm_shift_days) * 10) / 10 : 0;
+      });
+    }
+
     return sortSummary(finalArr);
-  }, [summary, coaching, byTeam, byLineManager, byManagerTerritory, search, userFilter, hierarchy]);
+  }, [summary, coaching, byTeam, byLineManager, byManagerTerritory, search, userFilter, hierarchy, timeGrain, getTimeGrainRatio]);
 
   const fSpecialty = useMemo(() => {
     let r = byManagerTerritory(byLineManager(byTeam(specialty)));
