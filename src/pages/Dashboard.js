@@ -13,7 +13,7 @@ const T = {
     export: 'Export', loading: 'Loading…', noData: 'No data for this period.',
     shiftAll: 'Both', shiftAM: 'AM', shiftPM: 'PM',
     people: n => `${n} rep${n !== 1 ? 's' : ''}`,
-    tabs: { summary: 'Summary', specialty: 'Specialty', products: 'Products', coaching: 'Coaching', timing: 'Timing' },
+    tabs: { summary: 'Summary', specialty: 'Specialty', products: 'Products', coaching: 'Coaching/DV', timing: 'Timing' },
     roleView: { MR: 'My Results', Supervisor: 'My Team', 'Area Manager': 'My Area', BLM: 'Full Team', Admin: 'All Teams' },
     avg: 'Avg', sum: 'Sum', teamSummary: 'Team Summary',
     kpiGroups: [
@@ -22,7 +22,7 @@ const T = {
       { label: 'Coverage', keys: ['total_am_covered', 'total_pm_covered', 'amcenter_covered', 'hospital_covered', 'am_accounts_unique', 'am_accounts_revisits', 'clinic_covered', 'polyclinic_covered'] },
       { label: 'Pharmacy', keys: ['pharmacies_visited', 'pharmacies_covered'] },
       { label: 'Products', keys: ['total_product_calls', 'distinct_products'] },
-      { label: 'Coaching', keys: ['coaching_days'] },
+      { label: 'Coaching/DV', keys: ['coaching_days'] },
       { label: 'Timing', keys: ['avg_am_start_time', 'avg_am_shift_hm', 'avg_pm_shift_hm'] },
     ],
     kpi: {
@@ -34,7 +34,7 @@ const T = {
       amcenter_covered: 'AM Center', hospital_covered: 'Hospital',
       am_accounts_unique: 'AM Accounts', am_accounts_revisits: 'AM Revisits',
       clinic_covered: 'Clinic', polyclinic_covered: 'Poly Clinic',
-      double_visit_days: 'Double Visits', coaching_days: 'Coaching Days',
+      double_visit_days: 'Double Visits', coaching_days: 'Coaching/DV Days',
       office_work_days: 'Office Work', no_activities: 'Activities', no_events: 'Events',
       pharmacies_visited: 'Pharm. Visits', pharmacies_covered: 'Pharm. Covered',
       total_product_calls: 'Product Calls', distinct_products: 'Products',
@@ -49,7 +49,7 @@ const T = {
     export: 'تصدير', loading: 'جارٍ التحميل…', noData: 'لا توجد بيانات.',
     shiftAll: 'الكل', shiftAM: 'AM', shiftPM: 'PM',
     people: n => `${n} مندوب`,
-    tabs: { summary: 'الملخص', specialty: 'التخصص', products: 'المنتجات', coaching: 'التوجيه', timing: 'التوقيت' },
+    tabs: { summary: 'الملخص', specialty: 'التخصص', products: 'المنتجات', coaching: 'التوجيه/مزدوجة', timing: 'التوقيت' },
     roleView: { MR: 'نتائجي', Supervisor: 'فريقي', 'Area Manager': 'منطقتي', BLM: 'الفريق', Admin: 'الكل' },
     avg: 'متوسط', sum: 'مجموع', teamSummary: 'ملخص الفريق',
     kpiGroups: [
@@ -58,7 +58,7 @@ const T = {
       { label: 'التغطية', keys: ['total_am_covered', 'total_pm_covered', 'amcenter_covered', 'hospital_covered', 'am_accounts_unique', 'am_accounts_revisits', 'clinic_covered', 'polyclinic_covered'] },
       { label: 'الصيدليات', keys: ['pharmacies_visited', 'pharmacies_covered'] },
       { label: 'المنتجات', keys: ['total_product_calls', 'distinct_products'] },
-      { label: 'التوجيه', keys: ['coaching_days'] },
+      { label: 'التوجيه/مزدوجة', keys: ['coaching_days'] },
       { label: 'التوقيت', keys: ['avg_am_start_time', 'avg_am_shift_hm', 'avg_pm_shift_hm'] },
     ],
     kpi: {
@@ -70,7 +70,7 @@ const T = {
       amcenter_covered: 'مراكز AM', hospital_covered: 'مستشفيات',
       am_accounts_unique: 'حسابات AM', am_accounts_revisits: 'إعادة زيارات AM',
       clinic_covered: 'عيادات', polyclinic_covered: 'مراكز صحية',
-      double_visit_days: 'زيارات مزدوجة', coaching_days: 'أيام التوجيه',
+      double_visit_days: 'زيارات مزدوجة', coaching_days: 'أيام التوجيه/مزدوجة',
       office_work_days: 'مكتب', no_activities: 'الأنشطة', no_events: 'الفعاليات',
       pharmacies_visited: 'زيارات صيدليات', pharmacies_covered: 'تغطية صيدليات',
       total_product_calls: 'مكالمات منتج', distinct_products: 'منتجات',
@@ -536,7 +536,7 @@ export default function Dashboard() {
   const { profile, hierarchy, visibleCodes, signOut } = useAuth();
   const [lang, setLang] = useState(profile?.preferred_lang || 'en');
   const [period, setPeriod] = useState('Recent');
-  const [availablePeriods, setAvailablePeriods] = useState(['Recent', 'Last Month', 'June 2026', 'July 2026']);
+  const [availablePeriods, setAvailablePeriods] = useState([]);
   const [team, setTeam] = useState('all');
   const [shift, setShift] = useState('all'); // Default is Both
   const [timeGrain, setTimeGrain] = useState('all'); // 'all' | 'biweekly1' | 'biweekly2' | 'week1' | 'week2' | 'week3' | 'week4' | 'daily'
