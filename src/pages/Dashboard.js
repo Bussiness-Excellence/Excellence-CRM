@@ -535,7 +535,7 @@ function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFil
 export default function Dashboard() {
   const { profile, hierarchy, visibleCodes, signOut } = useAuth();
   const [lang, setLang] = useState(profile?.preferred_lang || 'en');
-  const [period, setPeriod] = useState('Recent');
+  const [period, setPeriod] = useState('');
   const [availablePeriods, setAvailablePeriods] = useState([]);
   const [team, setTeam] = useState('all');
   const [shift, setShift] = useState('all'); // Default is Both
@@ -548,7 +548,13 @@ export default function Dashboard() {
       try {
         const { data } = await supabase.from('summaries').select('period');
         if (data && data.length > 0) {
-          const uniq = [...new Set(data.map(r => r.period).filter(Boolean))].sort().reverse();
+          const validPeriods = data.map(r => r.period).filter(p => p && !p.toLowerCase().includes('recent') && !p.toLowerCase().includes('last month'));
+          const uniq = [...new Set(validPeriods)].sort((a, b) => {
+            const dateA = Date.parse(a);
+            const dateB = Date.parse(b);
+            if (!isNaN(dateA) && !isNaN(dateB)) return dateB - dateA;
+            return b.localeCompare(a);
+          });
           if (uniq.length > 0) {
             setAvailablePeriods(uniq);
             setPeriod(prev => (uniq.includes(prev) ? prev : uniq[0]));
