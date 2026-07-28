@@ -559,6 +559,7 @@ export default function Dashboard() {
   const [specialty, setSpecialty] = useState([]);
   const [products, setProducts] = useState([]);
   const [coaching, setCoaching] = useState([]);
+  const [rawVisits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -652,12 +653,17 @@ export default function Dashboard() {
     }
 
     setLoading(true); setError('');
-    const { data, error: rpcError } = await supabase.rpc('get_dashboard_data', {
-      p_period: periodLabel,
-      p_codes: codes,
-      p_is_admin: isAdmin,
-      p_is_manager: isMgr
-    });
+    const [rpcRes, visitsRes] = await Promise.all([
+      supabase.rpc('get_dashboard_data', {
+        p_period: periodLabel,
+        p_codes: codes,
+        p_is_admin: isAdmin,
+        p_is_manager: isMgr
+      }),
+      supabase.from('visits').select('*').in('employee_code', codes)
+    ]);
+
+    if (visitsRes.data) setVisits(visitsRes.data);
 
     if (rpcError) {
       setError(rpcError.message);
@@ -881,19 +887,59 @@ export default function Dashboard() {
     });
 
     if (timeGrain !== 'all') {
-      const ratio = getTimeGrainRatio();
-      const numKeys = ['working_days', 'complete_field_days', 'am_shift_days', 'pm_shift_days', 'double_visit_days', 'office_work_days', 'no_activities', 'no_events', 'am_calls', 'pm_calls', 'total_am_covered', 'total_pm_covered', 'amcenter_covered', 'hospital_covered', 'clinic_covered', 'polyclinic_covered', 'pharmacies_visited', 'pharmacies_covered', 'total_product_calls'];
       finalArr.forEach(x => {
-        numKeys.forEach(sk => {
-          if (x[sk]) x[sk] = Math.max(1, Math.round(x[sk] * ratio));
+        const normName = x.user_name?.toLowerCase().trim();
+        const code = x.employee_code;
+        const userVisits = (rawVisits || []).filter(v => {
+          const matchUser = (code && v.employee_code === code) || (normName && v.user?.toLowerCase().trim() === normName);
+          return matchUser && filterByTimeGrain([v]).length > 0;
         });
-        x.am_call_rate = x.am_shift_days ? Math.round((x.am_calls / x.am_shift_days) * 10) / 10 : 0;
-        x.pm_call_rate = x.pm_shift_days ? Math.round((x.pm_calls / x.pm_shift_days) * 10) / 10 : 0;
+
+        if (userVisits.length > 0) {
+          const amVisits = userVisits.filter(v => v.shift === 'AM');
+          const pmVisits = userVisits.filter(v => v.shift === 'PM');
+          const amCalls = amVisits.filter(v => v.doctor_name || v.acc_name).length;
+          const pmCalls = pmVisits.filter(v => v.doctor_name || v.acc_name).length;
+          const amDates = new Set(amVisits.map(v => v.visit_date).filter(Boolean));
+          const pmDates = new Set(pmVisits.map(v => v.visit_date).filter(Boolean));
+          const allDates = new Set(userVisits.map(v => v.visit_date).filter(Boolean));
+          
+          let completeCount = 0;
+          allDates.forEach(d => { if (amDates.has(d) && pmDates.has(d)) completeCount++; });
+
+          x.am_calls = amCalls;
+          x.pm_calls = pmCalls;
+          x.am_shift_days = amDates.size;
+          x.pm_shift_days = pmDates.size;
+          x.working_days = allDates.size;
+          x.complete_field_days = completeCount;
+          x.am_call_rate = amDates.size > 0 ? Math.round((amCalls / amDates.size) * 10) / 10 : 0;
+          x.pm_call_rate = pmDates.size > 0 ? Math.round((pmCalls / pmDates.size) * 10) / 10 : 0;
+          x.total_am_covered = new Set(amVisits.map(v => v.doctor_key || v.doctor_name).filter(Boolean)).size;
+          x.total_pm_covered = new Set(pmVisits.map(v => v.doctor_key || v.doctor_name).filter(Boolean)).size;
+          x.pharmacies_visited = userVisits.filter(v => 
+            (v.acc_type_category||'').toLowerCase().includes('pharmacy') || 
+            (v.acc_type_raw||'').toLowerCase().includes('pharmacy') || 
+            (v.acc_name||'').toLowerCase().includes('pharmacy')
+          ).length;
+        } else {
+          x.am_calls = 0;
+          x.pm_calls = 0;
+          x.am_shift_days = 0;
+          x.pm_shift_days = 0;
+          x.working_days = 0;
+          x.complete_field_days = 0;
+          x.am_call_rate = 0;
+          x.pm_call_rate = 0;
+          x.total_am_covered = 0;
+          x.total_pm_covered = 0;
+          x.pharmacies_visited = 0;
+        }
       });
     }
 
     return sortSummary(finalArr);
-  }, [summary, coaching, byTeam, byLineManager, byManagerTerritory, search, userFilter, hierarchy, timeGrain, getTimeGrainRatio]);
+  }, [summary, coaching, rawVisits, byTeam, byLineManager, byManagerTerritory, search, userFilter, hierarchy, timeGrain, filterByTimeGrain]);
 
   const fSpecialty = useMemo(() => {
     let r = byManagerTerritory(byLineManager(byTeam(specialty)));
