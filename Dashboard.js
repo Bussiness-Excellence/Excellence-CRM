@@ -545,14 +545,20 @@ export default function Dashboard() {
     loadPeriods();
   }, []);
 
-  const getTimeGrainRatio = useCallback(() => {
-    if (timeGrain === 'all') return 1.0;
-    if (timeGrain === 'biweekly1' || timeGrain === 'biweekly2') return 0.50;
-    if (timeGrain === 'week1' || timeGrain === 'week2' || timeGrain === 'week3') return 7 / 30;
-    if (timeGrain === 'week4') return 9 / 30;
-    if (timeGrain === 'daily') return 1 / 30;
-    return 1.0;
-  }, [timeGrain]);
+  const normalizeDateStr = useCallback((dStr) => {
+    if (!dStr) return '';
+    const s = String(dStr).trim();
+    let m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+    m = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+    if (m) {
+      const p1 = parseInt(m[1], 10);
+      const p2 = parseInt(m[2], 10);
+      if (p1 > 12) return `${m[3]}-${String(p2).padStart(2, '0')}-${String(p1).padStart(2, '0')}`;
+      return `${m[3]}-${String(p1).padStart(2, '0')}-${String(p2).padStart(2, '0')}`;
+    }
+    return s;
+  }, []);
   const [userFilter, setUser] = useState('all');
   const [tab, setTab] = useState('summary');
   const [summary, setSummary] = useState([]);
@@ -887,53 +893,66 @@ export default function Dashboard() {
     });
 
     if (timeGrain !== 'all') {
+      const hasVisitsData = (rawVisits || []).length > 0;
+      const ratio = getTimeGrainRatio();
+      const numKeys = ['working_days', 'complete_field_days', 'am_shift_days', 'pm_shift_days', 'double_visit_days', 'office_work_days', 'no_activities', 'no_events', 'am_calls', 'pm_calls', 'total_am_covered', 'total_pm_covered', 'amcenter_covered', 'hospital_covered', 'clinic_covered', 'polyclinic_covered', 'pharmacies_visited', 'pharmacies_covered', 'total_product_calls'];
+
       finalArr.forEach(x => {
         const normName = x.user_name?.toLowerCase().trim();
         const code = x.employee_code;
-        const userVisits = (rawVisits || []).filter(v => {
-          const matchUser = (code && v.employee_code === code) || (normName && v.user?.toLowerCase().trim() === normName);
+        const userVisits = hasVisitsData ? (rawVisits || []).filter(v => {
+          const matchUser = (code && String(v.employee_code).trim() === String(code).trim()) || (normName && v.user?.toLowerCase().trim() === normName);
           return matchUser && filterByTimeGrain([v]).length > 0;
-        });
+        }) : [];
 
-        if (userVisits.length > 0) {
-          const amVisits = userVisits.filter(v => v.shift === 'AM');
-          const pmVisits = userVisits.filter(v => v.shift === 'PM');
-          const amCalls = amVisits.filter(v => v.doctor_name || v.acc_name).length;
-          const pmCalls = pmVisits.filter(v => v.doctor_name || v.acc_name).length;
-          const amDates = new Set(amVisits.map(v => v.visit_date).filter(Boolean));
-          const pmDates = new Set(pmVisits.map(v => v.visit_date).filter(Boolean));
-          const allDates = new Set(userVisits.map(v => v.visit_date).filter(Boolean));
-          
-          let completeCount = 0;
-          allDates.forEach(d => { if (amDates.has(d) && pmDates.has(d)) completeCount++; });
+        if (hasVisitsData) {
+          if (userVisits.length > 0) {
+            const amVisits = userVisits.filter(v => v.shift === 'AM');
+            const pmVisits = userVisits.filter(v => v.shift === 'PM');
+            const amCalls = amVisits.filter(v => v.doctor_name || v.acc_name).length;
+            const pmCalls = pmVisits.filter(v => v.doctor_name || v.acc_name).length;
+            const amDates = new Set(amVisits.map(v => v.visit_date).filter(Boolean));
+            const pmDates = new Set(pmVisits.map(v => v.visit_date).filter(Boolean));
+            const allDates = new Set(userVisits.map(v => v.visit_date).filter(Boolean));
+            
+            let completeCount = 0;
+            allDates.forEach(d => { if (amDates.has(d) && pmDates.has(d)) completeCount++; });
 
-          x.am_calls = amCalls;
-          x.pm_calls = pmCalls;
-          x.am_shift_days = amDates.size;
-          x.pm_shift_days = pmDates.size;
-          x.working_days = allDates.size;
-          x.complete_field_days = completeCount;
-          x.am_call_rate = amDates.size > 0 ? Math.round((amCalls / amDates.size) * 10) / 10 : 0;
-          x.pm_call_rate = pmDates.size > 0 ? Math.round((pmCalls / pmDates.size) * 10) / 10 : 0;
-          x.total_am_covered = new Set(amVisits.map(v => v.doctor_key || v.doctor_name).filter(Boolean)).size;
-          x.total_pm_covered = new Set(pmVisits.map(v => v.doctor_key || v.doctor_name).filter(Boolean)).size;
-          x.pharmacies_visited = userVisits.filter(v => 
-            (v.acc_type_category||'').toLowerCase().includes('pharmacy') || 
-            (v.acc_type_raw||'').toLowerCase().includes('pharmacy') || 
-            (v.acc_name||'').toLowerCase().includes('pharmacy')
-          ).length;
+            x.am_calls = amCalls;
+            x.pm_calls = pmCalls;
+            x.am_shift_days = amDates.size;
+            x.pm_shift_days = pmDates.size;
+            x.working_days = allDates.size;
+            x.complete_field_days = completeCount;
+            x.am_call_rate = amDates.size > 0 ? Math.round((amCalls / amDates.size) * 10) / 10 : 0;
+            x.pm_call_rate = pmDates.size > 0 ? Math.round((pmCalls / pmDates.size) * 10) / 10 : 0;
+            x.total_am_covered = new Set(amVisits.map(v => v.doctor_key || v.doctor_name).filter(Boolean)).size;
+            x.total_pm_covered = new Set(pmVisits.map(v => v.doctor_key || v.doctor_name).filter(Boolean)).size;
+            x.pharmacies_visited = userVisits.filter(v => 
+              (v.acc_type_category||'').toLowerCase().includes('pharmacy') || 
+              (v.acc_type_raw||'').toLowerCase().includes('pharmacy') || 
+              (v.acc_name||'').toLowerCase().includes('pharmacy')
+            ).length;
+          } else {
+            x.am_calls = 0;
+            x.pm_calls = 0;
+            x.am_shift_days = 0;
+            x.pm_shift_days = 0;
+            x.working_days = 0;
+            x.complete_field_days = 0;
+            x.am_call_rate = 0;
+            x.pm_call_rate = 0;
+            x.total_am_covered = 0;
+            x.total_pm_covered = 0;
+            x.pharmacies_visited = 0;
+          }
         } else {
-          x.am_calls = 0;
-          x.pm_calls = 0;
-          x.am_shift_days = 0;
-          x.pm_shift_days = 0;
-          x.working_days = 0;
-          x.complete_field_days = 0;
-          x.am_call_rate = 0;
-          x.pm_call_rate = 0;
-          x.total_am_covered = 0;
-          x.total_pm_covered = 0;
-          x.pharmacies_visited = 0;
+          // Fallback if visits table isn't populated yet in database
+          numKeys.forEach(sk => {
+            if (x[sk]) x[sk] = Math.max(1, Math.round(x[sk] * ratio));
+          });
+          x.am_call_rate = x.am_shift_days ? Math.round((x.am_calls / x.am_shift_days) * 10) / 10 : 0;
+          x.pm_call_rate = x.pm_shift_days ? Math.round((x.pm_calls / x.pm_shift_days) * 10) / 10 : 0;
         }
       });
     }

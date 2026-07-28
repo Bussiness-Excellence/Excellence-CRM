@@ -566,16 +566,38 @@ export default function Dashboard() {
     return 1.0;
   }, [timeGrain]);
 
+  const normalizeDateStr = useCallback((dStr) => {
+    if (!dStr) return '';
+    const s = String(dStr).trim();
+    let m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+    m = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+    if (m) {
+      const p1 = parseInt(m[1], 10);
+      const p2 = parseInt(m[2], 10);
+      if (p1 > 12) return `${m[3]}-${String(p2).padStart(2, '0')}-${String(p1).padStart(2, '0')}`;
+      return `${m[3]}-${String(p1).padStart(2, '0')}-${String(p2).padStart(2, '0')}`;
+    }
+    return s;
+  }, []);
+
   const filterByTimeGrain = useCallback((rows) => {
     if (!rows || !rows.length || timeGrain === 'all') return rows;
     return rows.filter(r => {
-      const dStr = r.visit_date || r.coaching_date || r.date;
-      if (!dStr) return true;
-      const m = String(dStr).match(/(\d{4})-(\d{2})-(\d{2})/);
-      if (!m) return true;
-      const day = parseInt(m[3], 10);
-      const isoDate = `${m[1]}-${m[2]}-${m[3]}`;
-      if (timeGrain === 'daily') return selectedDate ? isoDate === selectedDate : true;
+      const rawDate = r.visit_date || r.coaching_date || r.date;
+      if (!rawDate) return true;
+      const isoDate = normalizeDateStr(rawDate);
+      if (!isoDate) return true;
+
+      const parts = isoDate.split('-');
+      if (parts.length < 3) return true;
+      const day = parseInt(parts[2], 10);
+
+      if (timeGrain === 'daily') {
+        if (!selectedDate) return true;
+        const normSelected = normalizeDateStr(selectedDate);
+        return isoDate === normSelected;
+      }
       if (timeGrain === 'biweekly1') return day >= 1 && day <= 15;
       if (timeGrain === 'biweekly2') return day >= 16 && day <= 31;
       if (timeGrain === 'week1') return day >= 1 && day <= 7;
@@ -584,7 +606,7 @@ export default function Dashboard() {
       if (timeGrain === 'week4') return day >= 22 && day <= 31;
       return true;
     });
-  }, [timeGrain, selectedDate]);
+  }, [timeGrain, selectedDate, normalizeDateStr]);
   const [userFilter, setUser] = useState('all');
   const [tab, setTab] = useState('summary');
   const [rawSummary, setSummary] = useState([]);
@@ -977,53 +999,66 @@ export default function Dashboard() {
     });
 
     if (timeGrain !== 'all') {
+      const hasVisitsData = (rawVisits || []).length > 0;
+      const ratio = getTimeGrainRatio();
+      const numKeys = ['working_days', 'complete_field_days', 'am_shift_days', 'pm_shift_days', 'double_visit_days', 'office_work_days', 'no_activities', 'no_events', 'am_calls', 'pm_calls', 'total_am_covered', 'total_pm_covered', 'amcenter_covered', 'hospital_covered', 'clinic_covered', 'polyclinic_covered', 'pharmacies_visited', 'pharmacies_covered', 'total_product_calls'];
+
       finalArr.forEach(x => {
         const normName = x.user_name?.toLowerCase().trim();
         const code = x.employee_code;
-        const userVisits = (rawVisits || []).filter(v => {
-          const matchUser = (code && v.employee_code === code) || (normName && v.user?.toLowerCase().trim() === normName);
+        const userVisits = hasVisitsData ? (rawVisits || []).filter(v => {
+          const matchUser = (code && String(v.employee_code).trim() === String(code).trim()) || (normName && v.user?.toLowerCase().trim() === normName);
           return matchUser && filterByTimeGrain([v]).length > 0;
-        });
+        }) : [];
 
-        if (userVisits.length > 0) {
-          const amVisits = userVisits.filter(v => v.shift === 'AM');
-          const pmVisits = userVisits.filter(v => v.shift === 'PM');
-          const amCalls = amVisits.filter(v => v.doctor_name || v.acc_name).length;
-          const pmCalls = pmVisits.filter(v => v.doctor_name || v.acc_name).length;
-          const amDates = new Set(amVisits.map(v => v.visit_date).filter(Boolean));
-          const pmDates = new Set(pmVisits.map(v => v.visit_date).filter(Boolean));
-          const allDates = new Set(userVisits.map(v => v.visit_date).filter(Boolean));
-          
-          let completeCount = 0;
-          allDates.forEach(d => { if (amDates.has(d) && pmDates.has(d)) completeCount++; });
+        if (hasVisitsData) {
+          if (userVisits.length > 0) {
+            const amVisits = userVisits.filter(v => v.shift === 'AM');
+            const pmVisits = userVisits.filter(v => v.shift === 'PM');
+            const amCalls = amVisits.filter(v => v.doctor_name || v.acc_name).length;
+            const pmCalls = pmVisits.filter(v => v.doctor_name || v.acc_name).length;
+            const amDates = new Set(amVisits.map(v => v.visit_date).filter(Boolean));
+            const pmDates = new Set(pmVisits.map(v => v.visit_date).filter(Boolean));
+            const allDates = new Set(userVisits.map(v => v.visit_date).filter(Boolean));
+            
+            let completeCount = 0;
+            allDates.forEach(d => { if (amDates.has(d) && pmDates.has(d)) completeCount++; });
 
-          x.am_calls = amCalls;
-          x.pm_calls = pmCalls;
-          x.am_shift_days = amDates.size;
-          x.pm_shift_days = pmDates.size;
-          x.working_days = allDates.size;
-          x.complete_field_days = completeCount;
-          x.am_call_rate = amDates.size > 0 ? Math.round((amCalls / amDates.size) * 10) / 10 : 0;
-          x.pm_call_rate = pmDates.size > 0 ? Math.round((pmCalls / pmDates.size) * 10) / 10 : 0;
-          x.total_am_covered = new Set(amVisits.map(v => v.doctor_key || v.doctor_name).filter(Boolean)).size;
-          x.total_pm_covered = new Set(pmVisits.map(v => v.doctor_key || v.doctor_name).filter(Boolean)).size;
-          x.pharmacies_visited = userVisits.filter(v => 
-            (v.acc_type_category||'').toLowerCase().includes('pharmacy') || 
-            (v.acc_type_raw||'').toLowerCase().includes('pharmacy') || 
-            (v.acc_name||'').toLowerCase().includes('pharmacy')
-          ).length;
+            x.am_calls = amCalls;
+            x.pm_calls = pmCalls;
+            x.am_shift_days = amDates.size;
+            x.pm_shift_days = pmDates.size;
+            x.working_days = allDates.size;
+            x.complete_field_days = completeCount;
+            x.am_call_rate = amDates.size > 0 ? Math.round((amCalls / amDates.size) * 10) / 10 : 0;
+            x.pm_call_rate = pmDates.size > 0 ? Math.round((pmCalls / pmDates.size) * 10) / 10 : 0;
+            x.total_am_covered = new Set(amVisits.map(v => v.doctor_key || v.doctor_name).filter(Boolean)).size;
+            x.total_pm_covered = new Set(pmVisits.map(v => v.doctor_key || v.doctor_name).filter(Boolean)).size;
+            x.pharmacies_visited = userVisits.filter(v => 
+              (v.acc_type_category||'').toLowerCase().includes('pharmacy') || 
+              (v.acc_type_raw||'').toLowerCase().includes('pharmacy') || 
+              (v.acc_name||'').toLowerCase().includes('pharmacy')
+            ).length;
+          } else {
+            x.am_calls = 0;
+            x.pm_calls = 0;
+            x.am_shift_days = 0;
+            x.pm_shift_days = 0;
+            x.working_days = 0;
+            x.complete_field_days = 0;
+            x.am_call_rate = 0;
+            x.pm_call_rate = 0;
+            x.total_am_covered = 0;
+            x.total_pm_covered = 0;
+            x.pharmacies_visited = 0;
+          }
         } else {
-          x.am_calls = 0;
-          x.pm_calls = 0;
-          x.am_shift_days = 0;
-          x.pm_shift_days = 0;
-          x.working_days = 0;
-          x.complete_field_days = 0;
-          x.am_call_rate = 0;
-          x.pm_call_rate = 0;
-          x.total_am_covered = 0;
-          x.total_pm_covered = 0;
-          x.pharmacies_visited = 0;
+          // Fallback if visits table isn't populated yet in database
+          numKeys.forEach(sk => {
+            if (x[sk]) x[sk] = Math.max(1, Math.round(x[sk] * ratio));
+          });
+          x.am_call_rate = x.am_shift_days ? Math.round((x.am_calls / x.am_shift_days) * 10) / 10 : 0;
+          x.pm_call_rate = x.pm_shift_days ? Math.round((x.pm_calls / x.pm_shift_days) * 10) / 10 : 0;
         }
       });
     }
