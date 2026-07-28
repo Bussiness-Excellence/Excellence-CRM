@@ -2675,3 +2675,119 @@ html.dark .ai-chat-input-area input {
   transform: translateY(-4px);
   box-shadow: 0 20px 48px rgba(0, 8, 40, .60), 0 0 0 1px rgba(59, 130, 246, .30);
 }
+
+/* ── Timing Tab Styles ────────────────────────────────────────── */
+.timing-stats-banner {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.timing-stat-card {
+  flex: 1;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.timing-stat-card:hover {
+  border-color: var(--gold2);
+  transform: translateY(-2px);
+}
+
+.timing-stat-card.active {
+  border-color: var(--gold);
+  background: rgba(59, 130, 246, 0.05);
+  box-shadow: 0 4px 16px var(--gold-glow);
+}
+
+.timing-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; width: 4px; height: 100%;
+  background: transparent;
+}
+
+.timing-early.active::before { background: var(--bad); }
+.timing-normal.active::before { background: var(--good); }
+.timing-late.active::before { background: var(--warn); }
+
+.timing-stat-val {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--txt);
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+
+.timing-early .timing-stat-val { color: var(--bad); }
+.timing-normal .timing-stat-val { color: var(--good); }
+.timing-late .timing-stat-val { color: var(--warn); }
+
+.timing-stat-lbl {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mute);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.timing-stat-pct {
+  position: absolute;
+  top: 12px; right: 12px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--txt);
+  background: var(--surf2);
+  padding: 2px 6px;
+  border-radius: 12px;
+}
+
+.timing-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.timing-badge-early { background: var(--bad-bg); color: var(--bad); }
+.timing-badge-normal { background: var(--good-bg); color: var(--good); }
+.timing-badge-late { background: var(--warn-bg); color: var(--warn); }
+
+.timing-time {
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.timing-mini-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  margin-right: 4px;
+}
+
+.timing-rep-bars {
+  display: flex;
+  margin-top: 4px;
+}
+
+.timing-row {
+  transition: all var(--transition);
+}
+
+.timing-row-early:hover td { background: var(--bad-bg) !important; }
+.timing-row-normal:hover td { background: var(--good-bg) !important; }
+.timing-row-late:hover td { background: var(--warn-bg) !important; }

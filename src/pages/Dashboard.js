@@ -13,13 +13,13 @@ const T = {
     export: 'Export', loading: 'Loading…', noData: 'No data for this period.',
     shiftAll: 'Both', shiftAM: 'AM', shiftPM: 'PM',
     people: n => `${n} rep${n !== 1 ? 's' : ''}`,
-    tabs: { summary: 'Summary', specialty: 'Specialty', products: 'Products', coaching: 'Coaching' },
+    tabs: { summary: 'Summary', specialty: 'Specialty', products: 'Products', coaching: 'Coaching', timing: 'Timing' },
     roleView: { MR: 'My Results', Supervisor: 'My Team', 'Area Manager': 'My Area', BLM: 'Full Team', Admin: 'All Teams' },
     avg: 'Avg', sum: 'Sum', teamSummary: 'Team Summary',
     kpiGroups: [
       { label: 'Field Activity', keys: ['working_days', 'complete_field_days', 'am_shift_days', 'pm_shift_days', 'double_visit_days', 'office_work_days', 'no_activities', 'no_events'] },
       { label: 'Doctor Calls', keys: ['am_calls', 'am_call_rate', 'pm_calls', 'pm_call_rate'] },
-      { label: 'Coverage', keys: ['total_am_covered', 'total_pm_covered', 'amcenter_covered', 'hospital_covered', 'clinic_covered', 'polyclinic_covered'] },
+      { label: 'Coverage', keys: ['total_am_covered', 'total_pm_covered', 'amcenter_covered', 'hospital_covered', 'am_accounts_unique', 'am_accounts_revisits', 'clinic_covered', 'polyclinic_covered'] },
       { label: 'Pharmacy', keys: ['pharmacies_visited', 'pharmacies_covered'] },
       { label: 'Products', keys: ['total_product_calls', 'distinct_products'] },
       { label: 'Coaching', keys: ['coaching_days'] },
@@ -32,12 +32,14 @@ const T = {
       am_call_rate: 'AM Call Rate', pm_call_rate: 'PM Call Rate',
       total_am_covered: 'AM Covered', total_pm_covered: 'PM Covered',
       amcenter_covered: 'AM Center', hospital_covered: 'Hospital',
+      am_accounts_unique: 'AM Accounts', am_accounts_revisits: 'AM Revisits',
       clinic_covered: 'Clinic', polyclinic_covered: 'Poly Clinic',
       double_visit_days: 'Double Visits', coaching_days: 'Coaching Days',
       office_work_days: 'Office Work', no_activities: 'Activities', no_events: 'Events',
       pharmacies_visited: 'Pharm. Visits', pharmacies_covered: 'Pharm. Covered',
       total_product_calls: 'Product Calls', distinct_products: 'Products',
       avg_am_start_time: 'AM Start Time', avg_am_shift_hm: 'AM Duration', avg_pm_shift_hm: 'PM Duration',
+      timing_early: 'Before 3 PM', timing_normal: '3 PM – 6 PM', timing_late: 'After 6 PM',
     },
   },
   ar: {
@@ -47,13 +49,13 @@ const T = {
     export: 'تصدير', loading: 'جارٍ التحميل…', noData: 'لا توجد بيانات.',
     shiftAll: 'الكل', shiftAM: 'AM', shiftPM: 'PM',
     people: n => `${n} مندوب`,
-    tabs: { summary: 'الملخص', specialty: 'التخصص', products: 'المنتجات', coaching: 'التوجيه' },
+    tabs: { summary: 'الملخص', specialty: 'التخصص', products: 'المنتجات', coaching: 'التوجيه', timing: 'التوقيت' },
     roleView: { MR: 'نتائجي', Supervisor: 'فريقي', 'Area Manager': 'منطقتي', BLM: 'الفريق', Admin: 'الكل' },
     avg: 'متوسط', sum: 'مجموع', teamSummary: 'ملخص الفريق',
     kpiGroups: [
       { label: 'النشاط الميداني', keys: ['working_days', 'complete_field_days', 'am_shift_days', 'pm_shift_days', 'double_visit_days', 'office_work_days', 'no_activities', 'no_events'] },
       { label: 'الزيارات', keys: ['am_calls', 'am_call_rate', 'pm_calls', 'pm_call_rate'] },
-      { label: 'التغطية', keys: ['total_am_covered', 'total_pm_covered', 'amcenter_covered', 'hospital_covered', 'clinic_covered', 'polyclinic_covered'] },
+      { label: 'التغطية', keys: ['total_am_covered', 'total_pm_covered', 'amcenter_covered', 'hospital_covered', 'am_accounts_unique', 'am_accounts_revisits', 'clinic_covered', 'polyclinic_covered'] },
       { label: 'الصيدليات', keys: ['pharmacies_visited', 'pharmacies_covered'] },
       { label: 'المنتجات', keys: ['total_product_calls', 'distinct_products'] },
       { label: 'التوجيه', keys: ['coaching_days'] },
@@ -66,12 +68,14 @@ const T = {
       am_call_rate: 'معدل AM', pm_call_rate: 'معدل PM',
       total_am_covered: 'تغطية AM', total_pm_covered: 'تغطية PM',
       amcenter_covered: 'مراكز AM', hospital_covered: 'مستشفيات',
+      am_accounts_unique: 'حسابات AM', am_accounts_revisits: 'إعادة زيارات AM',
       clinic_covered: 'عيادات', polyclinic_covered: 'مراكز صحية',
       double_visit_days: 'زيارات مزدوجة', coaching_days: 'أيام التوجيه',
       office_work_days: 'مكتب', no_activities: 'الأنشطة', no_events: 'الفعاليات',
       pharmacies_visited: 'زيارات صيدليات', pharmacies_covered: 'تغطية صيدليات',
       total_product_calls: 'مكالمات منتج', distinct_products: 'منتجات',
       avg_am_start_time: 'بدء AM', avg_am_shift_hm: 'مدة AM', avg_pm_shift_hm: 'مدة PM',
+      timing_early: 'قبل 3 م', timing_normal: '3 م – 6 م', timing_late: 'بعد 6 م',
     },
   },
 };
@@ -1034,6 +1038,14 @@ export default function Dashboard() {
             x.pm_call_rate = pmDates.size > 0 ? Math.round((pmCalls / pmDates.size) * 10) / 10 : 0;
             x.total_am_covered = new Set(amVisits.map(v => v.doctor_key || v.doctor_name).filter(Boolean)).size;
             x.total_pm_covered = new Set(pmVisits.map(v => v.doctor_key || v.doctor_name).filter(Boolean)).size;
+            // AM account coverage: unique accounts (acc_id or acc_name) for Hospital/AM Center
+            const amAccountVisits = amVisits.filter(v => {
+              const cat = (v.acc_type_category || '').toLowerCase();
+              return cat.includes('hospital') || cat.includes('am center');
+            });
+            const amAccountIds = amAccountVisits.map(v => v.acc_id || v.acc_name).filter(Boolean);
+            x.am_accounts_unique = new Set(amAccountIds).size;
+            x.am_accounts_revisits = Math.max(0, amAccountIds.length - new Set(amAccountIds).size);
             x.pharmacies_visited = userVisits.filter(v => 
               (v.acc_type_category||'').toLowerCase().includes('pharmacy') || 
               (v.acc_type_raw||'').toLowerCase().includes('pharmacy') || 
@@ -1050,6 +1062,8 @@ export default function Dashboard() {
             x.pm_call_rate = 0;
             x.total_am_covered = 0;
             x.total_pm_covered = 0;
+            x.am_accounts_unique = 0;
+            x.am_accounts_revisits = 0;
             x.pharmacies_visited = 0;
           }
         } else {
@@ -1143,6 +1157,96 @@ export default function Dashboard() {
     }
     return r;
   }, [coaching, filterByTimeGrain, byTeam, byLineManager, byManagerTerritory, search, userFilter, visibleNames, profile, hierarchy]);
+
+  // ── Timing data: last PM visit time per rep per day ──────────────────────
+  const timingData = useMemo(() => {
+    if (!rawVisits?.length) return [];
+    // PM shift visits only (Clinic / Poly Clinics)
+    const pmVisits = rawVisits.filter(v => {
+      const cat = (v.acc_type_category || '').toLowerCase();
+      return v.shift === 'PM' && (cat.includes('clinic') || cat.includes('poly'));
+    });
+
+    // Group by user + date, find latest time
+    const byUserDate = {};
+    pmVisits.forEach(v => {
+      const user = v.user || '';
+      const date = v.visit_date || '';
+      if (!user || !date) return;
+      const key = `${user}|||${date}`;
+      const time = v.visit_time || '';
+      if (!byUserDate[key] || time > byUserDate[key].time) {
+        byUserDate[key] = { user, date, time, team: v.team || '', employee_code: v.employee_code };
+      }
+    });
+
+    // Categorize each entry
+    const categorizeTime = (timeStr) => {
+      if (!timeStr) return 'unknown';
+      const mins = parseTimeToMinutes(timeStr);
+      if (mins === null) return 'unknown';
+      if (mins < 15 * 60) return 'early';    // before 3:00 PM (15:00)
+      if (mins <= 18 * 60) return 'normal';   // 3:00 PM - 6:00 PM (15:00-18:00)
+      return 'late';                           // after 6:00 PM (18:00)
+    };
+
+    return Object.values(byUserDate).map(entry => ({
+      ...entry,
+      category: categorizeTime(entry.time),
+      formattedTime: entry.time ? formatMinutesToTime(parseTimeToMinutes(entry.time)) : '—',
+    }));
+  }, [rawVisits]);
+
+  // Filtered timing data (same team/search/user filters as other tabs)
+  const fTiming = useMemo(() => {
+    let r = timingData;
+    // Team filter
+    if (team !== 'all') {
+      if (team === 'Other Managers' || team === 'Unknown' || team === 'مدراء آخرين') {
+        r = r.filter(x => !x.team || x.team === 'Unknown' || x.team === 'Other Managers');
+      } else {
+        r = r.filter(x => (x.team || '').split('; ').includes(team));
+      }
+    }
+    // Enrich team from userTeamMap
+    r = r.map(x => ({ ...x, team: userTeamMap[x.user?.toLowerCase().trim()] || x.team }));
+    // Search filter
+    if (search) r = r.filter(x => x.user?.toLowerCase().includes(search.toLowerCase()));
+    // User filter
+    if (userFilter !== 'all') r = r.filter(x => x.user === userFilter);
+    // Time grain filter
+    if (timeGrain !== 'all') r = filterByTimeGrain(r.map(x => ({ ...x, visit_date: x.date }))).map(x => ({ ...x }));
+    // Line manager filter
+    if (lineManagerFilter !== 'all') {
+      r = r.filter(x => {
+        const userMeta = userHierarchyMap[(x.user || '').toLowerCase().trim()];
+        return userMeta?.blm_name === lineManagerFilter;
+      });
+    }
+    // Manager territory filter
+    if (managerTerritoryFilter !== 'all') {
+      const allowedNames = territoryEmployeeNamesMap[managerTerritoryFilter];
+      r = r.filter(x => allowedNames?.has(x.user));
+    }
+    return r.sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.user || '').localeCompare(b.user || ''));
+  }, [timingData, team, search, userFilter, timeGrain, filterByTimeGrain, userTeamMap, lineManagerFilter, userHierarchyMap, managerTerritoryFilter, territoryEmployeeNamesMap]);
+
+  // Timing summary stats
+  const timingStats = useMemo(() => {
+    const total = fTiming.length;
+    const early = fTiming.filter(r => r.category === 'early').length;
+    const normal = fTiming.filter(r => r.category === 'normal').length;
+    const late = fTiming.filter(r => r.category === 'late').length;
+    return { total, early, normal, late };
+  }, [fTiming]);
+
+  // Timing category filter state
+  const [timingCategoryFilter, setTimingCategoryFilter] = useState('all');
+
+  const filteredTiming = useMemo(() => {
+    if (timingCategoryFilter === 'all') return fTiming;
+    return fTiming.filter(r => r.category === timingCategoryFilter);
+  }, [fTiming, timingCategoryFilter]);
 
   const companyAverages = useMemo(() => {
     const reps = summary.filter(r => !r.is_manager);
@@ -1821,6 +1925,59 @@ export default function Dashboard() {
                 )}
               </div>
             )}
+
+            {/* ─── TIMING SIDEBAR ──────────────────────────────── */}
+            {tab === 'timing' && (
+              <div className="sb-panel">
+                <div className="sb-section-hd">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+                  {rtl ? 'توزيع التوقيت' : 'Timing Distribution'}
+                </div>
+                <PieChart
+                  data={[
+                    { label: t.kpi.timing_early || 'Before 3 PM', value: timingStats.early, color: '#ef4444' },
+                    { label: t.kpi.timing_normal || '3 PM – 6 PM', value: timingStats.normal, color: '#10b981' },
+                    { label: t.kpi.timing_late || 'After 6 PM', value: timingStats.late, color: '#f59e0b' },
+                  ].filter(d => d.value > 0)}
+                  title={rtl ? 'نسبة التوقيت' : 'Time Distribution'}
+                  onSelect={(label) => {
+                    const cat = label === (t.kpi.timing_early || 'Before 3 PM') ? 'early'
+                      : label === (t.kpi.timing_normal || '3 PM – 6 PM') ? 'normal'
+                      : label === (t.kpi.timing_late || 'After 6 PM') ? 'late' : 'all';
+                    setTimingCategoryFilter(prev => prev === cat ? 'all' : cat);
+                  }}
+                />
+                <div className="sb-divider" />
+                {/* Per-rep summary */}
+                <div className="sb-section-hd" style={{ marginTop: 0 }}>
+                  {rtl ? 'ملخص حسب المندوب' : 'Per-Rep Summary'}
+                </div>
+                <div className="sb-top-list">
+                  {(() => {
+                    const byRep = {};
+                    fTiming.forEach(r => {
+                      if (!byRep[r.user]) byRep[r.user] = { early: 0, normal: 0, late: 0, total: 0 };
+                      byRep[r.user][r.category] = (byRep[r.user][r.category] || 0) + 1;
+                      byRep[r.user].total++;
+                    });
+                    return Object.entries(byRep).sort((a, b) => b[1].early - a[1].early).slice(0, 15).map(([rep, stats]) => (
+                      <div key={rep} className="sb-top-item" style={{ cursor: 'pointer' }}
+                        onClick={() => { setUser(rep === userFilter ? 'all' : rep); setSelectedRep(rep === userFilter ? null : rep); }}>
+                        <div className="sb-top-info" style={{ flex: 1 }}>
+                          <div className="sb-top-name">{rep}</div>
+                          <div className="timing-rep-bars">
+                            {stats.early > 0 && <span className="timing-mini-badge timing-badge-early">{stats.early}</span>}
+                            {stats.normal > 0 && <span className="timing-mini-badge timing-badge-normal">{stats.normal}</span>}
+                            {stats.late > 0 && <span className="timing-mini-badge timing-badge-late">{stats.late}</span>}
+                          </div>
+                        </div>
+                        <span className="sb-top-count">{stats.total}d</span>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+            )}
           </aside>
         )}
 
@@ -2145,6 +2302,75 @@ export default function Dashboard() {
                               <td>{r.pm_visits || 0}</td>
                               <td>{r.pm_accompanied || 0}</td>
                               <td>{r.pm_visits ? Math.round((r.pm_accompanied / r.pm_visits) * 100) + '%' : '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )
+              )}
+
+              {/* TIMING TAB */}
+              {tab === 'timing' && (
+                filteredTiming.length === 0 ? (
+                  <div className="dash-empty">{t.noData}</div>
+                ) : (
+                  <>
+                    {/* Timing Summary Stats */}
+                    <div className="timing-stats-banner">
+                      <div className={`timing-stat-card${timingCategoryFilter === 'all' ? ' active' : ''}`}
+                        onClick={() => setTimingCategoryFilter('all')}>
+                        <div className="timing-stat-val">{timingStats.total}</div>
+                        <div className="timing-stat-lbl">{rtl ? 'إجمالي الأيام' : 'Total Days'}</div>
+                      </div>
+                      <div className={`timing-stat-card timing-early${timingCategoryFilter === 'early' ? ' active' : ''}`}
+                        onClick={() => setTimingCategoryFilter(timingCategoryFilter === 'early' ? 'all' : 'early')}>
+                        <div className="timing-stat-val">{timingStats.early}</div>
+                        <div className="timing-stat-lbl">{t.kpi.timing_early || 'Before 3 PM'}</div>
+                        <div className="timing-stat-pct">{timingStats.total ? Math.round(timingStats.early / timingStats.total * 100) : 0}%</div>
+                      </div>
+                      <div className={`timing-stat-card timing-normal${timingCategoryFilter === 'normal' ? ' active' : ''}`}
+                        onClick={() => setTimingCategoryFilter(timingCategoryFilter === 'normal' ? 'all' : 'normal')}>
+                        <div className="timing-stat-val">{timingStats.normal}</div>
+                        <div className="timing-stat-lbl">{t.kpi.timing_normal || '3 PM – 6 PM'}</div>
+                        <div className="timing-stat-pct">{timingStats.total ? Math.round(timingStats.normal / timingStats.total * 100) : 0}%</div>
+                      </div>
+                      <div className={`timing-stat-card timing-late${timingCategoryFilter === 'late' ? ' active' : ''}`}
+                        onClick={() => setTimingCategoryFilter(timingCategoryFilter === 'late' ? 'all' : 'late')}>
+                        <div className="timing-stat-val">{timingStats.late}</div>
+                        <div className="timing-stat-lbl">{t.kpi.timing_late || 'After 6 PM'}</div>
+                        <div className="timing-stat-pct">{timingStats.total ? Math.round(timingStats.late / timingStats.total * 100) : 0}%</div>
+                      </div>
+                    </div>
+
+                    {/* Timing Detail Table */}
+                    <div className="pivot-wrap">
+                      <table className="pivot-tbl timing-tbl">
+                        <thead>
+                          <tr>
+                            <th className="s-col">{rtl ? 'التاريخ' : 'Date'}</th>
+                            <th>{rtl ? 'المندوب' : 'Rep'}</th>
+                            <th>{rtl ? 'الفريق' : 'Team'}</th>
+                            <th>{rtl ? 'آخر زيارة PM' : 'Last PM Visit'}</th>
+                            <th>{rtl ? 'الفئة' : 'Category'}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredTiming.map((r, i) => (
+                            <tr key={`${r.user}-${r.date}-${i}`} className={`timing-row timing-row-${r.category}`}>
+                              <td className="s-col">{r.date}</td>
+                              <td>{r.user}</td>
+                              <td>{r.team || '—'}</td>
+                              <td className="timing-time">{r.formattedTime}</td>
+                              <td>
+                                <span className={`timing-badge timing-badge-${r.category}`}>
+                                  {r.category === 'early' ? (t.kpi.timing_early || '< 3 PM')
+                                    : r.category === 'normal' ? (t.kpi.timing_normal || '3–6 PM')
+                                    : r.category === 'late' ? (t.kpi.timing_late || '> 6 PM')
+                                    : '—'}
+                                </span>
+                              </td>
                             </tr>
                           ))}
                         </tbody>
