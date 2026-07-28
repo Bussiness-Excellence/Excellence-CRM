@@ -531,12 +531,31 @@ function PivotTable({ rows, rowKey, valueKey, shiftFilter, userFilter, searchFil
 export default function Dashboard() {
   const { profile, hierarchy, visibleCodes, signOut } = useAuth();
   const [lang, setLang] = useState(profile?.preferred_lang || 'en');
-  const [period, setPeriod] = useState('recent');
+  const [period, setPeriod] = useState('Recent');
+  const [availablePeriods, setAvailablePeriods] = useState(['Recent', 'Last Month', 'June 2026', 'July 2026']);
   const [team, setTeam] = useState('all');
   const [shift, setShift] = useState('all'); // Default is Both
   const [timeGrain, setTimeGrain] = useState('all'); // 'all' | 'biweekly1' | 'biweekly2' | 'week1' | 'week2' | 'week3' | 'week4' | 'daily'
   const [selectedDate, setSelectedDate] = useState('');
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    async function loadPeriods() {
+      try {
+        const { data } = await supabase.from('summaries').select('period');
+        if (data && data.length > 0) {
+          const uniq = [...new Set(data.map(r => r.period).filter(Boolean))].sort().reverse();
+          if (uniq.length > 0) {
+            setAvailablePeriods(uniq);
+            setPeriod(prev => (uniq.includes(prev) ? prev : uniq[0]));
+          }
+        }
+      } catch (e) {
+        console.error("Error loading periods:", e);
+      }
+    }
+    loadPeriods();
+  }, []);
 
   const filterByTimeGrain = useCallback((rows) => {
     if (!rows || !rows.length || timeGrain === 'all') return rows;
@@ -671,7 +690,7 @@ export default function Dashboard() {
   const t = T[lang] || T.en;
   const rtl = lang === 'ar';
   const isMgr = Boolean(profile?.is_manager || (profile?.role && profile.role !== 'MR'));
-  const periodLabel = period === 'last_month' ? 'Last Month' : 'Recent';
+  const periodLabel = period;
   // Stable ref tracking what data has been fetched — survives re-renders without causing them
   const fetchedKeyRef = React.useRef(null);
   const codesKey = visibleCodes ? [...visibleCodes].sort().join(',') : '';
@@ -1715,10 +1734,11 @@ export default function Dashboard() {
             <div className="ctrl-row">
               <div className="ctrl-group">
                 <span className="ctrl-lbl">{rtl ? 'الفترة' : 'Period'}</span>
-                <div className="shift-toggle">
-                  <button className={`stoggle${period === 'recent' ? ' on' : ''}`} onClick={() => setPeriod('recent')}>{t.recent}</button>
-                  <button className={`stoggle${period === 'last_month' ? ' on' : ''}`} disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>{t.lastMonth}</button>
-                </div>
+                <select className="ctrl-sel" value={period} onChange={e => setPeriod(e.target.value)}>
+                  {availablePeriods.map(p => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
               </div>
               <div className="ctrl-group">
                 <span className="ctrl-lbl">{rtl ? 'النطاق الزمني' : 'Time Slicer'}</span>
