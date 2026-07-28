@@ -779,6 +779,7 @@ export default function Dashboard() {
         setSpecialty(overrideSpecialManagers(parsed.specialty));
         setProducts(overrideSpecialManagers(parsed.products));
         setCoaching(overrideSpecialManagers(parsed.coaching));
+        if (parsed.visits) setVisits(parsed.visits);
         fetchedKeyRef.current = currentKey;
         setLoading(false);
         return;
@@ -794,7 +795,7 @@ export default function Dashboard() {
         p_is_manager: isMgr
       }),
       supabase.from('teams').select('id, name'),
-      supabase.from('visits').select('*').in('employee_code', codes)
+      supabase.from('visits').select('*').in('employee_code', codes).eq('upload_batch', periodLabel)
     ]);
 
     if (visitsRes.data) setVisits(visitsRes.data);
@@ -810,7 +811,10 @@ export default function Dashboard() {
     if (rpcError) {
       setError(rpcError.message);
     } else {
-      try { sessionStorage.setItem(cacheKey, JSON.stringify(data)); } catch (e) { }
+      try { 
+        data.visits = visitsRes.data;
+        sessionStorage.setItem(cacheKey, JSON.stringify(data)); 
+      } catch (e) { }
     }
 
     setSummary(overrideSpecialManagers(data?.summaries));
