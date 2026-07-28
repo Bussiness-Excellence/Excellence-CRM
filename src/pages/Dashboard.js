@@ -795,7 +795,20 @@ export default function Dashboard() {
         p_is_manager: isMgr
       }),
       supabase.from('teams').select('id, name'),
-      supabase.from('visits').select('*').in('employee_code', codes).eq('upload_batch', periodLabel)
+      (() => {
+        // Parse period like "July 2026" → date range for that month
+        const periodDate = periodLabel ? new Date(`1 ${periodLabel}`) : null;
+        let visitsQuery = supabase.from('visits').select('user,employee_code,visit_date,visit_time,shift,acc_type_category,acc_type_raw,visit_type_category,doctor_name,doctor_key,acc_name,acc_id,team').in('employee_code', codes);
+        if (periodDate && !isNaN(periodDate.getTime())) {
+          const y = periodDate.getFullYear();
+          const m = String(periodDate.getMonth() + 1).padStart(2, '0');
+          const startDate = `${y}-${m}-01`;
+          const lastDay = new Date(y, periodDate.getMonth() + 1, 0).getDate();
+          const endDate = `${y}-${m}-${String(lastDay).padStart(2, '0')}`;
+          visitsQuery = visitsQuery.gte('visit_date', startDate).lte('visit_date', endDate);
+        }
+        return visitsQuery;
+      })()
     ]);
 
     if (visitsRes.data) setVisits(visitsRes.data);
