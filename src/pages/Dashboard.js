@@ -1042,20 +1042,40 @@ export default function Dashboard() {
           const activityDates = new Set(userVisits.filter(isActivity).map(v => v.visit_date).filter(Boolean));
 
           if (userVisits.length > 0 || x.coaching_days > 0) {
-            const amVisits = userVisits.filter(v => v.shift === 'AM');
-            const pmVisits = userVisits.filter(v => v.shift === 'PM');
-            const amCalls = amVisits.filter(v => v.doctor_name || v.acc_name).length;
-            const pmCalls = pmVisits.filter(v => v.doctor_name || v.acc_name).length;
+            // Only count real visits towards shifts (excludes Holidays, Weekends, etc.)
+            const actualVisits = userVisits.filter(v => v.doctor_name || v.acc_name);
+            const amVisits = actualVisits.filter(v => v.shift === 'AM');
+            const pmVisits = actualVisits.filter(v => v.shift === 'PM');
+            const amCalls = amVisits.length;
+            const pmCalls = pmVisits.length;
+            
             const amDates = new Set(amVisits.map(v => v.visit_date).filter(Boolean));
             const pmDates = new Set(pmVisits.map(v => v.visit_date).filter(Boolean));
+            const allDates = new Set(actualVisits.map(v => v.visit_date).filter(Boolean));
             
-            // allDates includes visits AND coaching
-            const allDates = new Set(userVisits.map(v => v.visit_date).filter(Boolean));
-            if (x.is_manager && mgrCoachingMap[x.user_name]) {
-              mgrCoachingMap[x.user_name].forEach(d => allDates.add(d));
+            // Managers get shift days and working days from their Coaching Days
+            if (x.is_manager) {
+              const mgrCoaches = filteredCoaching.filter(c => c.manager_name === x.user_name);
+              mgrCoaches.forEach(c => {
+                if (c.coaching_date) {
+                  allDates.add(c.coaching_date);
+                  // If we have am/pm breakdown in coaching
+                  if (c.am_visits > 0 || c.am_accompanied > 0) amDates.add(c.coaching_date);
+                  if (c.pm_visits > 0 || c.pm_accompanied > 0) pmDates.add(c.coaching_date);
+                  // Fallback: if no specific AM/PM is logged but it's a coaching day, assume both or at least AM
+                  if (!c.am_visits && !c.am_accompanied && !c.pm_visits && !c.pm_accompanied) {
+                    amDates.add(c.coaching_date);
+                  }
+                }
+              });
             }
-            // Remove activity days from working_days calculation!
-            activityDates.forEach(d => allDates.delete(d));
+            
+            // Remove activity days from ALL day calculations (per user request)
+            activityDates.forEach(d => {
+              allDates.delete(d);
+              amDates.delete(d);
+              pmDates.delete(d);
+            });
             
             let completeCount = 0;
             allDates.forEach(d => { if (amDates.has(d) && pmDates.has(d)) completeCount++; });
