@@ -1055,16 +1055,20 @@ export default function Dashboard() {
           const activityDates = new Set(userVisits.filter(isActivity).map(v => v.visit_date).filter(Boolean));
 
           if (userVisits.length > 0 || x.coaching_days > 0) {
-            // Only count real visits towards shifts (excludes Holidays, Weekends, etc.)
+            // Count calls only from real doctor/account visits
             const actualVisits = userVisits.filter(v => v.doctor_name || v.acc_name);
             const amVisits = actualVisits.filter(v => v.shift === 'AM');
             const pmVisits = actualVisits.filter(v => v.shift === 'PM');
             const amCalls = amVisits.length;
             const pmCalls = pmVisits.length;
-            
-            const amDates = new Set(amVisits.map(v => v.visit_date).filter(Boolean));
-            const pmDates = new Set(pmVisits.map(v => v.visit_date).filter(Boolean));
-            const allDates = new Set(actualVisits.map(v => v.visit_date).filter(Boolean));
+
+            // For DAY counting: use ALL visits (any row = person was present that day)
+            // This prevents holidays/blank rows from zeroing out a day that had real visits
+            const allUserAmVisits = userVisits.filter(v => v.shift === 'AM');
+            const allUserPmVisits = userVisits.filter(v => v.shift === 'PM');
+            const amDates = new Set(allUserAmVisits.map(v => v.visit_date).filter(Boolean));
+            const pmDates = new Set(allUserPmVisits.map(v => v.visit_date).filter(Boolean));
+            const allDates = new Set(userVisits.map(v => v.visit_date).filter(Boolean));
             
             // Managers get shift days and working days from their Coaching Days
             if (x.is_manager) {
