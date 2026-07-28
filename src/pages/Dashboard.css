@@ -704,6 +704,26 @@ html.dark .ucard.team-brief-card .ucard-meta {
   font-weight: 600 !important;
 }
 
+/* --- Timing / Last Visit Data specific overrides --- */
+.timing-tbl th, .timing-tbl td {
+  padding: 12px 16px !important;
+  font-size: 16px !important;
+  text-align: left;
+}
+
+/* --- Timing / Last Visit Data specific overrides --- */
+.timing-tbl th, .timing-tbl td {
+  padding: 12px 16px !important;
+  font-size: 16px !important;
+  text-align: left;
+}
+.timing-tbl .s-col {
+  width: 150px;
+}
+.timing-tbl th, .timing-tbl td {
+  width: auto;
+}
+
 html.dark .ucard.team-brief-card .mgr-pip {
   background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%) !important;
   color: #0f172a !important;
